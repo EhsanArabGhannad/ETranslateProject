@@ -1,0 +1,6 @@
+@ETranslate.Trust.Api_HostAddress = http://localhost:5033
+
+GET {{ETranslate.Trust.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

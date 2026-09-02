@@ -1,0 +1,6 @@
+@ETranslate.Billing.Api_HostAddress = http://localhost:5249
+
+GET {{ETranslate.Billing.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

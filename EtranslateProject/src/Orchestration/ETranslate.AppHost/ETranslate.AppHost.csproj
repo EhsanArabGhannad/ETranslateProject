@@ -1,0 +1,29 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.5.3">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Web\ETranslate.Web\ETranslate.Web.csproj" />
+    <ProjectReference Include="..\..\Gateway\ETranslate.Gateway\ETranslate.Gateway.csproj" />
+    <ProjectReference Include="..\..\Services\IdentityAccess\ETranslate.IdentityAccess.Api\ETranslate.IdentityAccess.Api.csproj" />
+    <ProjectReference Include="..\..\Services\TranslationWorkflow\ETranslate.TranslationWorkflow.Api\ETranslate.TranslationWorkflow.Api.csproj" />
+    <ProjectReference Include="..\..\Services\Documents\ETranslate.Documents.Api\ETranslate.Documents.Api.csproj" />
+    <ProjectReference Include="..\..\Services\Trust\ETranslate.Trust.Api\ETranslate.Trust.Api.csproj" />
+    <ProjectReference Include="..\..\Services\Billing\ETranslate.Billing.Api\ETranslate.Billing.Api.csproj" />
+    <ProjectReference Include="..\..\Services\NotaryIntegration\ETranslate.NotaryIntegration.Api\ETranslate.NotaryIntegration.Api.csproj" />
+    <ProjectReference Include="..\..\Services\Notifications\ETranslate.Notifications.Worker\ETranslate.Notifications.Worker.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.5.3" />
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" Version="13.5.3" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
+    <UserSecretsId>8da2ae96-7802-4724-8b77-6af446a55501</UserSecretsId>
+  </PropertyGroup>
+
+</Project>

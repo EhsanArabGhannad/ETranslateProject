@@ -1,0 +1,6 @@
+@ETranslate.IdentityAccess.Api_HostAddress = http://localhost:5031
+
+GET {{ETranslate.IdentityAccess.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

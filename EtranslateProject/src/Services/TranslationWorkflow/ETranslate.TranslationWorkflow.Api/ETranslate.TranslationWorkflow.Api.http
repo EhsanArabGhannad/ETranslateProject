@@ -1,0 +1,6 @@
+@ETranslate.TranslationWorkflow.Api_HostAddress = http://localhost:5285
+
+GET {{ETranslate.TranslationWorkflow.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

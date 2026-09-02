@@ -1,0 +1,42 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/ETranslate.Contracts/ETranslate.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/src/Gateway/">
+    <Project Path="src/Gateway/ETranslate.Gateway/ETranslate.Gateway.csproj" />
+  </Folder>
+  <Folder Name="/src/Orchestration/">
+    <Project Path="src/Orchestration/ETranslate.AppHost/ETranslate.AppHost.csproj" />
+    <Project Path="src/Orchestration/ETranslate.ServiceDefaults/ETranslate.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/Billing/">
+    <Project Path="src/Services/Billing/ETranslate.Billing.Api/ETranslate.Billing.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Documents/">
+    <Project Path="src/Services/Documents/ETranslate.Documents.Api/ETranslate.Documents.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/IdentityAccess/">
+    <Project Path="src/Services/IdentityAccess/ETranslate.IdentityAccess.Api/ETranslate.IdentityAccess.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/NotaryIntegration/">
+    <Project Path="src/Services/NotaryIntegration/ETranslate.NotaryIntegration.Api/ETranslate.NotaryIntegration.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Notifications/">
+    <Project Path="src/Services/Notifications/ETranslate.Notifications.Worker/ETranslate.Notifications.Worker.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/TranslationWorkflow/">
+    <Project Path="src/Services/TranslationWorkflow/ETranslate.TranslationWorkflow.Api/ETranslate.TranslationWorkflow.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Trust/">
+    <Project Path="src/Services/Trust/ETranslate.Trust.Api/ETranslate.Trust.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Web/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/ETranslate.ArchitectureTests/ETranslate.ArchitectureTests.csproj" />
+    <Project Path="tests/ETranslate.DomainTests/ETranslate.DomainTests.csproj" />
+    <Project Path="tests/ETranslate.EndToEndTests/ETranslate.EndToEndTests.csproj" />
+  </Folder>
+  <Project Path="src/Web/ETranslate.Web/ETranslate.Web.csproj" />
+</Solution>
