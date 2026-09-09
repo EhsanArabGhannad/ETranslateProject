@@ -64,3 +64,28 @@ dotnet test ETranslate.slnx
 ```
 
 The end-to-end tenant/trial test requires Docker or Podman; domain and architecture tests run without containers.
+
+### Translation jobs
+
+Tenant members can manage draft translation jobs through:
+
+- `POST /api/v1/tenants/{tenantId}/translation-jobs`
+- `GET /api/v1/tenants/{tenantId}/translation-jobs`
+- `GET /api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}`
+- `PUT /api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}`
+
+The bearer token is checked against Identity Access for every tenant-scoped operation. `AcceptanceProfile` may be omitted or null. When `NotaryRequirement` is `Required`, `NotaryProcessingMode` must be `Physical`, `Digital`, or `Hybrid`.
+
+Example without a notary or special acceptance profile:
+
+```json
+{
+  "title": "Tourist visa passport translation",
+  "sourceLanguageCode": "fa",
+  "targetLanguageCode": "tr",
+  "notaryRequirement": "NotRequired",
+  "notaryProcessingMode": null,
+  "acceptanceProfile": null,
+  "acceptanceProfileOther": null
+}
+```

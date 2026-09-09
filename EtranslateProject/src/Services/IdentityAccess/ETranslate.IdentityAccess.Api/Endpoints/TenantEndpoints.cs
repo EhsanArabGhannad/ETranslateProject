@@ -20,6 +20,7 @@ public static class TenantEndpoints
         group.MapPost("/", CreateTenantAsync);
         group.MapGet("/", GetMyTenantsAsync);
         group.MapGet("/{tenantId:guid}", GetTenantAsync);
+        group.MapGet("/{tenantId:guid}/access", GetTenantAccessAsync);
 
         return endpoints;
     }
@@ -77,7 +78,6 @@ public static class TenantEndpoints
         var tenant = Tenant.Create(request.Name, slug, request.Type, now);
         var membership = TenantMembership.CreateOwner(tenant.Id, user.Id, now);
 
-        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
         database.Tenants.Add(tenant);
         database.TenantMemberships.Add(membership);
 
@@ -93,7 +93,6 @@ public static class TenantEndpoints
         try
         {
             await database.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
         }
         catch (DbUpdateException exception) when (
             exception.InnerException is PostgresException
@@ -101,7 +100,6 @@ public static class TenantEndpoints
                 SqlState: PostgresErrorCodes.UniqueViolation
             })
         {
-            await transaction.RollbackAsync(cancellationToken);
             return Results.Conflict(new { error = "tenant_slug_already_exists" });
         }
 
@@ -174,6 +172,35 @@ public static class TenantEndpoints
 
         return tenant is null ? Results.NotFound() : Results.Ok(tenant);
     }
+
+    private static async Task<IResult> GetTenantAccessAsync(
+        Guid tenantId,
+        ClaimsPrincipal principal,
+        UserManager<ApplicationUser> userManager,
+        IdentityAccessDbContext database,
+        CancellationToken cancellationToken)
+    {
+        var user = await userManager.GetUserAsync(principal);
+        if (user is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var access = await database.TenantMemberships
+            .AsNoTracking()
+            .Where(membership =>
+                membership.TenantId == tenantId &&
+                membership.UserId == user.Id &&
+                membership.Tenant.IsActive)
+            .Select(membership => new TenantAccessResponse(
+                membership.TenantId,
+                membership.UserId,
+                membership.Tenant.Type.ToString(),
+                membership.Role.ToString()))
+            .SingleOrDefaultAsync(cancellationToken);
+
+        return access is null ? Results.NotFound() : Results.Ok(access);
+    }
 }
 
 public sealed record CreateTenantRequest(string Name, string? Slug, TenantType Type);
@@ -185,3 +212,9 @@ public sealed record TenantResponse(
     TenantType Type,
     TenantRole Role,
     DateTimeOffset CreatedAtUtc);
+
+public sealed record TenantAccessResponse(
+    Guid TenantId,
+    Guid UserId,
+    string TenantType,
+    string Role);
