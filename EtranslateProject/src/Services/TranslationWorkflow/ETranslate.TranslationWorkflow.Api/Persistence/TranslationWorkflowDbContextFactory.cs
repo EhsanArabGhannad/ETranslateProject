@@ -9,7 +9,8 @@ public sealed class TranslationWorkflowDbContextFactory :
     public TranslationWorkflowDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<TranslationWorkflowDbContext>()
-            .UseNpgsql("Host=localhost;Database=workflowdb;Username=postgres;Password=postgres")
+            .UseSqlServer(
+                "Server=.\\ESIMSSQLSERVER;Database=ETranslateWorkflow;Integrated Security=True;Encrypt=True;TrustServerCertificate=True")
             .Options;
 
         return new TranslationWorkflowDbContext(options);

@@ -19,22 +19,25 @@ var messagingConnectionString = builder.Configuration.GetConnectionString("messa
     ?? throw new InvalidOperationException("Connection string 'messaging' is not configured.");
 
 builder.Services.AddDbContext<TranslationWorkflowDbContext>(options =>
-    options.UseNpgsql(workflowConnectionString, npgsql => npgsql.EnableRetryOnFailure()));
+    options.UseSqlServer(workflowConnectionString, sqlServer => sqlServer.EnableRetryOnFailure()));
 builder.Services.AddHttpClient<TenantAccessClient>(client =>
     client.BaseAddress = new Uri("https+http://identity-access"));
+
+builder.Services.AddOptions<SqlTransportOptions>()
+    .Configure(options => options.ConnectionString = messagingConnectionString);
+builder.Services.AddSqlServerMigrationHostedService(options => options.CreateDatabase = false);
 
 builder.Services.AddMassTransit(configuration =>
 {
     configuration.AddEntityFrameworkOutbox<TranslationWorkflowDbContext>(outbox =>
     {
-        outbox.UsePostgres();
+        outbox.UseSqlServer();
         outbox.UseBusOutbox();
     });
 
-    configuration.UsingRabbitMq((context, rabbitMq) =>
+    configuration.UsingSqlServer((context, sqlServer) =>
     {
-        rabbitMq.Host(new Uri(messagingConnectionString));
-        rabbitMq.ConfigureEndpoints(context);
+        sqlServer.ConfigureEndpoints(context);
     });
 });
 

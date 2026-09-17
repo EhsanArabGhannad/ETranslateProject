@@ -23,7 +23,7 @@ var messagingConnectionString = builder.Configuration.GetConnectionString("messa
     ?? throw new InvalidOperationException("Connection string 'messaging' is not configured.");
 
 builder.Services.AddDbContext<DocumentsDbContext>(options =>
-    options.UseNpgsql(documentsConnectionString, npgsql => npgsql.EnableRetryOnFailure()));
+    options.UseSqlServer(documentsConnectionString, sqlServer => sqlServer.EnableRetryOnFailure()));
 builder.Services.AddHttpClient<TenantAccessClient>(client =>
     client.BaseAddress = new Uri("https+http://identity-access"));
 builder.Services.AddHttpClient<TranslationJobClient>(client =>
@@ -39,18 +39,21 @@ var storageRoot = string.IsNullOrWhiteSpace(configuredStorageRoot)
 builder.Services.AddSingleton(new DocumentStorageOptions { RootPath = storageRoot });
 builder.Services.AddSingleton<IDocumentBlobStore, LocalDocumentBlobStore>();
 
+builder.Services.AddOptions<SqlTransportOptions>()
+    .Configure(options => options.ConnectionString = messagingConnectionString);
+builder.Services.AddSqlServerMigrationHostedService(options => options.CreateDatabase = false);
+
 builder.Services.AddMassTransit(configuration =>
 {
     configuration.AddEntityFrameworkOutbox<DocumentsDbContext>(outbox =>
     {
-        outbox.UsePostgres();
+        outbox.UseSqlServer();
         outbox.UseBusOutbox();
     });
 
-    configuration.UsingRabbitMq((context, rabbitMq) =>
+    configuration.UsingSqlServer((context, sqlServer) =>
     {
-        rabbitMq.Host(new Uri(messagingConnectionString));
-        rabbitMq.ConfigureEndpoints(context);
+        sqlServer.ConfigureEndpoints(context);
     });
 });
 

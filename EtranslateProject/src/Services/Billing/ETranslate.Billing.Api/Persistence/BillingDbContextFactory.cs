@@ -8,7 +8,8 @@ public sealed class BillingDbContextFactory : IDesignTimeDbContextFactory<Billin
     public BillingDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<BillingDbContext>()
-            .UseNpgsql("Host=localhost;Database=billingdb;Username=postgres;Password=postgres")
+            .UseSqlServer(
+                "Server=.\\ESIMSSQLSERVER;Database=ETranslateBilling;Integrated Security=True;Encrypt=True;TrustServerCertificate=True")
             .Options;
 
         return new BillingDbContext(options);

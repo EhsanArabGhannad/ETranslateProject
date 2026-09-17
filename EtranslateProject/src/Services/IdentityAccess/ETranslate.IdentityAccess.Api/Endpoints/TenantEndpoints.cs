@@ -3,9 +3,9 @@ using ETranslate.Contracts.Tenants;
 using ETranslate.IdentityAccess.Api.Identity;
 using ETranslate.IdentityAccess.Api.Persistence;
 using MassTransit;
+using Microsoft.Data.SqlClient;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace ETranslate.IdentityAccess.Api.Endpoints;
 
@@ -95,10 +95,7 @@ public static class TenantEndpoints
             await database.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateException exception) when (
-            exception.InnerException is PostgresException
-            {
-                SqlState: PostgresErrorCodes.UniqueViolation
-            })
+            exception.InnerException is SqlException { Number: 2601 or 2627 })
         {
             return Results.Conflict(new { error = "tenant_slug_already_exists" });
         }

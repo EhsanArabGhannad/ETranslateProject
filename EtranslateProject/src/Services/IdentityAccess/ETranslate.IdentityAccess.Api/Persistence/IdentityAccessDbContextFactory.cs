@@ -8,7 +8,8 @@ public sealed class IdentityAccessDbContextFactory : IDesignTimeDbContextFactory
     public IdentityAccessDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<IdentityAccessDbContext>()
-            .UseNpgsql("Host=localhost;Database=identitydb;Username=postgres;Password=postgres")
+            .UseSqlServer(
+                "Server=.\\ESIMSSQLSERVER;Database=ETranslateIdentity;Integrated Security=True;Encrypt=True;TrustServerCertificate=True")
             .Options;
 
         return new IdentityAccessDbContext(options);

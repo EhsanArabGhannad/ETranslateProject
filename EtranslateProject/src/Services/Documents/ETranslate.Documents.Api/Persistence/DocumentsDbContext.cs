@@ -41,8 +41,8 @@ public sealed class DocumentsDbContext(
         {
             entity.ToTable("draft_revisions");
             entity.HasKey(revision => revision.Id);
-            entity.Property(revision => revision.EditorContentJson).HasColumnType("jsonb").IsRequired();
-            entity.Property(revision => revision.PlainText).HasColumnType("text");
+            entity.Property(revision => revision.EditorContentJson).HasColumnType("nvarchar(max)").IsRequired();
+            entity.Property(revision => revision.PlainText).HasColumnType("nvarchar(max)");
             entity.HasIndex(revision => new { revision.DocumentId, revision.RevisionNumber }).IsUnique();
         });
 

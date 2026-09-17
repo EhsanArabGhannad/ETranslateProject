@@ -20,14 +20,18 @@ var messagingConnectionString = builder.Configuration.GetConnectionString("messa
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddDbContext<BillingDbContext>(options =>
-    options.UseNpgsql(billingConnectionString, npgsql => npgsql.EnableRetryOnFailure()));
+    options.UseSqlServer(billingConnectionString, sqlServer => sqlServer.EnableRetryOnFailure()));
+
+builder.Services.AddOptions<SqlTransportOptions>()
+    .Configure(options => options.ConnectionString = messagingConnectionString);
+builder.Services.AddSqlServerMigrationHostedService(options => options.CreateDatabase = false);
 
 builder.Services.AddMassTransit(configuration =>
 {
     configuration.AddConsumer<TenantCreatedConsumer>();
     configuration.AddEntityFrameworkOutbox<BillingDbContext>(outbox =>
     {
-        outbox.UsePostgres();
+        outbox.UseSqlServer();
         outbox.UseBusOutbox();
     });
     configuration.AddConfigureEndpointsCallback((context, _, endpoint) =>
@@ -39,10 +43,9 @@ builder.Services.AddMassTransit(configuration =>
         endpoint.UseEntityFrameworkOutbox<BillingDbContext>(context);
     });
 
-    configuration.UsingRabbitMq((context, rabbitMq) =>
+    configuration.UsingSqlServer((context, sqlServer) =>
     {
-        rabbitMq.Host(new Uri(messagingConnectionString));
-        rabbitMq.ConfigureEndpoints(context);
+        sqlServer.ConfigureEndpoints(context);
     });
 });
 

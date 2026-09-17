@@ -23,7 +23,8 @@ The solution targets .NET 10 and uses Aspire for local orchestration and observa
 ### Prerequisites
 
 - .NET SDK 10.0.400 or newer in the 10.0 feature band.
-- Docker Desktop or Podman for PostgreSQL and RabbitMQ containers.
+- SQL Server 2022 or newer. SQL Server Developer Edition is suitable for local development.
+- A Windows-authenticated SQL Server login that can create the development databases on first run.
 
 ### Run the platform
 
@@ -33,7 +34,15 @@ dotnet build ETranslate.slnx
 dotnet run --project src/Orchestration/ETranslate.AppHost/ETranslate.AppHost.csproj
 ```
 
-Open the Aspire dashboard URL printed in the terminal. The AppHost provisions independently owned PostgreSQL databases (`identitydb`, `billingdb`, `workflowdb`, and `documentsdb`) and a RabbitMQ broker.
+Open the Aspire dashboard URL printed in the terminal. The services use one SQL Server instance while retaining database ownership boundaries:
+
+- `ETranslateIdentity`
+- `ETranslateBilling`
+- `ETranslateWorkflow`
+- `ETranslateDocuments`
+- `ETranslateMessaging` for the MassTransit SQL transport
+
+The checked-in development settings target `.\ESIMSSQLSERVER` with Windows Authentication. Change the AppHost connection strings through local configuration or user secrets when your SQL Server instance has a different name. No Docker or WSL installation is required for this setup.
 
 ### Tenant onboarding flow
 
@@ -57,13 +66,13 @@ Example tenant request:
 
 ### Database migrations and tests
 
-Both stateful services apply committed EF Core migrations at startup.
+Each stateful service applies its committed EF Core migrations at startup. The MassTransit SQL transport initializes its messaging schema automatically.
 
 ```powershell
 dotnet test ETranslate.slnx
 ```
 
-The end-to-end tenant/trial test requires Docker or Podman; domain and architecture tests run without containers.
+Domain and architecture tests run without external infrastructure. Local end-to-end verification uses the configured SQL Server instance and does not require a container runtime.
 
 ### Translation jobs
 

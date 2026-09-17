@@ -8,7 +8,8 @@ public sealed class DocumentsDbContextFactory : IDesignTimeDbContextFactory<Docu
     public DocumentsDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<DocumentsDbContext>()
-            .UseNpgsql("Host=localhost;Database=documentsdb;Username=postgres;Password=postgres")
+            .UseSqlServer(
+                "Server=.\\ESIMSSQLSERVER;Database=ETranslateDocuments;Integrated Security=True;Encrypt=True;TrustServerCertificate=True")
             .Options;
 
         return new DocumentsDbContext(options);

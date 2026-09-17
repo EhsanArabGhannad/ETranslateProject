@@ -4,8 +4,8 @@ using ETranslate.Documents.Api.Documents;
 using ETranslate.Documents.Api.Persistence;
 using ETranslate.Documents.Api.Storage;
 using MassTransit;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace ETranslate.Documents.Api.Endpoints;
 
@@ -92,7 +92,7 @@ public static class DocumentEndpoints
             await database.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateException exception) when (
-            exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+            exception.InnerException is SqlException { Number: 2601 or 2627 })
         {
             return Results.Conflict(new { error = "translation_document_already_exists" });
         }
@@ -195,13 +195,14 @@ public static class DocumentEndpoints
                 revision.CreatedByUserId,
                 now),
             cancellationToken);
+        database.DraftRevisions.Add(revision);
 
         try
         {
             await database.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateException exception) when (
-            exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+            exception.InnerException is SqlException { Number: 2601 or 2627 })
         {
             return Results.Conflict(new
             {
@@ -384,6 +385,7 @@ public static class DocumentEndpoints
                 storageKey,
                 access.Actor!.UserId,
                 now);
+            database.SourceFiles.Add(sourceFile);
 
             await publishEndpoint.Publish(
                 new SourceFileUploadedV1(

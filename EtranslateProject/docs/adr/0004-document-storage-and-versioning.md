@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted; infrastructure details amended by ADR 0005
 
 ## Context
 
@@ -10,7 +10,7 @@ Translation source files are legal evidence and must remain byte-for-byte tracea
 
 ## Decision
 
-- Documents owns a separate PostgreSQL database named `documentsdb`.
+- Documents owns a separate database and migrations. Its current SQL Server database is `ETranslateDocuments` as defined by ADR 0005.
 - A translation job has at most one translation document in the first product phase.
 - Source files are immutable, limited to 25 MiB, and restricted to PDF, JPEG, PNG, and TIFF. Their binary signatures must match the declared media type.
 - Every stored source file has a SHA-256 digest persisted with its metadata.
