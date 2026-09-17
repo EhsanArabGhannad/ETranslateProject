@@ -6,6 +6,7 @@ var postgres = builder.AddPostgres("postgres")
 var identityDatabase = postgres.AddDatabase("identitydb");
 var billingDatabase = postgres.AddDatabase("billingdb");
 var workflowDatabase = postgres.AddDatabase("workflowdb");
+var documentsDatabase = postgres.AddDatabase("documentsdb");
 
 var messaging = builder.AddRabbitMQ("messaging");
 
@@ -21,7 +22,15 @@ var translationWorkflow = builder.AddProject<Projects.ETranslate_TranslationWork
     .WaitFor(workflowDatabase)
     .WaitFor(messaging)
     .WaitFor(identityAccess);
-var documents = builder.AddProject<Projects.ETranslate_Documents_Api>("documents");
+var documents = builder.AddProject<Projects.ETranslate_Documents_Api>("documents")
+    .WithReference(documentsDatabase)
+    .WithReference(messaging)
+    .WithReference(identityAccess)
+    .WithReference(translationWorkflow)
+    .WaitFor(documentsDatabase)
+    .WaitFor(messaging)
+    .WaitFor(identityAccess)
+    .WaitFor(translationWorkflow);
 var trust = builder.AddProject<Projects.ETranslate_Trust_Api>("trust");
 var billing = builder.AddProject<Projects.ETranslate_Billing_Api>("billing")
     .WithReference(billingDatabase)

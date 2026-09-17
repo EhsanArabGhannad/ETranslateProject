@@ -33,7 +33,7 @@ dotnet build ETranslate.slnx
 dotnet run --project src/Orchestration/ETranslate.AppHost/ETranslate.AppHost.csproj
 ```
 
-Open the Aspire dashboard URL printed in the terminal. The AppHost provisions two independently owned databases (`identitydb` and `billingdb`) and a RabbitMQ broker.
+Open the Aspire dashboard URL printed in the terminal. The AppHost provisions independently owned PostgreSQL databases (`identitydb`, `billingdb`, `workflowdb`, and `documentsdb`) and a RabbitMQ broker.
 
 ### Tenant onboarding flow
 
@@ -89,3 +89,33 @@ Example without a notary or special acceptance profile:
   "acceptanceProfileOther": null
 }
 ```
+
+### Translation documents
+
+Each translation job can have one translation document in the first product phase. Create it with:
+
+- `POST /api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}/documents`
+- `GET /api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}/documents`
+
+Editor saves are immutable revisions. `ExpectedCurrentRevision` prevents a stale browser tab from overwriting newer work:
+
+```json
+{
+  "expectedCurrentRevision": 0,
+  "editorContentJson": "{\"type\":\"doc\",\"content\":[]}",
+  "plainText": ""
+}
+```
+
+Revision endpoints:
+
+- `POST /api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}/documents/{documentId}/draft-revisions`
+- `GET /api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}/documents/{documentId}/draft-revisions`
+- `GET /api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}/documents/{documentId}/draft-revisions/{revisionNumber}`
+
+Source files are uploaded as `multipart/form-data` with field name `file`. PDF, JPEG, PNG, and TIFF files up to 25 MiB are accepted. The service checks the binary file signature and stores a SHA-256 digest for every upload.
+
+- `POST /api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}/documents/{documentId}/source-files`
+- `GET /api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}/documents/{documentId}/source-files/{sourceFileId}`
+
+The default development blob provider stores content under the current user's local application-data directory. Production must replace it with shared object storage through `IDocumentBlobStore` before scaling the Documents service horizontally.
