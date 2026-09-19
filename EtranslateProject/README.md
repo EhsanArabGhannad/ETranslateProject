@@ -99,6 +99,34 @@ Example without a notary or special acceptance profile:
 }
 ```
 
+### Document templates
+
+Tenant members can create reusable, tenant-isolated document templates. Template content is versioned immutably so an older signed or rendered document can continue to reference the exact layout that produced it.
+
+- `POST /api/v1/tenants/{tenantId}/document-templates`
+- `GET /api/v1/tenants/{tenantId}/document-templates`
+- `GET /api/v1/tenants/{tenantId}/document-templates/{templateId}`
+- `POST /api/v1/tenants/{tenantId}/document-templates/{templateId}/revisions`
+- `GET /api/v1/tenants/{tenantId}/document-templates/{templateId}/revisions`
+- `GET /api/v1/tenants/{tenantId}/document-templates/{templateId}/revisions/{revisionNumber}`
+- `PUT /api/v1/tenants/{tenantId}/document-templates/{templateId}/status`
+
+Each revision stores editor body content, optional header and footer content, page-layout settings, and an optional watermark definition as validated JSON. `ExpectedCurrentRevision` prevents concurrent editors from overwriting a newer template version. Archiving a template prevents new revisions without deleting its history.
+
+Example template request:
+
+```json
+{
+  "name": "Tourist Visa - A4",
+  "description": "Office letterhead for visa translations",
+  "editorContentJson": "{\"type\":\"doc\",\"content\":[]}",
+  "headerContentJson": "{\"type\":\"header\",\"content\":[]}",
+  "footerContentJson": null,
+  "pageLayoutJson": "{\"pageSize\":\"A4\",\"orientation\":\"Portrait\",\"marginsMm\":{\"top\":25,\"right\":20,\"bottom\":20,\"left\":20}}",
+  "watermarkJson": "{\"text\":\"TRANSLATION\",\"opacity\":0.12,\"rotation\":-35}"
+}
+```
+
 ### Translation documents
 
 Each translation job can have one translation document in the first product phase. Create it with:

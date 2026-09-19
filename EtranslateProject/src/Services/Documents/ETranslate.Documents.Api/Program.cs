@@ -64,6 +64,7 @@ await app.ApplyDatabaseMigrationsAsync();
 
 app.MapGet("/", () => Results.Ok(new { service = "documents", status = "healthy" }));
 app.MapDocumentEndpoints();
+app.MapDocumentTemplateEndpoints();
 app.MapDefaultEndpoints();
 
 app.Run();
