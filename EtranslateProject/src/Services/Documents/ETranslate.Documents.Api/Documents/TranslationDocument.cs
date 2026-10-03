@@ -33,6 +33,7 @@ public sealed class TranslationDocument
     public Guid TranslationJobId { get; private init; }
     public Guid CreatedByUserId { get; private init; }
     public int CurrentDraftRevision { get; private set; }
+    public Guid? TemplateRevisionId { get; private set; }
     public DateTimeOffset CreatedAtUtc { get; private init; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
     public IReadOnlyCollection<DocumentDraftRevision> DraftRevisions => _draftRevisions;
@@ -49,6 +50,24 @@ public sealed class TranslationDocument
         ArgumentOutOfRangeException.ThrowIfEqual(createdByUserId, Guid.Empty);
 
         return new TranslationDocument(tenantId, translationJobId, createdByUserId, createdAtUtc);
+    }
+
+    public DocumentDraftRevision ApplyTemplate(
+        DocumentTemplate template,
+        DocumentTemplateRevision revision,
+        Guid userId,
+        DateTimeOffset now)
+    {
+        if (template.TenantId != TenantId || revision.TemplateId != template.Id)
+            throw new InvalidOperationException("Template revision does not belong to this document's tenant and template.");
+        if (!template.IsActive)
+            throw new InvalidOperationException("Archived templates cannot be applied to new documents.");
+        if (TemplateRevisionId is not null || CurrentDraftRevision != 0)
+            throw new InvalidOperationException("A template can only be applied once, before the first draft revision.");
+
+        var draft = AddDraftRevision(0, revision.EditorContentJson, null, userId, now);
+        TemplateRevisionId = revision.Id;
+        return draft;
     }
 
     public DocumentDraftRevision AddDraftRevision(

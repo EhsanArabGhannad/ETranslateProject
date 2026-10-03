@@ -74,6 +74,14 @@ dotnet test ETranslate.slnx
 
 Domain and architecture tests run without external infrastructure. Local end-to-end verification uses the configured SQL Server instance and does not require a container runtime.
 
+With AppHost running, verify template images, tenant isolation, pinned revisions and competing draft saves using PowerShell 7:
+
+```powershell
+./tests/ETranslate.EndToEndTests/Verify-TemplateAssets.ps1
+```
+
+This check creates isolated development tenants and leaves its test records and images available for inspection.
+
 ### Translation jobs
 
 Tenant members can manage draft translation jobs through:
@@ -128,6 +136,22 @@ Example template request:
 ```
 
 ### Translation documents
+
+Template images can be uploaded as `multipart/form-data` field `file`:
+
+- `POST /api/v1/tenants/{tenantId}/document-templates/{templateId}/assets`
+- `GET /api/v1/tenants/{tenantId}/document-templates/{templateId}/assets`
+- `GET /api/v1/tenants/{tenantId}/document-templates/{templateId}/assets/{assetId}`
+
+PNG and JPEG up to 5 MiB are accepted, with a MIME/binary-signature check and SHA-256 metadata. Use `assetId` in editor JSON, for example `{"type":"image","attrs":{"assetId":"<uploaded-guid>"}}`. Create a template first, upload its assets, then save a new template revision with these IDs. References to another template's assets are rejected. Assets cannot be replaced or deleted through the API.
+
+Apply a template before the document's first editor save:
+
+- `POST /api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}/documents/{documentId}/template`
+- Body: `{"templateId":"<template-guid>","revisionNumber":2}`
+- `GET` on the same path returns the pinned layout revision, including after the template is archived or updated.
+
+Application creates draft revision 1 from the template body and pins its exact `TemplateRevisionId`. A repeated application or applying to an already edited document returns HTTP 409. Later draft saves start with `expectedCurrentRevision: 1` and may reference assets from the pinned template. The editor UI and PDF renderer are not part of this API slice.
 
 Each translation job can have one translation document in the first product phase. Create it with:
 

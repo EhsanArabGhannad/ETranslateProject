@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ETranslate.Documents.Api.Endpoints;
 
-public static class DocumentTemplateEndpoints
+public static partial class DocumentTemplateEndpoints
 {
     public static IEndpointRouteBuilder MapDocumentTemplateEndpoints(this IEndpointRouteBuilder endpoints)
     {
@@ -22,6 +22,9 @@ public static class DocumentTemplateEndpoints
         group.MapGet("/{templateId:guid}/revisions", GetRevisionsAsync);
         group.MapGet("/{templateId:guid}/revisions/{revisionNumber:int}", GetRevisionAsync);
         group.MapPut("/{templateId:guid}/status", SetTemplateStatusAsync);
+        group.MapPost("/{templateId:guid}/assets", UploadAssetAsync).DisableAntiforgery();
+        group.MapGet("/{templateId:guid}/assets", GetAssetsAsync);
+        group.MapGet("/{templateId:guid}/assets/{assetId:guid}", DownloadAssetAsync);
 
         return endpoints;
     }
@@ -74,6 +77,9 @@ public static class DocumentTemplateEndpoints
         {
             return TemplateNameConflict();
         }
+
+        var assetError = await ValidateAssetsAsync(template.Id, template.Revisions.Single(), database, cancellationToken);
+        if (assetError is not null) return assetError;
 
         database.DocumentTemplates.Add(template);
         await publishEndpoint.Publish(
@@ -234,6 +240,9 @@ public static class DocumentTemplateEndpoints
         {
             return Results.Conflict(new { error = "document_template_is_archived", detail = exception.Message });
         }
+
+        var assetError = await ValidateAssetsAsync(template.Id, revision, database, cancellationToken);
+        if (assetError is not null) return assetError;
 
         database.TemplateRevisions.Add(revision);
         await publishEndpoint.Publish(

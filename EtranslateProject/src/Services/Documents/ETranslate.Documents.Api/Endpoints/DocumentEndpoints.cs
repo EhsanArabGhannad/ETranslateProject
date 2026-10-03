@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ETranslate.Documents.Api.Endpoints;
 
-public static class DocumentEndpoints
+public static partial class DocumentEndpoints
 {
     public static IEndpointRouteBuilder MapDocumentEndpoints(this IEndpointRouteBuilder endpoints)
     {
@@ -19,6 +19,8 @@ public static class DocumentEndpoints
 
         group.MapPost("/", CreateDocumentAsync);
         group.MapGet("/", GetDocumentAsync);
+        group.MapPost("/{documentId:guid}/template", ApplyTemplateAsync);
+        group.MapGet("/{documentId:guid}/template", GetAppliedTemplateAsync);
         group.MapPost("/{documentId:guid}/draft-revisions", CreateDraftRevisionAsync);
         group.MapGet("/{documentId:guid}/draft-revisions", GetDraftRevisionsAsync);
         group.MapGet("/{documentId:guid}/draft-revisions/{revisionNumber:int}", GetDraftRevisionAsync);
@@ -165,6 +167,9 @@ public static class DocumentEndpoints
             return Results.NotFound();
         }
 
+        var assetError = await ValidateDraftAssetsAsync(document, request.EditorContentJson, database, cancellationToken);
+        if (assetError is not null) return assetError;
+
         var now = timeProvider.GetUtcNow();
         DocumentDraftRevision revision;
         try
@@ -200,6 +205,10 @@ public static class DocumentEndpoints
         try
         {
             await database.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Results.Conflict(new { error = "document_revision_conflict", expectedRevision = request.ExpectedCurrentRevision });
         }
         catch (DbUpdateException exception) when (
             exception.InnerException is SqlException { Number: 2601 or 2627 })
@@ -404,6 +413,11 @@ public static class DocumentEndpoints
                 $"/api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}/documents/{documentId}/source-files/{sourceFile.Id}",
                 ToResponse(sourceFile));
         }
+        catch (DbUpdateConcurrencyException)
+        {
+            await blobStore.DeleteIfExistsAsync(storageKey, CancellationToken.None);
+            return Results.Conflict(new { error = "document_revision_conflict" });
+        }
         catch
         {
             await blobStore.DeleteIfExistsAsync(storageKey, CancellationToken.None);
@@ -567,7 +581,8 @@ public static class DocumentEndpoints
                 .Select(ToResponse)
                 .ToArray(),
             document.CreatedAtUtc,
-            document.UpdatedAtUtc);
+            document.UpdatedAtUtc,
+            document.TemplateRevisionId);
 
     private static DocumentDraftRevisionResponse ToResponse(DocumentDraftRevision revision) =>
         new(
@@ -605,7 +620,8 @@ public sealed record TranslationDocumentResponse(
     int CurrentDraftRevision,
     IReadOnlyCollection<SourceFileResponse> SourceFiles,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    Guid? TemplateRevisionId);
 
 public sealed record DocumentDraftRevisionSummaryResponse(
     Guid Id,

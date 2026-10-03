@@ -12,6 +12,7 @@ public sealed class DocumentsDbContext(
     public DbSet<SourceFile> SourceFiles => Set<SourceFile>();
     public DbSet<DocumentTemplate> DocumentTemplates => Set<DocumentTemplate>();
     public DbSet<DocumentTemplateRevision> TemplateRevisions => Set<DocumentTemplateRevision>();
+    public DbSet<TemplateAsset> TemplateAssets => Set<TemplateAsset>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -21,6 +22,10 @@ public sealed class DocumentsDbContext(
         {
             entity.ToTable("translation_documents");
             entity.HasKey(document => document.Id);
+            entity.Property(document => document.CurrentDraftRevision).IsConcurrencyToken();
+            entity.HasOne<DocumentTemplateRevision>().WithMany()
+                .HasForeignKey(document => document.TemplateRevisionId)
+                .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(document => new { document.TenantId, document.TranslationJobId }).IsUnique();
             entity.HasIndex(document => new { document.TenantId, document.UpdatedAtUtc });
 
@@ -87,6 +92,20 @@ public sealed class DocumentsDbContext(
             entity.Property(revision => revision.PageLayoutJson).HasColumnType("nvarchar(max)").IsRequired();
             entity.Property(revision => revision.WatermarkJson).HasColumnType("nvarchar(max)");
             entity.HasIndex(revision => new { revision.TemplateId, revision.RevisionNumber }).IsUnique();
+        });
+
+        modelBuilder.Entity<TemplateAsset>(entity =>
+        {
+            entity.ToTable("template_assets");
+            entity.HasKey(asset => asset.Id);
+            entity.Property(asset => asset.Id).ValueGeneratedNever();
+            entity.Property(asset => asset.OriginalFileName).HasMaxLength(255).IsRequired();
+            entity.Property(asset => asset.ContentType).HasMaxLength(100).IsRequired();
+            entity.Property(asset => asset.Sha256).HasMaxLength(64).IsRequired();
+            entity.Property(asset => asset.StorageKey).HasMaxLength(500).IsRequired();
+            entity.HasIndex(asset => asset.StorageKey).IsUnique();
+            entity.HasOne<DocumentTemplate>().WithMany()
+                .HasForeignKey(asset => asset.TemplateId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.AddInboxStateEntity(entity => entity.ToTable("inbox_state"));
