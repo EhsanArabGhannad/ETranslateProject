@@ -44,7 +44,12 @@ var gateway = builder.AddProject<Projects.ETranslate_Gateway>("gateway")
     .WithExternalHttpEndpoints();
 
 builder.AddProject<Projects.ETranslate_Web>("web")
-    .WithReference(gateway)
+    .WithReference(identityAccess)
+    .WithReference(translationWorkflow)
+    .WithReference(documents)
+    .WaitFor(identityAccess)
+    .WaitFor(translationWorkflow)
+    .WaitFor(documents)
     .WithExternalHttpEndpoints();
 
 builder.AddProject<Projects.ETranslate_Notifications_Worker>("notifications")

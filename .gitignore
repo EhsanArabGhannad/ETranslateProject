@@ -57,3 +57,7 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Web editor build dependencies (compiled assets and lockfile are checked in)
+**/node_modules/
+EtranslateProject/tmp/

@@ -151,7 +151,7 @@ Apply a template before the document's first editor save:
 - Body: `{"templateId":"<template-guid>","revisionNumber":2}`
 - `GET` on the same path returns the pinned layout revision, including after the template is archived or updated.
 
-Application creates draft revision 1 from the template body and pins its exact `TemplateRevisionId`. A repeated application or applying to an already edited document returns HTTP 409. Later draft saves start with `expectedCurrentRevision: 1` and may reference assets from the pinned template. The editor UI and PDF renderer are not part of this API slice.
+Application creates draft revision 1 from the template body and pins its exact `TemplateRevisionId`. A repeated application or applying to an already edited document returns HTTP 409. Later draft saves start with `expectedCurrentRevision: 1` and may reference assets from the pinned template. The Web workspace uses these APIs; a final PDF renderer is not implemented yet.
 
 Each translation job can have one translation document in the first product phase. Create it with:
 
@@ -180,3 +180,45 @@ Source files are uploaded as `multipart/form-data` with field name `file`. PDF, 
 - `GET /api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}/documents/{documentId}/source-files/{sourceFileId}`
 
 The default development blob provider stores content under the current user's local application-data directory. Production must replace it with shared object storage through `IDocumentBlobStore` before scaling the Documents service horizontally.
+
+### Web translator workspace
+
+Start the AppHost, then open [the local Web UI](https://localhost:7049). The interface currently uses Persian labels with automatic document-text direction; Turkish/localized UI is future work.
+
+1. Register or log in with an Identity Access account.
+2. Create/select a workspace (independent translator or translation office).
+3. Create a translation job. Notary is optional; acceptance profile can be blank or Other. Notary mode only records intent, not an available notary integration.
+4. Optionally create an A4 template with header/footer/starter text/watermark and attach a PNG/JPEG logo. Attaching a logo creates a new immutable template revision and appends to the existing header. An uploaded asset may remain unattached if the subsequent revision conflicts; inspect assets through the API before retrying.
+5. Start the document, optionally pin a template before the first save, and save translation-body revisions. History is read-only; the pinned template does not change when the template is updated.
+6. Upload original PDF, PNG, JPEG or TIFF files (up to 25 MiB each) beside the translation. PDF supports page navigation and zoom; PNG/JPEG are displayed as images. TIFF and password-protected PDFs are download-only. Uploading a source does not create a translation revision or clear unsaved editor input. Source files belong to the document and are shared across its translation revisions.
+7. Format recognized documents with bold, italic, underline, headings, bullet/numbered lists and RTL/LTR/automatic direction. Undo/redo is available within the current browser session. Open the expandable letterhead preview separately.
+
+This is an initial rich-text editor, **not a Word-equivalent document editor**. The original revision JSON remains the source of truth; plain text is only derived metadata. Both Web and browser validate a restricted schema before opening rich editing. Unknown JSON stays in an advanced field, without automatic conversion or flattening. The preview uses a limited, safe node vocabulary (paragraphs, text/marks, headings, lists, quotes, hard breaks, managed template images). Unsupported elements are flagged. Page metrics and watermark appearance are approximate, not faithful print layout. There is no table UI, Word import, accurate pagination, final translation PDF, signature, payment checkout, or notary approval yet. PDF source previews are canvas images, without OCR, text selection, search, annotation links or PDF scripts.
+
+Source downloads pass through authenticated, tenant-authorized Web routes with private/no-store responses and byte-range support. The Documents service remains authoritative for binary-signature validation. Web buffers at most 25 MiB per download; range requests currently fetch the entire upstream source before returning the selected range. Large-scale production use needs streaming/range forwarding, resource limits and malware scanning; MIME checks alone are not antivirus scanning.
+
+The browser assets are built locally from pinned [Tiptap](https://tiptap.dev/docs/editor/getting-started/install/vanilla-javascript) and [PDF.js](https://mozilla.github.io/pdf.js/) dependencies, with their license notices included. No CDN is used. The CSP allows WebAssembly compilation for PDF decoding, but not general JavaScript `unsafe-eval` or inline scripts. PDF.js evaluation/XFA and font-face injection are disabled. Committed generated assets let normal .NET builds/runs work without Node.js.
+
+To change browser code, use Node.js 22.13 or newer and rebuild from `src/Web/ETranslate.Web`:
+
+```powershell
+npm ci
+npm test
+npm run build
+```
+
+Rebuild/restart Web and reload the browser after asset changes. Client rebuilding is a separate step, not an automatic .NET build target. See the [Persian manual test guide](docs/testing/translator-workspace.fa.md).
+
+Web acts as a Backend-for-Frontend, calling Identity/Workflow/Documents via service discovery without API-project references or database access. Gateway remains a health-only placeholder, not a reverse proxy. Identity tokens live in an encrypted HttpOnly authentication ticket, never browser storage or client-side JavaScript. The non-sliding session expires with the access token; refresh tokens are not stored. All MVC mutations require antiforgery validation. Browser saves preserve the current text on session expiry, network failures or conflicts; conflicts require manual comparison with the latest version. Without JavaScript, ordinary form posts work but template selection/preview and expiry/network input preservation are limited. There is no autosave or local draft backup; keep a copy before closing a failed save.
+
+Production needs HTTPS, shared/persisted protected Data Protection keys and deployment hardening; this first UI slice is not a production-release claim. Cookie logout clears the Web session, not all already-issued Identity bearer tokens. Unsafe HTTP methods are not automatically retried by Web's resilience handler, to avoid duplicate mutations after ambiguous timeouts.
+
+With AppHost running, repeatable live checks (PowerShell 7):
+
+```powershell
+./tests/ETranslate.EndToEndTests/Verify-WebWorkspace.ps1
+./tests/ETranslate.EndToEndTests/Verify-TemplateAssets.ps1
+./tests/ETranslate.EndToEndTests/Verify-TranslatorWorkspace.ps1
+```
+
+The translator check also runs the Web workspace baseline; it tests private sources, MIME/size/antiforgery restrictions, byte ranges, tenant isolation, exact rich JSON preservation, pinned templates, stale saves and unknown-schema fallback. The scripts create isolated development accounts/tenants/documents and leave their fixtures for inspection. Never run against production. `dotnet test` alone does not execute these HTTP smoke scripts; the existing EndToEnd xUnit placeholder remains skipped.

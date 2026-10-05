@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.ServiceDiscovery;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
@@ -18,7 +19,7 @@ public static class Extensions
     private const string HealthEndpointPath = "/health";
     private const string AlivenessEndpointPath = "/alive";
 
-    public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+    public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder, bool disableUnsafeRetries = false) where TBuilder : IHostApplicationBuilder
     {
         builder.ConfigureOpenTelemetry();
 
@@ -29,7 +30,11 @@ public static class Extensions
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
             // Turn on resilience by default
-            http.AddStandardResilienceHandler();
+            http.AddStandardResilienceHandler(options =>
+            {
+                // UI mutations must not be replayed automatically after an ambiguous timeout.
+                if (disableUnsafeRetries) options.Retry.DisableForUnsafeHttpMethods();
+            });
 
             // Turn on service discovery by default
             http.AddServiceDiscovery();

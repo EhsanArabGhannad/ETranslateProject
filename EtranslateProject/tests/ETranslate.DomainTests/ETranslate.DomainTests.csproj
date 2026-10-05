@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Web\ETranslate.Web\ETranslate.Web.csproj" />
     <ProjectReference Include="..\..\src\Services\Billing\ETranslate.Billing.Api\ETranslate.Billing.Api.csproj" />
     <ProjectReference Include="..\..\src\Services\Documents\ETranslate.Documents.Api\ETranslate.Documents.Api.csproj" />
     <ProjectReference Include="..\..\src\Services\IdentityAccess\ETranslate.IdentityAccess.Api\ETranslate.IdentityAccess.Api.csproj" />
@@ -23,6 +24,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <None Include="..\..\src\Web\ETranslate.Web\ClientApp\tests\document-cases.json" Link="document-cases.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

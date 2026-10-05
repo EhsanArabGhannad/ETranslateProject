@@ -1,0 +1,137 @@
+%PDF-1.4
+%“Œ‹ž ReportLab Generated PDF document (opensource)
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/Contents 9 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 8 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+5 0 obj
+<<
+/Contents 10 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 8 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+6 0 obj
+<<
+/PageMode /UseNone /Pages 8 0 R /Type /Catalog
+>>
+endobj
+7 0 obj
+<<
+/Author (ETranslate development fixtures) /CreationDate (D:20000101000000+00'00') /Creator (anonymous) /Keywords () /ModDate (D:20000101000000+00'00') /Producer (ReportLab PDF Library - \(opensource\)) 
+  /Subject (unspecified) /Title (ETranslate - synthetic source document) /Trapped /False
+>>
+endobj
+8 0 obj
+<<
+/Count 2 /Kids [ 4 0 R 5 0 R ] /Type /Pages
+>>
+endobj
+9 0 obj
+<<
+/Length 930
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+.086275 .439216 .392157 rg
+n 0 716.8898 595.2756 125 re f*
+1 1 1 rg
+BT /F2 23 Tf 27.6 TL ET
+BT 1 0 0 1 48 776.8898 Tm (ETranslate source sample) Tj T* ET
+BT /F1 11 Tf 13.2 TL ET
+BT 1 0 0 1 48 746.8898 Tm (Synthetic fixture - not a customer document) Tj T* ET
+.098039 .227451 .223529 rg
+BT /F2 18 Tf 21.6 TL ET
+BT 1 0 0 1 48 661.8898 Tm (Document details) Tj T* ET
+BT /F1 13 Tf 15.6 TL ET
+BT 1 0 0 1 48 611.8898 Tm (Reference: SAMPLE-001) Tj T* ET
+BT 1 0 0 1 48 575.8898 Tm (Source language: English) Tj T* ET
+BT 1 0 0 1 48 539.8898 Tm (Target language: Turkish) Tj T* ET
+BT 1 0 0 1 48 503.8898 Tm (Purpose: local software testing) Tj T* ET
+.396078 .482353 .47451 rg
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 48 85 Tm (No signature, certification, or legal effect.) Tj T* ET
+BT 1 0 0 1 48 65 Tm (Use only in a development/test environment.) Tj T* ET
+BT 1 0 0 1 501.6856 45 Tm (Page 1 / 2) Tj T* ET
+ 
+endstream
+endobj
+10 0 obj
+<<
+/Length 1012
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+.086275 .439216 .392157 rg
+n 0 716.8898 595.2756 125 re f*
+1 1 1 rg
+BT /F2 23 Tf 27.6 TL ET
+BT 1 0 0 1 48 776.8898 Tm (ETranslate source sample) Tj T* ET
+BT /F1 11 Tf 13.2 TL ET
+BT 1 0 0 1 48 746.8898 Tm (Synthetic fixture - not a customer document) Tj T* ET
+.098039 .227451 .223529 rg
+BT /F2 18 Tf 21.6 TL ET
+BT 1 0 0 1 48 661.8898 Tm (Translation notes) Tj T* ET
+BT /F1 13 Tf 15.6 TL ET
+BT 1 0 0 1 48 611.8898 Tm (Check that the second page is visible.) Tj T* ET
+BT 1 0 0 1 48 575.8898 Tm (Try the PDF zoom and page-navigation controls.) Tj T* ET
+BT 1 0 0 1 48 539.8898 Tm (Formatting in the translation must survive saving.) Tj T* ET
+BT 1 0 0 1 48 503.8898 Tm (The original source file must remain unchanged.) Tj T* ET
+.396078 .482353 .47451 rg
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 48 85 Tm (No signature, certification, or legal effect.) Tj T* ET
+BT 1 0 0 1 48 65 Tm (Use only in a development/test environment.) Tj T* ET
+BT 1 0 0 1 501.6856 45 Tm (Page 2 / 2) Tj T* ET
+ 
+endstream
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000061 00000 n 
+0000000102 00000 n 
+0000000209 00000 n 
+0000000321 00000 n 
+0000000524 00000 n 
+0000000728 00000 n 
+0000000796 00000 n 
+0000001109 00000 n 
+0000001174 00000 n 
+0000002154 00000 n 
+trailer
+<<
+/ID 
+[<f6b47aeafa5a52b4f1723bc5da429664><f6b47aeafa5a52b4f1723bc5da429664>]
+% ReportLab generated PDF document -- digest (opensource)
+
+/Info 7 0 R
+/Root 6 0 R
+/Size 11
+>>
+startxref
+3218
+%%EOF

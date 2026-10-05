@@ -1,0 +1,22 @@
+[
+  { "name": "empty document", "valid": true, "document": { "type": "doc", "content": [] } },
+  { "name": "legacy empty text", "valid": true, "document": { "type": "doc", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "" }] }] } },
+  { "name": "multilingual marks and direction", "valid": true, "document": { "type": "doc", "attrs": { "dir": "auto" }, "content": [{ "type": "heading", "attrs": { "level": 2, "dir": "rtl" }, "content": [{ "type": "text", "text": "ترجمه", "marks": [{ "type": "bold" }] }] }, { "type": "paragraph", "attrs": { "dir": "ltr" }, "content": [{ "type": "text", "text": "Türkçe", "marks": [{ "type": "italic" }, { "type": "underline" }] }, { "type": "hardBreak", "attrs": { "dir": "auto" } }, { "type": "text", "text": "<script>text</script>" }] }] } },
+  { "name": "nested lists", "valid": true, "document": { "type": "doc", "content": [{ "type": "orderedList", "attrs": { "start": 3, "type": "A", "dir": "rtl" }, "content": [{ "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Item" }] }, { "type": "bulletList", "content": [{ "type": "listItem", "content": [{ "type": "paragraph" }] }] }] }] }] } },
+  { "name": "managed image", "valid": true, "document": { "type": "doc", "content": [{ "type": "image", "attrs": { "assetId": "12345678-1234-1234-1234-123456789abc", "dir": "auto" } }] } },
+  { "name": "quotation", "valid": true, "document": { "type": "doc", "content": [{ "type": "blockquote", "content": [{ "type": "paragraph" }] }] } },
+  { "name": "arbitrary URL image", "valid": false, "document": { "type": "doc", "content": [{ "type": "image", "attrs": { "src": "https://example.org/tracker.png" } }] } },
+  { "name": "unknown root metadata", "valid": false, "document": { "type": "doc", "custom": true, "content": [] } },
+  { "name": "table not yet supported", "valid": false, "document": { "type": "doc", "content": [{ "type": "table", "content": [] }] } },
+  { "name": "style cannot be discarded", "valid": false, "document": { "type": "doc", "content": [{ "type": "paragraph", "attrs": { "textAlign": "center" } }] } },
+  { "name": "link mark unsupported", "valid": false, "document": { "type": "doc", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "link", "marks": [{ "type": "link", "attrs": { "href": "javascript:alert(1)" } }] }] }] } },
+  { "name": "invalid direction", "valid": false, "document": { "type": "doc", "attrs": { "dir": "sideways" }, "content": [] } },
+  { "name": "empty list", "valid": false, "document": { "type": "doc", "content": [{ "type": "bulletList", "content": [] }] } },
+  { "name": "list item must begin with paragraph", "valid": false, "document": { "type": "doc", "content": [{ "type": "bulletList", "content": [{ "type": "listItem", "content": [{ "type": "heading", "attrs": { "level": 1 } }] }] }] } },
+  { "name": "inline at root", "valid": false, "document": { "type": "doc", "content": [{ "type": "text", "text": "orphan" }] } },
+  { "name": "heading level wrong type", "valid": false, "document": { "type": "doc", "content": [{ "type": "heading", "attrs": { "level": "2" } }] } },
+  { "name": "leaf with content", "valid": false, "document": { "type": "doc", "content": [{ "type": "paragraph", "content": [{ "type": "hardBreak", "content": [] }] }] } },
+  { "name": "invalid node shape", "valid": false, "document": { "type": "doc", "content": [42] } },
+  { "name": "duplicate marks", "valid": false, "document": { "type": "doc", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "a", "marks": [{ "type": "bold" }, { "type": "bold" }] }] }] } },
+  { "name": "mark metadata cannot be discarded", "valid": false, "document": { "type": "doc", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "a", "marks": [{ "type": "bold", "attrs": {} }] }] }] } }
+]

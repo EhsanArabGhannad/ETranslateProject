@@ -1,0 +1,43 @@
+@model WorkspaceView
+@{ ViewData["Title"] = "فضای کاری"; }
+<div class="page-heading"><div><span class="eyebrow">YOUR WORKSPACE</span><h1>@(Model.Tenant?.Name ?? "خوش آمدید")</h1><p class="muted">از پرونده‌ی تازه تا پیش‌نویس نسخه‌بندی‌شده، در یک فضا.</p></div><span class="badge">مرحله‌ی آماده‌سازی ترجمه</span></div>
+@if (Model.Tenants.Count > 0) {
+    <nav class="tenant-tabs" aria-label="فضاهای کاری">@foreach (var tenant in Model.Tenants) { <a class="@(tenant.Id == Model.Tenant?.Id ? "selected" : "")" asp-action="Index" asp-route-tenantId="@tenant.Id">@tenant.Name</a> }</nav>
+}
+<div class="workspace-grid">
+<section class="card">
+    <div class="section-heading"><h2>پرونده‌های ترجمه</h2><span class="badge">@Model.Jobs.Count پرونده</span></div>
+    @if (Model.Tenant is null) { <div class="empty"><h3>اول فضای کاری خود را بسازید</h3><p>مترجم مستقل یا دارالترجمه؛ پرونده‌ها و قالب‌ها به همان فضا تعلق خواهند داشت.</p></div> }
+    else {
+        @if (Model.Jobs.Count == 0) { <div class="empty"><h3>هنوز پرونده‌ای ندارید</h3><p>با فرم کنار صفحه، اولین ترجمه را آغاز کنید.</p></div> }
+        @foreach (var job in Model.Jobs) { <a class="job-row" asp-action="Editor" asp-route-tenantId="@Model.Tenant.Id" asp-route-jobId="@job.Id"><div><h3>@job.Title</h3><span class="muted" dir="ltr">@job.SourceLanguageCode → @job.TargetLanguageCode</span></div><span class="badge">@(job.NotaryRequirement == "Required" ? "نوتر لازم دارد" : "بدون نوتر")</span><span>باز کردن ←</span></a> }
+        <p class="muted">نمایش حداکثر ۱۰۰ پرونده‌ی اخیر.</p>
+    }
+</section>
+<aside class="card">
+@if (Model.Tenant is not null) {
+    <h2>پرونده‌ی جدید</h2><form asp-action="CreateJob" method="post"><input type="hidden" name="tenantId" value="@Model.Tenant.Id" />
+        <label for="title">عنوان پرونده</label><input id="title" name="title" maxlength="200" required placeholder="مثلاً ترجمه‌ی مدرک تحصیلی" />
+        <div class="two-fields"><div><label for="source">زبان مبدأ</label><input id="source" name="sourceLanguageCode" value="fa" maxlength="10" dir="ltr" required /></div><div><label for="target">زبان مقصد</label><input id="target" name="targetLanguageCode" value="tr" maxlength="10" dir="ltr" required /></div></div>
+        <label for="notary">نیاز به نوتر</label><select id="notary" name="notaryRequirement"><option value="NotRequired">نیاز ندارد</option><option value="Required">نیاز دارد</option></select>
+        <div id="notary-options" hidden><label for="notary-mode">مسیر نوتر</label><select id="notary-mode" name="notaryProcessingMode"><option value="Physical">چاپ و تأیید فیزیکی</option><option value="Hybrid">ترکیبی</option><option value="Digital">دیجیتال — برنامه‌ی آینده</option></select><p class="muted">این انتخاب فقط ثبت نیاز پرونده است؛ اتصال به نوتر هنوز فعال نیست.</p></div>
+        <label for="acceptance">مقصد ارائه (اختیاری)</label><select id="acceptance" name="acceptanceProfile"><option value="">بدون حالت خاص</option><option value="General">عمومی</option><option value="Embassy">سفارت</option><option value="Consulate">کنسولگری</option><option value="VisaApplicationCenter">مرکز ویزا</option><option value="GovernmentAuthority">نهاد دولتی</option><option value="EducationalInstitution">مؤسسه‌ی آموزشی</option><option value="Bank">بانک</option><option value="Other">سایر</option></select>
+        <div id="other-options" hidden><label for="other">توضیح سایر</label><input id="other" name="acceptanceProfileOther" maxlength="200" /></div><button type="submit">ساخت پرونده</button>
+    </form>
+} else { <h2>فضای کاری اختصاصی</h2><p class="muted">هر فضا اعضا، پرونده‌ها و قالب‌های مستقل دارد.</p> }
+</aside>
+</div>
+@if (Model.Tenant is not null) {
+<section class="card templates-section"><div class="section-heading"><div><span class="eyebrow">DOCUMENT IDENTITY</span><h2>قالب‌های اختصاصی</h2></div><span class="muted">سربرگ، لوگو، پابرگ و واترمارک</span></div>
+<div class="workspace-grid"><div>
+@foreach (var template in Model.Templates) {
+    <article class="template-row"><h3>@template.Name <span class="badge">نسخه @template.CurrentRevision · @(template.IsActive ? "فعال" : "بایگانی")</span></h3>
+        @if (template.IsActive) { <form asp-action="AddLogo" method="post" enctype="multipart/form-data" class="logo-form"><input type="hidden" name="tenantId" value="@Model.Tenant.Id" /><input type="hidden" name="templateId" value="@template.Id" /><label for="logo-@template.Id">افزودن لوگو به سربرگ</label><input id="logo-@template.Id" name="file" type="file" accept="image/png,image/jpeg" required /><button class="secondary" type="submit">ثبت نسخه‌ی جدید با لوگو</button></form> }
+    </article>
+}
+@if (Model.Templates.Count == 0) { <p class="empty">قالبی ندارید؛ اولین سربرگ را بسازید.</p> }
+<p class="muted">تغییر قالب، نسخه‌ی تثبیت‌شده در اسناد قبلی را تغییر نمی‌دهد. لوگوی جدید به سربرگ اضافه می‌شود.</p></div>
+<form asp-action="CreateTemplate" method="post"><input type="hidden" name="tenantId" value="@Model.Tenant.Id" /><h3>قالب A4 جدید</h3><label for="template-name">نام قالب</label><input id="template-name" name="name" maxlength="200" required /><label for="header-text">متن سربرگ</label><textarea id="header-text" name="header" rows="2" maxlength="10000"></textarea><label for="starter">متن اولیه‌ی ترجمه</label><textarea id="starter" name="starterText" rows="3" maxlength="50000"></textarea><label for="footer-text">متن پابرگ</label><input id="footer-text" name="footer" maxlength="2000" /><label for="watermark">واترمارک (اختیاری)</label><input id="watermark" name="watermark" maxlength="100" /><button type="submit">ساخت قالب</button></form>
+</div></section>
+}
+<details class="card" open="@(Model.Tenant is null)"><summary>ساخت فضای کاری جدید</summary><form asp-action="CreateTenant" method="post" class="tenant-form"><div><label for="tenant-name">نام فضای کاری</label><input id="tenant-name" name="name" maxlength="200" required /></div><div><label for="slug">شناسه‌ی انگلیسی یکتا</label><input id="slug" name="slug" dir="ltr" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="100" required placeholder="my-office" /></div><div><label for="type">نوع فعالیت</label><select id="type" name="type"><option value="IndependentTranslator">مترجم مستقل</option><option value="TranslationOffice">دارالترجمه</option></select></div><button type="submit">ساخت فضای کاری</button></form><p class="muted">اشتراک آزمایشی ۳۰روزه؛ پرداخت آنلاین هنوز در این مرحله پیاده‌سازی نشده است.</p></details>

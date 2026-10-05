@@ -1,0 +1,15 @@
+@model LoginInput
+@{ var register = ViewContext.RouteData.Values["action"]?.ToString() == "Register"; ViewData["Title"] = register ? "ساخت حساب" : "ورود"; }
+<section class="auth-grid">
+    <div class="intro"><span class="eyebrow">ETranslate / WORKSPACE</span><h1>ترجمه، با یک مسیر روشن.</h1><p>پرونده‌ها، قالب اختصاصی و نسخه‌های ترجمه را در فضای کاری خودتان مدیریت کنید.</p><div class="steps"><span>۱ · آماده‌سازی</span><span>۲ · بازبینی</span><span>۳ · امضا — در مرحله‌ی بعد</span></div><p class="muted">نسخه‌ی توسعه · پیش‌نویس‌های این مرحله هنوز سند امضاشده یا تأیید نوتر نیستند.</p></div>
+    <div class="card auth-card"><span class="eyebrow">شروع کار</span><h2>@ViewData["Title"]</h2>
+        <form asp-action="@(register ? "Register" : "Login")" method="post">
+            <div asp-validation-summary="All" class="alert" role="alert"></div>
+            <label asp-for="Email">ایمیل</label><input asp-for="Email" type="email" autocomplete="username" dir="ltr" maxlength="254" required />
+            <label asp-for="Password">رمز عبور</label><input asp-for="Password" type="password" autocomplete="@(register ? "new-password" : "current-password")" dir="ltr" required maxlength="256" />
+            @if (register) { <p class="muted">حداقل ۶ کاراکتر، شامل حرف بزرگ و کوچک، عدد و نشانه.</p> }
+            <button type="submit">@(register ? "ساخت حساب و ورود" : "ورود به فضای کاری")</button>
+        </form>
+        <p>@(register ? "حساب دارید؟" : "هنوز حساب ندارید؟") <a asp-action="@(register ? "Login" : "Register")">@(register ? "ورود" : "ثبت‌نام")</a></p>
+    </div>
+</section>

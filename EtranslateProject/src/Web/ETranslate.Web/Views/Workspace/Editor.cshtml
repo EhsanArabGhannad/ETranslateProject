@@ -1,0 +1,64 @@
+@model EditorView
+@{ ViewData["Title"] = Model.Job.Title; var plain = DocumentText.TryPlainText(Model.EditorContentJson); var editable = !Model.Historical && !Model.Conflict;
+   var compatible = RichDocument.TryGetPlainText(Model.EditorContentJson, out _);
+   var sources = Model.Document?.SourceFiles ?? Array.Empty<SourceFileView>(); }
+<a class="back-link" asp-action="Index" asp-route-tenantId="@Model.TenantId">→ بازگشت به پرونده‌ها</a>
+<div class="page-heading"><div><span class="eyebrow">TRANSLATION STUDIO</span><h1>@Model.Job.Title</h1><p class="muted" dir="auto">@Model.Job.SourceLanguageCode → @Model.Job.TargetLanguageCode · @(Model.Job.NotaryRequirement == "Required" ? "نیازمند نوتر" : "بدون نیاز به نوتر")</p></div><span class="badge">پیش‌نویس · بدون امضا</span></div>
+@if (Model.Message is not null) { <div class="alert" role="alert">@Model.Message</div> }
+@if (Model.Document is null) {
+    <section class="card empty"><h2>پرونده آماده‌ی شروع است</h2><p>ابتدا سند پیش‌نویس را بسازید. سپس قالب را انتخاب کنید یا بدون قالب بنویسید.</p><form asp-action="StartDocument" method="post"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><button type="submit">شروع نوشتن ترجمه</button></form></section>
+} else {
+<section class="card document-meta"><span>آخرین نسخه‌ی ذخیره‌شده: @Model.Document.CurrentDraftRevision</span>
+@if (Model.Template is not null) { <span>قالب تثبیت‌شده: نسخه @Model.Template.RevisionNumber</span> }
+else if (Model.Document.CurrentDraftRevision == 0) {
+    <form asp-action="ApplyTemplate" method="post" id="template-form"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><label for="template-select">قالب (قبل از اولین ذخیره)</label><select id="template-select" name="templateId" required><option value="">انتخاب قالب</option>@foreach (var template in Model.Templates.Where(t => t.IsActive)) { <option value="@template.Id" data-revision="@template.CurrentRevision">@template.Name · نسخه @template.CurrentRevision</option> }</select><input type="hidden" id="template-revision" name="revisionNumber" /><button class="secondary" type="submit">تثبیت قالب</button></form>
+    <p class="muted">می‌توانید بدون قالب بنویسید؛ بعد از اولین ذخیره دیگر قالب قابل اتصال نیست.</p>
+} else { <span class="muted">بدون قالب؛ اتصال بعد از شروع ویرایش امکان‌پذیر نیست.</span> }
+</section>
+@if (Model.Historical || Model.Conflict) { <div class="notice">@(Model.Historical ? "این نسخه‌ی تاریخی فقط خواندنی است." : "برای جلوگیری از بازنویسی، ذخیره در این صفحه متوقف شده است.") <a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">باز کردن آخرین نسخه در تب جدید</a></div> }
+<div class="editor-grid" id="editor-workspace" data-tenant-id="@Model.TenantId" data-template-id="@Model.Template?.TemplateId"
+     data-rich-compatible="@compatible.ToString().ToLowerInvariant()" data-editable="@editable.ToString().ToLowerInvariant()"
+     data-source-base="@Url.Action("Source", new { tenantId = Model.TenantId, jobId = Model.Job.Id })">
+<section class="card source-panel"><div class="section-heading"><h2>مدرک مبدأ</h2><span class="badge" id="source-count">@sources.Count فایل</span></div>
+@if (!Model.Historical) {
+<form asp-action="UploadSource" method="post" enctype="multipart/form-data" id="source-upload-form">
+    <input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" />
+    <label for="source-file">افزودن فایل اصلی</label><input type="file" id="source-file" name="file" accept="application/pdf,image/png,image/jpeg,image/tiff,.pdf,.png,.jpg,.jpeg,.tif,.tiff" required />
+    <button class="secondary" type="submit">بارگذاری مدرک مبدأ</button><p class="muted">PDF، PNG، JPEG یا TIFF · حداکثر ۲۵ مگابایت برای هر فایل.</p>
+</form>
+}
+<p id="source-status" class="muted" role="status">فایل‌ها خصوصی‌اند و به این پرونده تعلق دارند.</p>
+<label for="source-select">فایل برای مشاهده</label><select id="source-select"><option value="">انتخاب فایل</option>
+@foreach (var source in sources) { <option value="@source.Id" data-type="@source.ContentType">@source.OriginalFileName</option> }
+</select>
+<div class="source-actions"><a id="source-download" hidden>دانلود فایل اصلی</a><div id="pdf-controls" hidden><button type="button" class="quiet" id="pdf-prev" disabled>صفحه‌ی قبل</button><span id="pdf-page-label" role="status"></span><button type="button" class="quiet" id="pdf-next" disabled>صفحه‌ی بعد</button><label for="source-zoom">بزرگ‌نمایی PDF</label><select id="source-zoom"><option value="1">اندازه‌ی مناسب</option><option value="1.5">۱۵۰٪</option><option value="2">۲۰۰٪</option></select></div></div>
+<div id="source-display" class="source-display"><p class="empty">فایل مبدأ را انتخاب یا بارگذاری کنید.</p></div>
+<details class="source-files"><summary>فایل‌های پرونده</summary><div id="source-file-list">
+@foreach (var source in sources) { <a asp-action="Source" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-sourceFileId="@source.Id" asp-route-download="true">@source.OriginalFileName <span class="muted">(@((source.SizeBytes / 1024d).ToString("0.#")) KB)</span></a> }
+</div></details><p class="muted">TIFF فقط قابل دانلود است. پیش‌نمایش PDF تصویری است؛ جست‌وجو، OCR و انتخاب متن ندارد. فایل‌های مبدأ بین نسخه‌های ترجمه مشترک‌اند.</p>
+</section>
+<section class="card editor-controls"><div class="section-heading"><h2>متن ترجمه</h2><span id="save-state" class="muted" role="status">بدون ذخیره‌ی خودکار</span></div>
+<form asp-action="SaveDraft" method="post" id="draft-form"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="expectedRevision" value="@Model.ExpectedRevision" /><input type="hidden" name="mode" value="@(plain is null ? "json" : "text")" />
+<div id="rich-region" hidden><div class="editor-toolbar" role="toolbar" aria-label="قالب‌بندی ترجمه">
+    <button type="button" data-command="bold" aria-label="متن پررنگ" aria-pressed="false"><strong>B</strong></button>
+    <button type="button" data-command="italic" aria-label="متن مورب" aria-pressed="false"><em>I</em></button>
+    <button type="button" data-command="underline" aria-label="زیرخط" aria-pressed="false"><u>U</u></button>
+    <button type="button" data-command="paragraph">پاراگراف</button><button type="button" data-command="heading" aria-pressed="false">عنوان</button>
+    <button type="button" data-command="bulletList" aria-pressed="false">فهرست نقطه‌ای</button><button type="button" data-command="orderedList" aria-pressed="false">فهرست شماره‌دار</button>
+    <button type="button" data-command="rtl" aria-label="جهت راست به چپ">راست‌به‌چپ</button><button type="button" data-command="ltr" aria-label="جهت چپ به راست">چپ‌به‌راست</button><button type="button" data-command="auto">جهت خودکار</button>
+    <button type="button" data-command="undo">واگرد</button><button type="button" data-command="redo">ازنو</button>
+</div><div id="rich-text"></div><p class="muted">قالب‌بندی به متن انتخاب‌شده یا پاراگراف جاری اعمال می‌شود. واردکردن فایل Word و حفظ کامل قالب‌بندی آن پشتیبانی نمی‌شود.</p></div>
+<p id="editor-format-status" class="muted" role="status"></p>
+@if (plain is not null) { <label for="translation-text">هر خط یک پاراگراف</label><textarea id="translation-text" name="plainText" rows="18" dir="auto" readonly="@(!editable)" maxlength="1000000">@plain</textarea><textarea id="document-json" name="editorContentJson" hidden>@Model.EditorContentJson</textarea> }
+else { <p class="notice" id="legacy-format-notice">ساختار اصلی سند حفظ شده است. اگر ویرایشگر غنی از این ساختار پشتیبانی نکند، ویرایش پیشرفته‌ی JSON در دسترس می‌ماند.</p><label for="document-json">ساختار سند (ویرایش پیشرفته)</label><textarea id="document-json" name="editorContentJson" rows="18" dir="ltr" readonly="@(!editable)" maxlength="2000000">@Model.EditorContentJson</textarea> }
+<button type="submit" disabled="@(!editable)">ذخیره‌ی نسخه‌ی جدید</button><p class="muted">فقط بدنه‌ی ترجمه تغییر می‌کند؛ سربرگ، پابرگ و لوگوی قالب تثبیت‌شده حفظ می‌شوند.</p></form>
+<p><a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">بررسی آخرین نسخه در تب جدید</a> · <a asp-controller="Account" asp-action="Login" target="_blank" rel="noopener">ورود مجدد</a></p>
+<details><summary>تاریخچه‌ی نسخه‌ها (@Model.History.Count)</summary><div class="history">@foreach (var revision in Model.History) { <a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-revisionNumber="@revision.RevisionNumber">نسخه @revision.RevisionNumber <span dir="ltr">@revision.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</span></a> }</div></details>
+</section>
+<details class="preview-panel"><summary>پیش‌نمایش ترجمه با سربرگ و قالب</summary><p class="muted">نمایش تقریبی، نه PDF نهایی</p><div id="preview-notice" class="muted" role="status"></div><article class="paper" dir="auto"><div class="watermark" id="preview-watermark"></div><header id="preview-header" class="paper-header"></header><div id="preview-body" class="paper-body"></div><footer id="preview-footer" class="paper-footer"></footer></article></details>
+</div>
+<div hidden><textarea id="template-header">@Model.Template?.HeaderContentJson</textarea><textarea id="template-footer">@Model.Template?.FooterContentJson</textarea><textarea id="template-watermark">@Model.Template?.WatermarkJson</textarea><textarea id="template-layout">@Model.Template?.PageLayoutJson</textarea></div>
+}
+@section Scripts {
+    <script type="module" src="~/js/generated/workspace.js" asp-append-version="true"></script>
+}
