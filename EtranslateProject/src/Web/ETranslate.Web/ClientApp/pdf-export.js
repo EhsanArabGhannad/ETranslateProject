@@ -28,6 +28,15 @@ export function startPdfExport() {
                 const hash = document.createElement('small'); hash.dir = 'ltr'; hash.textContent = `SHA-256: ${pdf.sha256}`;
                 row.append(link, hash); list.prepend(row);
             }
+            const select = document.getElementById('review-pdf');
+            if (select && Number(select.dataset.revision) === pdf.revisionNumber) {
+                if (!Array.from(select.options).some(option => option.value === pdf.id)) {
+                    const option = document.createElement('option'); option.value = pdf.id;
+                    option.textContent = `نسخه ${pdf.revisionNumber} · PDF پیش‌نویس`; select.prepend(option);
+                }
+                document.getElementById('review-submit').disabled = false;
+                const notice = document.getElementById('review-pdf-needed'); if (notice) notice.hidden = true;
+            }
             status.textContent = `PDF پیش‌نویس نسخه‌ی ${pdf.revisionNumber} آماده است؛ فایل بدون امضای معتبر است. تغییرات ذخیره‌نشده در ویرایشگر حفظ شده‌اند.`;
         } catch (error) { status.textContent = error.message || 'ارتباط برقرار نشد؛ متن ویرایشگر حفظ شده است.'; }
         finally { busy = false; button.disabled = false; }

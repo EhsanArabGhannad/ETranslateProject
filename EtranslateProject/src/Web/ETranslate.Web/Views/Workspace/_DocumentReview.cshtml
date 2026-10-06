@@ -1,0 +1,56 @@
+@model EditorView
+@if (Model.Review is { } state) {
+    var latest = state.Reviews.FirstOrDefault();
+    var pdfs = Model.PdfVersions.Where(pdf => pdf.RevisionNumber == Model.ViewedRevision).ToList();
+    var needsNewRevision = latest is not null && (latest.Status is "ChangesRequested" or "Reopened") && Model.ViewedRevision <= latest.RevisionNumber;
+    <section class="draft-pdf-section review-section"><h3>بازبینی و تأیید داخلی</h3>
+    <p class="muted">این تأیید جای امضا، سوگند مترجم یا نوتر نیست. مسئول بازبینی باید PDF و مدارک مبدأ را بررسی کند. در حساب مترجم مستقل، مالک می‌تواند بازبینی خود را ثبت کند.</p>
+    <p><span class="badge">@ReviewStateView.Label(state.Status)</span> · دور بازبینی @state.Round</p>
+    @if (!Model.Historical && !Model.Conflict && state.CanManage && !state.Locked && needsNewRevision) {
+        <p class="notice">پس از برگشت یا بازگشایی، اصلاحات را در یک نسخه‌ی جدید ذخیره کنید؛ سپس PDF جدید بسازید و برای بازبینی بفرستید.</p>
+    }
+    @if (!Model.Historical && !Model.Conflict && state.CanManage && !state.Locked && !needsNewRevision && Model.ViewedRevision > 0) {
+            <form asp-action="SubmitReview" method="post" class="review-form">
+                <input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" />
+                <input type="hidden" name="expectedRevision" value="@Model.ViewedRevision" /><input type="hidden" name="expectedRound" value="@state.Round" />
+                <label for="review-pdf">PDF نسخه‌ی ذخیره‌شده برای بازبینی</label><select id="review-pdf" name="pdfVersionId" data-revision="@Model.ViewedRevision" required>
+                @foreach (var pdf in pdfs) { <option value="@pdf.Id">نسخه @pdf.RevisionNumber · @pdf.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</option> }
+                </select><button id="review-submit" class="secondary" type="submit" disabled="@(pdfs.Count == 0)">ارسال نسخه‌ی @Model.ViewedRevision برای بازبینی</button>
+            </form>
+        if (pdfs.Count == 0) { <p id="review-pdf-needed" class="notice">ابتدا PDF نسخه‌ی ذخیره‌شده را بسازید تا ارسال برای بازبینی فعال شود.</p> }
+    }
+    @if (!Model.Historical && !Model.Conflict && latest is not null) {
+        var actions = new List<(string Action, string Label)>();
+        if (state.Status == "AwaitingReview") {
+            if (state.CanReview) { actions.Add(("Approve", "تأیید داخلی این نسخه")); actions.Add(("RequestChanges", "برگشت برای اصلاح")); }
+            if (state.CanReview || state.CanManage && state.UserId == latest.SubmittedByUserId) { actions.Add(("Withdraw", "پس‌گرفتن ارسال")); }
+        } else if (state.Status == "Approved" && state.CanReview) { actions.Add(("Reopen", "بازگشایی برای اصلاح")); }
+        foreach (var action in actions) {
+            <form asp-action="DecideReview" method="post" class="review-form">
+                <input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" />
+                <input type="hidden" name="reviewId" value="@latest.Id" /><input type="hidden" name="reviewAction" value="@action.Action" />
+                <label for="note-@action.Action">@(action.Action == "Approve" ? "یادداشت تأیید (اختیاری)" : "دلیل (الزامی)")</label>
+                <textarea id="note-@action.Action" name="note" rows="2" maxlength="2000" required="@(action.Action != "Approve")"></textarea>
+                <button type="submit" class="secondary">@action.Label</button>
+            </form>
+        }
+    }
+    <p id="review-status" role="status" class="muted">پیش از هر عملیات، تغییرات متن را ذخیره کنید. بدون JavaScript، از تغییرات ذخیره‌نشده کپی بگیرید؛ ارسال فرم صفحه را بازخوانی می‌کند.</p>
+    <details><summary>تاریخچه‌ی بازبینی (@state.Reviews.Count)</summary>
+    @foreach (var review in state.Reviews) {
+        <article class="review-history"><h4>دور @review.Round · نسخه @review.RevisionNumber · @ReviewStateView.Label(review.Status)</h4>
+            <a asp-action="DraftPdf" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-pdfId="@review.PdfVersionId">دانلود PDF همین بازبینی</a> ·
+            <a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-revisionNumber="@review.RevisionNumber" target="_blank" rel="noopener">مشاهده‌ی نسخه‌ی ترجمه</a>
+            <small dir="ltr">SHA-256: @review.PdfSha256</small>
+            <p class="muted">ارسال: <span dir="ltr">@review.SubmittedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC · @review.SubmittedByUserId</span></p>
+            @if (review.DecidedAtUtc is not null) { <p>تصمیم: <span dir="ltr">@review.DecidedAtUtc.Value.ToString("yyyy-MM-dd HH:mm") UTC · @review.DecidedByUserId</span> · @review.DecisionNote</p> }
+            @if (review.ReopenedAtUtc is not null) { <p>بازگشایی: <span dir="ltr">@review.ReopenedAtUtc.Value.ToString("yyyy-MM-dd HH:mm") UTC · @review.ReopenedByUserId</span> · @review.ReopenNote</p> }
+            <details><summary>مدارک مبدأ هنگام ارسال (@review.SourceFiles.Count)</summary>
+            @foreach (var source in review.SourceFiles) {
+                <div><a asp-action="Source" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-sourceFileId="@source.Id" asp-route-download="true">@source.OriginalFileName</a><small dir="ltr">SHA-256: @source.Sha256</small></div>
+            }
+            </details>
+        </article>
+    }
+    </details></section>
+}

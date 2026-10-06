@@ -76,6 +76,7 @@ public sealed partial class WorkspaceController(BackendApi api) : Controller
             var path = $"{DocumentsPath(tenantId, jobId)}/{document.Id}";
             model.History = await api.ReadAsync<List<DraftSummary>>("documents", $"{path}/draft-revisions");
             model.PdfVersions = await api.ReadAsync<List<PdfVersionView>>("documents", $"{path}/pdfs");
+            model.Review = await api.ReadAsync<ReviewStateView>("documents", $"{path}/reviews");
             if (document.TemplateRevisionId is not null)
                 model.Template = await api.ReadAsync<TemplateRevision>("documents", $"{path}/template");
             if (revisionNumber.HasValue || document.CurrentDraftRevision > 0)
@@ -150,7 +151,7 @@ public sealed partial class WorkspaceController(BackendApi api) : Controller
         catch (BackendException error) when (error.Status != HttpStatusCode.Unauthorized)
         {
             conflict = error.Status == HttpStatusCode.Conflict;
-            message = conflict ? "نسخه‌ی دیگری ذخیره شده است. متن شما حفظ شده؛ آن را کپی کنید و آخرین نسخه را در تب دیگری باز کنید تا تغییرات را ادغام کنید." : error.UserMessage;
+            message = conflict ? "نسخه یا وضعیت بازبینی سند تغییر کرده است. متن شما حفظ شده؛ آن را کپی کنید و آخرین وضعیت را در تب دیگری بررسی کنید." : error.UserMessage;
             if (mode == "text") json = DocumentText.FromPlainText(plainText ?? "");
         }
         var model = await LoadEditor(tenantId, jobId);

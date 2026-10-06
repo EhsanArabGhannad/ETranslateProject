@@ -1,6 +1,6 @@
 @model WorkspaceView
 @{ ViewData["Title"] = "فضای کاری"; }
-<div class="page-heading"><div><span class="eyebrow">YOUR WORKSPACE</span><h1>@(Model.Tenant?.Name ?? "خوش آمدید")</h1><p class="muted">از پرونده‌ی تازه تا پیش‌نویس نسخه‌بندی‌شده، در یک فضا.</p></div><span class="badge">مرحله‌ی آماده‌سازی ترجمه</span></div>
+<div class="page-heading"><div><span class="eyebrow">YOUR WORKSPACE</span><h1>@(Model.Tenant?.Name ?? "خوش آمدید")</h1><p class="muted">از آماده‌سازی ترجمه تا PDF پیش‌نویس و بازبینی داخلی، در یک فضا.</p></div><span class="badge">آماده‌سازی و بازبینی · بدون امضا</span></div>
 @if (Model.Tenants.Count > 0) {
     <nav class="tenant-tabs" aria-label="فضاهای کاری">@foreach (var tenant in Model.Tenants) { <a class="@(tenant.Id == Model.Tenant?.Id ? "selected" : "")" asp-action="Index" asp-route-tenantId="@tenant.Id">@tenant.Name</a> }</nav>
 }

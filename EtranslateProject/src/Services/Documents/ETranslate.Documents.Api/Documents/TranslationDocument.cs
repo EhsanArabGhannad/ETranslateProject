@@ -34,6 +34,9 @@ public sealed class TranslationDocument
     public Guid CreatedByUserId { get; private init; }
     public int CurrentDraftRevision { get; private set; }
     public Guid? TemplateRevisionId { get; private set; }
+    public DocumentReviewStatus ReviewStatus { get; private set; }
+    public int ReviewRound { get; private set; }
+    public bool IsReviewLocked => ReviewStatus is DocumentReviewStatus.AwaitingReview or DocumentReviewStatus.Approved;
     public DateTimeOffset CreatedAtUtc { get; private init; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
     public IReadOnlyCollection<DocumentDraftRevision> DraftRevisions => _draftRevisions;
@@ -78,6 +81,7 @@ public sealed class TranslationDocument
         DateTimeOffset createdAtUtc)
     {
         ArgumentOutOfRangeException.ThrowIfEqual(createdByUserId, Guid.Empty);
+        EnsureReviewEditable();
 
         if (expectedCurrentRevision != CurrentDraftRevision)
         {
@@ -117,6 +121,7 @@ public sealed class TranslationDocument
     {
         ArgumentOutOfRangeException.ThrowIfEqual(sourceFileId, Guid.Empty);
         ArgumentOutOfRangeException.ThrowIfEqual(uploadedByUserId, Guid.Empty);
+        EnsureReviewEditable();
 
         var errors = ValidateSourceFile(
             originalFileName,
@@ -141,8 +146,55 @@ public sealed class TranslationDocument
             uploadedAtUtc);
 
         _sourceFiles.Add(sourceFile);
-        UpdatedAtUtc = uploadedAtUtc;
+        // Always update the parent row, even when the clock returns the same tick.
+        // Its SQL rowversion must participate in upload-versus-review races.
+        UpdatedAtUtc = uploadedAtUtc > UpdatedAtUtc ? uploadedAtUtc : UpdatedAtUtc.AddTicks(1);
         return sourceFile;
+    }
+
+    public void EnsureReviewEditable()
+    {
+        if (IsReviewLocked) throw new DocumentReviewConflictException("Document is locked for internal review or approval.");
+    }
+
+    public DocumentReview SubmitReview(int expectedRevision, int expectedRound, DocumentPdfVersion pdf,
+        DocumentReview? previous, string sourceFilesJson, Guid actor, DateTimeOffset now)
+    {
+        ArgumentOutOfRangeException.ThrowIfEqual(actor, Guid.Empty);
+        EnsureReviewEditable();
+        if (expectedRound != ReviewRound || expectedRevision != CurrentDraftRevision || CurrentDraftRevision < 1 ||
+            pdf.DocumentId != Id || pdf.RevisionNumber != CurrentDraftRevision || pdf.TemplateRevisionId != TemplateRevisionId)
+            throw new DocumentReviewConflictException("Review must reference the current saved draft and its PDF.");
+        if (ReviewRound > 0 && (previous is null || previous.DocumentId != Id || previous.Round != ReviewRound))
+            throw new DocumentReviewConflictException("Previous review does not match this document.");
+        if ((previous?.Status is DocumentReviewStatus.ChangesRequested or DocumentReviewStatus.Reopened) &&
+            CurrentDraftRevision <= previous.RevisionNumber)
+            throw new DocumentReviewConflictException("Save a new revision before resubmitting corrections.");
+        var review = new DocumentReview(Id, ReviewRound + 1, pdf, sourceFilesJson, actor, now);
+        ReviewRound = review.Round; ReviewStatus = review.Status; UpdatedAtUtc = now;
+        return review;
+    }
+
+    public void DecideReview(DocumentReview review, DocumentReviewStatus decision, Guid actor, string? note, DateTimeOffset now)
+    {
+        ArgumentOutOfRangeException.ThrowIfEqual(actor, Guid.Empty);
+        CheckCurrentReview(review);
+        if (ReviewStatus != DocumentReviewStatus.AwaitingReview) throw new DocumentReviewConflictException("Document is not awaiting review.");
+        review.Decide(decision, actor, note, now); ReviewStatus = review.Status; UpdatedAtUtc = now;
+    }
+
+    public void ReopenReview(DocumentReview review, Guid actor, string? note, DateTimeOffset now)
+    {
+        ArgumentOutOfRangeException.ThrowIfEqual(actor, Guid.Empty);
+        CheckCurrentReview(review);
+        if (ReviewStatus != DocumentReviewStatus.Approved) throw new DocumentReviewConflictException("Document is not approved.");
+        review.Reopen(actor, note, now); ReviewStatus = review.Status; UpdatedAtUtc = now;
+    }
+
+    private void CheckCurrentReview(DocumentReview review)
+    {
+        if (review.DocumentId != Id || review.Round != ReviewRound || review.RevisionNumber != CurrentDraftRevision)
+            throw new DocumentReviewConflictException("Review no longer matches this document.");
     }
 
     private static Dictionary<string, string[]> ValidateDraft(string editorContentJson, string? plainText)

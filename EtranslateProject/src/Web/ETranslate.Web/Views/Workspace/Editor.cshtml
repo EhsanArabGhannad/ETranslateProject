@@ -1,9 +1,9 @@
 @model EditorView
-@{ ViewData["Title"] = Model.Job.Title; var plain = DocumentText.TryPlainText(Model.EditorContentJson); var editable = !Model.Historical && !Model.Conflict;
+@{ ViewData["Title"] = Model.Job.Title; var plain = DocumentText.TryPlainText(Model.EditorContentJson); var editable = !Model.Historical && !Model.Conflict && Model.Review is { Locked: false, CanManage: true };
    var compatible = RichDocument.TryGetPlainText(Model.EditorContentJson, out _);
    var sources = Model.Document?.SourceFiles ?? Array.Empty<SourceFileView>(); }
 <a class="back-link" asp-action="Index" asp-route-tenantId="@Model.TenantId">→ بازگشت به پرونده‌ها</a>
-<div class="page-heading"><div><span class="eyebrow">TRANSLATION STUDIO</span><h1>@Model.Job.Title</h1><p class="muted" dir="auto">@Model.Job.SourceLanguageCode → @Model.Job.TargetLanguageCode · @(Model.Job.NotaryRequirement == "Required" ? "نیازمند نوتر" : "بدون نیاز به نوتر")</p></div><span class="badge">پیش‌نویس · بدون امضا</span></div>
+<div class="page-heading"><div><span class="eyebrow">TRANSLATION STUDIO</span><h1>@Model.Job.Title</h1><p class="muted" dir="auto">@Model.Job.SourceLanguageCode → @Model.Job.TargetLanguageCode · @(Model.Job.NotaryRequirement == "Required" ? "نیازمند نوتر" : "بدون نیاز به نوتر")</p></div><span class="badge">@ReviewStateView.Label(Model.Review?.Status ?? "Draft")</span></div>
 @if (Model.Message is not null) { <div class="alert" role="alert">@Model.Message</div> }
 @if (Model.Document is null) {
     <section class="card empty"><h2>پرونده آماده‌ی شروع است</h2><p>ابتدا سند پیش‌نویس را بسازید. سپس قالب را انتخاب کنید یا بدون قالب بنویسید.</p><form asp-action="StartDocument" method="post"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><button type="submit">شروع نوشتن ترجمه</button></form></section>
@@ -16,11 +16,12 @@ else if (Model.Document.CurrentDraftRevision == 0) {
 } else { <span class="muted">بدون قالب؛ اتصال بعد از شروع ویرایش امکان‌پذیر نیست.</span> }
 </section>
 @if (Model.Historical || Model.Conflict) { <div class="notice">@(Model.Historical ? "این نسخه‌ی تاریخی فقط خواندنی است." : "برای جلوگیری از بازنویسی، ذخیره در این صفحه متوقف شده است.") <a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">باز کردن آخرین نسخه در تب جدید</a></div> }
+@if (Model.Review?.Locked == true) { <div class="notice">متن و مدارک مبدأ در این وضعیت قفل‌اند. برگشت برای اصلاح، پس‌گرفتن ارسال یا بازگشایی توسط مسئول مجاز، ویرایش را دوباره فعال می‌کند.</div> }
 <div class="editor-grid" id="editor-workspace" data-tenant-id="@Model.TenantId" data-template-id="@Model.Template?.TemplateId"
      data-rich-compatible="@compatible.ToString().ToLowerInvariant()" data-editable="@editable.ToString().ToLowerInvariant()"
      data-source-base="@Url.Action("Source", new { tenantId = Model.TenantId, jobId = Model.Job.Id })">
 <section class="card source-panel"><div class="section-heading"><h2>مدرک مبدأ</h2><span class="badge" id="source-count">@sources.Count فایل</span></div>
-@if (!Model.Historical) {
+@if (editable) {
 <form asp-action="UploadSource" method="post" enctype="multipart/form-data" id="source-upload-form">
     <input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" />
     <label for="source-file">افزودن فایل اصلی</label><input type="file" id="source-file" name="file" accept="application/pdf,image/png,image/jpeg,image/tiff,.pdf,.png,.jpg,.jpeg,.tif,.tiff" required />
@@ -67,6 +68,7 @@ else { <p class="notice" id="legacy-format-notice">ساختار اصلی سند 
     <div data-pdf-id="@pdf.Id"><a asp-action="DraftPdf" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-pdfId="@pdf.Id">دانلود PDF پیش‌نویس نسخه‌ی @pdf.RevisionNumber</a><small dir="ltr">SHA-256: @pdf.Sha256</small></div>
 }
 </div></section>
+<partial name="_DocumentReview" model="Model" />
 </section>
 <details class="preview-panel"><summary>پیش‌نمایش ترجمه با سربرگ و قالب</summary><p class="muted">نمایش تقریبی، نه PDF نهایی</p><div id="preview-notice" class="muted" role="status"></div><article class="paper" dir="auto"><div class="watermark" id="preview-watermark"></div><header id="preview-header" class="paper-header"></header><div id="preview-body" class="paper-body"></div><footer id="preview-footer" class="paper-footer"></footer></article></details>
 </div>

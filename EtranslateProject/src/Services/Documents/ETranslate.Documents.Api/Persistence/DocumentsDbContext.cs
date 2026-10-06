@@ -14,6 +14,7 @@ public sealed class DocumentsDbContext(
     public DbSet<DocumentTemplateRevision> TemplateRevisions => Set<DocumentTemplateRevision>();
     public DbSet<TemplateAsset> TemplateAssets => Set<TemplateAsset>();
     public DbSet<DocumentPdfVersion> PdfVersions => Set<DocumentPdfVersion>();
+    public DbSet<DocumentReview> Reviews => Set<DocumentReview>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,6 +25,8 @@ public sealed class DocumentsDbContext(
             entity.ToTable("translation_documents");
             entity.HasKey(document => document.Id);
             entity.Property(document => document.CurrentDraftRevision).IsConcurrencyToken();
+            entity.Property<byte[]>("RowVersion").IsRowVersion();
+            entity.Ignore(document => document.IsReviewLocked);
             entity.HasOne<DocumentTemplateRevision>().WithMany()
                 .HasForeignKey(document => document.TemplateRevisionId)
                 .OnDelete(DeleteBehavior.Restrict);
@@ -122,6 +125,18 @@ public sealed class DocumentsDbContext(
             entity.HasOne<TranslationDocument>().WithMany().HasForeignKey(pdf => pdf.DocumentId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<DocumentDraftRevision>().WithMany().HasForeignKey(pdf => pdf.DraftRevisionId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<DocumentTemplateRevision>().WithMany().HasForeignKey(pdf => pdf.TemplateRevisionId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<DocumentReview>(entity =>
+        {
+            entity.ToTable("document_reviews"); entity.HasKey(review => review.Id);
+            entity.Property(review => review.PdfSha256).HasMaxLength(64).IsRequired();
+            entity.Property(review => review.SourceFilesJson).HasColumnType("nvarchar(max)").IsRequired();
+            entity.Property(review => review.DecisionNote).HasMaxLength(2000);
+            entity.Property(review => review.ReopenNote).HasMaxLength(2000);
+            entity.HasIndex(review => new { review.DocumentId, review.Round }).IsUnique();
+            entity.HasOne<TranslationDocument>().WithMany().HasForeignKey(review => review.DocumentId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<DocumentPdfVersion>().WithMany().HasForeignKey(review => review.PdfVersionId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<DocumentDraftRevision>().WithMany().HasForeignKey(review => review.DraftRevisionId).OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.AddOutboxMessageEntity(entity => entity.ToTable("outbox_messages"));
         modelBuilder.AddOutboxStateEntity(entity => entity.ToTable("outbox_state"));

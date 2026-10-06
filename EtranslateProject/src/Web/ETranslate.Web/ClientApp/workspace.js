@@ -40,7 +40,7 @@ if (workspace) {
                 dirty = false; navigating = true; location.assign(destination.href); return;
             }
             if (response.status === 409) {
-                find('save-state').textContent = 'نسخه‌ی جدیدتری ثبت شده؛ متن و قالب‌بندی شما حفظ شده‌اند. آخرین نسخه را در تب جدید بررسی کنید.';
+                find('save-state').textContent = 'نسخه یا وضعیت بازبینی تغییر کرده؛ متن و قالب‌بندی شما حفظ شده‌اند. آخرین وضعیت را در تب جدید بررسی کنید.';
                 dirty = true; workspace.dataset.editable = 'false'; return;
             }
             find('save-state').textContent = destination.pathname === '/Account/Login' || response.status === 401
@@ -58,4 +58,41 @@ if (workspace) {
     });
     startSources(workspace); preview();
     startPdfExport();
+    for (const reviewForm of document.querySelectorAll('.review-form')) {
+        reviewForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            const status = find('review-status');
+            if (dirty || saving) {
+                status.textContent = 'ابتدا تغییرات متن را ذخیره کنید؛ بازبینی فقط روی نسخه‌ی ذخیره‌شده انجام می‌شود.'; return;
+            }
+            const controls = Array.from(document.querySelectorAll('.review-form button'));
+            const previousDisabled = controls.map(button => button.disabled);
+            const saveButton = form.querySelector('button[type=submit]');
+            const editable = workspace.dataset.editable === 'true';
+            const data = new FormData(reviewForm);
+            saving = true;
+            controls.forEach(button => { button.disabled = true; }); saveButton.disabled = true;
+            editor?.setEditable(false, false); if (text) text.readOnly = true; json.readOnly = true;
+            const formatButtons = Array.from(document.querySelectorAll('.editor-toolbar button'));
+            formatButtons.forEach(button => { button.disabled = true; });
+            status.textContent = 'در حال ثبت وضعیت بازبینی…';
+            try {
+                const response = await fetch(reviewForm.action, { method: 'POST', body: data, credentials: 'same-origin', headers: { Accept: 'application/json' } });
+                if (response.status === 401 || response.redirected && new URL(response.url).pathname === '/Account/Login')
+                    throw new Error('نشست پایان یافته؛ در تب جدید وارد شوید. هیچ متن یا یادداشتی پاک نشده است.');
+                if (!response.headers.get('content-type')?.includes('json')) throw new Error('ثبت بازبینی تأیید نشد؛ آخرین وضعیت را بررسی کنید.');
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || 'ثبت بازبینی انجام نشد.');
+                navigating = true; location.reload();
+            } catch (error) { status.textContent = error.message || 'ارتباط برقرار نشد؛ وضعیت را در تب جدید بررسی کنید.'; }
+            finally {
+                if (!navigating) {
+                    saving = false; controls.forEach((button, index) => { button.disabled = previousDisabled[index]; });
+                    saveButton.disabled = !editable; editor?.setEditable(editable, false);
+                    if (text) text.readOnly = !editable; json.readOnly = !editable;
+                    formatButtons.forEach(button => { button.disabled = !editable; });
+                }
+            }
+        });
+    }
 }

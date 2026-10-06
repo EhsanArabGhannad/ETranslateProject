@@ -58,6 +58,9 @@ public sealed class TenantAccessClient(HttpClient httpClient)
 
 public sealed record TenantActor(Guid UserId, string Role)
 {
+    public bool CanReviewDocuments =>
+        Role.Equals("Owner", StringComparison.OrdinalIgnoreCase) ||
+        Role.Equals("Administrator", StringComparison.OrdinalIgnoreCase);
     public bool CanManageDocuments =>
         Role.Equals("Owner", StringComparison.OrdinalIgnoreCase) ||
         Role.Equals("Administrator", StringComparison.OrdinalIgnoreCase) ||

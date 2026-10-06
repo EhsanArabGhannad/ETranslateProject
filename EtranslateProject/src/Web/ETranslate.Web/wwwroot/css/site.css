@@ -107,3 +107,8 @@ summary { cursor: pointer; font-weight: 600; }
 .site-footer { padding: 24px max(4vw, 20px); display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid var(--border); font-size: 10px; color: var(--muted); }
 @media (max-width: 1000px) { .auth-grid { gap: 35px; } .workspace-grid { grid-template-columns: 1fr 1fr; } .editor-grid { grid-template-columns: 1fr; } .paper { min-height: 750px; } .tenant-form { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 700px) { .topbar, .page-heading { align-items: flex-start; flex-direction: column; } .auth-grid, .workspace-grid { grid-template-columns: 1fr; } .auth-grid { margin-top: 10px; } .intro h1 { font-size: 32px; } .topbar nav { gap: 14px; } .card { padding: 20px; } .job-row { flex-wrap: wrap; } .tenant-form { grid-template-columns: 1fr; } .paper { padding: 30px 22px; } .site-footer { flex-direction: column; } .document-meta form { width: 100%; } .document-meta select { width: 100%; } }
+.review-section .review-form { margin-block: 1rem; padding-block-end: 1rem; border-bottom: 1px solid var(--line, #dce5ea); }
+.review-section .review-form textarea { min-height: 5.5rem; }
+.review-history { margin-block: 1rem; padding: 1rem; border: 1px solid var(--line, #dce5ea); border-radius: 12px; }
+.review-history small { display: block; overflow-wrap: anywhere; }
+.review-history p { overflow-wrap: anywhere; }

@@ -10,7 +10,7 @@ The repository is a distributed monorepo. Each service is independently deployab
 
 - Identity & Access: users, tenants, memberships, roles, and translator credentials.
 - Translation Workflow: translation jobs and their lifecycle.
-- Documents: templates, source files, rendering, immutable PDF versions, and hashes.
+- Documents: templates, source files, rendering, immutable PDF versions, hashes, and version-bound internal review.
 - Trust: electronic signatures, timestamps, validation, and public verification.
 - Billing: plans, 30-day trials, subscriptions, entitlements, and usage.
 - Notary Integration: physical, digital, and hybrid notary workflows behind an anti-corruption layer.
@@ -81,6 +81,20 @@ With AppHost running, verify template images, tenant isolation, pinned revisions
 ```
 
 This check creates isolated development tenants and leaves its test records and images available for inspection.
+
+### Internal translation review
+
+Save the translation, create its draft PDF, then use **بازبینی و تأیید داخلی** in the editor to submit that exact saved version. The PDF can be selected immediately after generation without losing editor text. Pending/approved documents lock draft saves and source uploads. Owner/Administrator can approve, return with a reason, or reopen an approval for corrections; submitters can withdraw their pending submission with a reason. Returned/reopened translations require a new saved revision and PDF before resubmission. Independent owners may self-review internally. Review history retains actors, UTC timestamps, notes, exact PDF hashes and source-file snapshots.
+
+This is internal preparation, not e-imza, mobil imza, a seal or notarization. It does not change the job-level signing status. Team invitations/role management and review assignment are still future work. See [ADR 0011](docs/adr/0011-document-review-boundary.md) and the [Persian test guide](docs/testing/translator-workspace.fa.md).
+
+With AppHost running, PowerShell 7 can verify live review and competing requests:
+
+```powershell
+./tests/ETranslate.EndToEndTests/Verify-DocumentReviews.ps1
+```
+
+This test creates isolated development fixtures and leaves them for inspection. Do not run on production.
 
 ### Translation jobs
 

@@ -27,6 +27,9 @@ public static partial class DocumentEndpoints
         group.MapPost("/{documentId:guid}/draft-revisions/{revisionNumber:int}/pdfs", CreateDraftPdfAsync);
         group.MapGet("/{documentId:guid}/pdfs", GetDraftPdfsAsync);
         group.MapGet("/{documentId:guid}/pdfs/{pdfId:guid}", DownloadDraftPdfAsync);
+        group.MapGet("/{documentId:guid}/reviews", GetReviewsAsync);
+        group.MapPost("/{documentId:guid}/reviews", SubmitReviewAsync);
+        group.MapPost("/{documentId:guid}/reviews/{reviewId:guid}/decision", DecideReviewAsync);
         group.MapPost("/{documentId:guid}/source-files", UploadSourceFileAsync)
             .DisableAntiforgery();
         group.MapGet("/{documentId:guid}/source-files/{sourceFileId:guid}", DownloadSourceFileAsync);
@@ -192,6 +195,10 @@ public static partial class DocumentEndpoints
         {
             return RevisionConflict(exception.ExpectedRevision, exception.ActualRevision);
         }
+        catch (DocumentReviewConflictException)
+        {
+            return Results.Conflict(new { error = "document_review_locked" });
+        }
 
         await publishEndpoint.Publish(
             new DocumentDraftRevisionCreatedV1(
@@ -344,6 +351,7 @@ public static partial class DocumentEndpoints
         }
 
         var contentType = file.ContentType.Split(';', 2)[0].Trim();
+        if (document.IsReviewLocked) return Results.Conflict(new { error = "document_review_locked" });
         var fileName = Path.GetFileName(file.FileName);
         var validationErrors = ValidateUpload(fileName, contentType, file.Length);
         if (validationErrors.Count > 0)
@@ -585,7 +593,9 @@ public static partial class DocumentEndpoints
                 .ToArray(),
             document.CreatedAtUtc,
             document.UpdatedAtUtc,
-            document.TemplateRevisionId);
+            document.TemplateRevisionId,
+            document.ReviewStatus,
+            document.ReviewRound);
 
     private static DocumentDraftRevisionResponse ToResponse(DocumentDraftRevision revision) =>
         new(
@@ -624,7 +634,9 @@ public sealed record TranslationDocumentResponse(
     IReadOnlyCollection<SourceFileResponse> SourceFiles,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
-    Guid? TemplateRevisionId);
+    Guid? TemplateRevisionId,
+    DocumentReviewStatus ReviewStatus,
+    int ReviewRound);
 
 public sealed record DocumentDraftRevisionSummaryResponse(
     Guid Id,
