@@ -24,6 +24,9 @@ public static partial class DocumentEndpoints
         group.MapPost("/{documentId:guid}/draft-revisions", CreateDraftRevisionAsync);
         group.MapGet("/{documentId:guid}/draft-revisions", GetDraftRevisionsAsync);
         group.MapGet("/{documentId:guid}/draft-revisions/{revisionNumber:int}", GetDraftRevisionAsync);
+        group.MapPost("/{documentId:guid}/draft-revisions/{revisionNumber:int}/pdfs", CreateDraftPdfAsync);
+        group.MapGet("/{documentId:guid}/pdfs", GetDraftPdfsAsync);
+        group.MapGet("/{documentId:guid}/pdfs/{pdfId:guid}", DownloadDraftPdfAsync);
         group.MapPost("/{documentId:guid}/source-files", UploadSourceFileAsync)
             .DisableAntiforgery();
         group.MapGet("/{documentId:guid}/source-files/{sourceFileId:guid}", DownloadSourceFileAsync);

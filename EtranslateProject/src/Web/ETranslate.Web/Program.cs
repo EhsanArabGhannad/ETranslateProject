@@ -1,10 +1,12 @@
 using ETranslate.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Http.Resilience;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddServiceDefaults(disableUnsafeRetries: true);
+// Configure each named backend once: PDF generation needs a longer attempt than ordinary API calls.
+builder.AddServiceDefaults(enableHttpResilience: false);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews(options =>
@@ -28,8 +30,18 @@ builder.Services.AddScoped<BackendApi>();
 foreach (var service in new[] { "identity-access", "translation-workflow", "documents" })
 {
     builder.Services.AddHttpClient(service, client => client.BaseAddress = new Uri($"https+http://{service}"))
-        .ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(40));
+        .AddStandardResilienceHandler(options => options.Retry.DisableForUnsafeHttpMethods());
 }
+// Print rendering has a bounded 20-second budget; do not inherit the generic 10-second attempt limit.
+builder.Services.AddHttpClient("documents-pdf", client =>
+    client.BaseAddress = new Uri("https+http://documents"))
+    .AddStandardResilienceHandler(options =>
+    {
+        options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(30);
+        options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(35);
+        options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(60);
+        options.Retry.DisableForUnsafeHttpMethods();
+    });
 
 var app = builder.Build();
 

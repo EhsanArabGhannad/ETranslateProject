@@ -3,6 +3,7 @@ using ETranslate.Documents.Api.Authorization;
 using ETranslate.Documents.Api.Endpoints;
 using ETranslate.Documents.Api.Persistence;
 using ETranslate.Documents.Api.Storage;
+using ETranslate.Documents.Api.Rendering;
 using MassTransit;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
@@ -38,6 +39,7 @@ var storageRoot = string.IsNullOrWhiteSpace(configuredStorageRoot)
     : configuredStorageRoot;
 builder.Services.AddSingleton(new DocumentStorageOptions { RootPath = storageRoot });
 builder.Services.AddSingleton<IDocumentBlobStore, LocalDocumentBlobStore>();
+builder.Services.AddSingleton<IDraftPdfRenderer, ChromiumDraftPdfRenderer>();
 
 builder.Services.AddOptions<SqlTransportOptions>()
     .Configure(options => options.ConnectionString = messagingConnectionString);

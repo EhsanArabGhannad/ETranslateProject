@@ -19,7 +19,8 @@ public static class Extensions
     private const string HealthEndpointPath = "/health";
     private const string AlivenessEndpointPath = "/alive";
 
-    public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder, bool disableUnsafeRetries = false) where TBuilder : IHostApplicationBuilder
+    public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder, bool disableUnsafeRetries = false,
+        bool enableHttpResilience = true) where TBuilder : IHostApplicationBuilder
     {
         builder.ConfigureOpenTelemetry();
 
@@ -30,7 +31,7 @@ public static class Extensions
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
             // Turn on resilience by default
-            http.AddStandardResilienceHandler(options =>
+            if (enableHttpResilience) http.AddStandardResilienceHandler(options =>
             {
                 // UI mutations must not be replayed automatically after an ambiguous timeout.
                 if (disableUnsafeRetries) options.Retry.DisableForUnsafeHttpMethods();

@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ETranslate.Web.Models;
+using ETranslate.Contracts.Documents;
 using ETranslate.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -74,11 +75,13 @@ public sealed partial class WorkspaceController(BackendApi api) : Controller
             model.ExpectedRevision = document.CurrentDraftRevision;
             var path = $"{DocumentsPath(tenantId, jobId)}/{document.Id}";
             model.History = await api.ReadAsync<List<DraftSummary>>("documents", $"{path}/draft-revisions");
+            model.PdfVersions = await api.ReadAsync<List<PdfVersionView>>("documents", $"{path}/pdfs");
             if (document.TemplateRevisionId is not null)
                 model.Template = await api.ReadAsync<TemplateRevision>("documents", $"{path}/template");
             if (revisionNumber.HasValue || document.CurrentDraftRevision > 0)
             {
                 var number = revisionNumber ?? document.CurrentDraftRevision;
+                model.ViewedRevision = number;
                 var draft = await api.ReadAsync<DraftView>("documents", $"{path}/draft-revisions/{number}");
                 model.EditorContentJson = draft.EditorContentJson;
                 model.Historical = number != document.CurrentDraftRevision;
@@ -161,8 +164,12 @@ public sealed partial class WorkspaceController(BackendApi api) : Controller
     }
 
     [HttpPost] public async Task<IActionResult> CreateTemplate(Guid tenantId, string name, string? header,
-        string? footer, string? starterText, string? watermark)
+        string? footer, string? starterText, string? watermark, string pageSize = "A4", string orientation = "Portrait",
+        decimal marginTop = 25, decimal marginRight = 20, decimal marginBottom = 20, decimal marginLeft = 20)
     {
+        var layout = new DocumentPageLayout(pageSize, orientation, marginTop, marginRight, marginBottom, marginLeft);
+        if (!ModelState.IsValid || !layout.IsValid)
+        { TempData["Notice"] = "اندازه، جهت یا حاشیه‌های صفحه معتبر نیست؛ حاشیه‌ها باید بین ۵ و ۵۰ میلی‌متر باشند."; return RedirectToAction(nameof(Index), new { tenantId }); }
         try
         {
             await api.PostAsync<TemplateDetail>("documents", TemplatesPath(tenantId), new
@@ -171,7 +178,7 @@ public sealed partial class WorkspaceController(BackendApi api) : Controller
                 editorContentJson = DocumentText.FromPlainText(starterText ?? ""),
                 headerContentJson = DocumentText.FromPlainText(header ?? ""),
                 footerContentJson = DocumentText.FromPlainText(footer ?? ""),
-                pageLayoutJson = "{\"pageSize\":\"A4\",\"orientation\":\"Portrait\",\"marginsMm\":{\"top\":25,\"right\":20,\"bottom\":20,\"left\":20}}",
+                pageLayoutJson = layout.ToJson(),
                 watermarkJson = string.IsNullOrWhiteSpace(watermark) ? null : JsonSerializer.Serialize(new { text = watermark, opacity = 0.12, rotation = -35 })
             });
             TempData["Notice"] = "قالب ساخته شد؛ اکنون می‌توانید لوگو را به یک نسخه‌ی جدید اضافه کنید.";

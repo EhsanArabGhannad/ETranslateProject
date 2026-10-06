@@ -22,6 +22,8 @@ var translationWorkflow = builder.AddProject<Projects.ETranslate_TranslationWork
     .WithReference(identityAccess)
     .WaitFor(identityAccess);
 var documents = builder.AddProject<Projects.ETranslate_Documents_Api>("documents")
+    .WithEnvironment("PLAYWRIGHT_BROWSERS_PATH", builder.Configuration["PdfBrowserPath"] ??
+        Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "../../../..", ".local", "pdf-browsers")))
     .WithReference(documentsDatabase)
     .WithReference(messaging)
     .WithReference(identityAccess)

@@ -151,7 +151,7 @@ Apply a template before the document's first editor save:
 - Body: `{"templateId":"<template-guid>","revisionNumber":2}`
 - `GET` on the same path returns the pinned layout revision, including after the template is archived or updated.
 
-Application creates draft revision 1 from the template body and pins its exact `TemplateRevisionId`. A repeated application or applying to an already edited document returns HTTP 409. Later draft saves start with `expectedCurrentRevision: 1` and may reference assets from the pinned template. The Web workspace uses these APIs; a final PDF renderer is not implemented yet.
+Application creates draft revision 1 from the template body and pins its exact `TemplateRevisionId`. A repeated application or applying to an already edited document returns HTTP 409. Later draft saves start with `expectedCurrentRevision: 1` and may reference assets from the pinned template. The Web workspace uses these APIs; unsigned draft PDF export is available, but signed final PDF is not implemented yet.
 
 Each translation job can have one translation document in the first product phase. Create it with:
 
@@ -188,12 +188,30 @@ Start the AppHost, then open [the local Web UI](https://localhost:7049). The int
 1. Register or log in with an Identity Access account.
 2. Create/select a workspace (independent translator or translation office).
 3. Create a translation job. Notary is optional; acceptance profile can be blank or Other. Notary mode only records intent, not an available notary integration.
-4. Optionally create an A4 template with header/footer/starter text/watermark and attach a PNG/JPEG logo. Attaching a logo creates a new immutable template revision and appends to the existing header. An uploaded asset may remain unattached if the subsequent revision conflicts; inspect assets through the API before retrying.
+4. Optionally create a template with header/footer/starter text/watermark and attach a PNG/JPEG logo. Expand page layout to choose A4/A5/Letter/Legal, portrait/landscape and margins (5–50 mm). Attaching a logo creates a new immutable template revision and appends to the existing header. An uploaded asset may remain unattached if the subsequent revision conflicts; inspect assets through the API before retrying.
 5. Start the document, optionally pin a template before the first save, and save translation-body revisions. History is read-only; the pinned template does not change when the template is updated.
 6. Upload original PDF, PNG, JPEG or TIFF files (up to 25 MiB each) beside the translation. PDF supports page navigation and zoom; PNG/JPEG are displayed as images. TIFF and password-protected PDFs are download-only. Uploading a source does not create a translation revision or clear unsaved editor input. Source files belong to the document and are shared across its translation revisions.
 7. Format recognized documents with bold, italic, underline, headings, bullet/numbered lists and RTL/LTR/automatic direction. Undo/redo is available within the current browser session. Open the expandable letterhead preview separately.
+8. Save the translation, then choose draft PDF generation. This exports the displayed saved revision only, not unsaved editor changes. Repeated exports reuse the same archived bytes. Previous PDFs remain downloadable after later draft/template edits. Every page says `DRAFT - UNSIGNED`; header/footer/logo and page counters repeat across pages. Historical revisions can also be exported.
 
-This is an initial rich-text editor, **not a Word-equivalent document editor**. The original revision JSON remains the source of truth; plain text is only derived metadata. Both Web and browser validate a restricted schema before opening rich editing. Unknown JSON stays in an advanced field, without automatic conversion or flattening. The preview uses a limited, safe node vocabulary (paragraphs, text/marks, headings, lists, quotes, hard breaks, managed template images). Unsupported elements are flagged. Page metrics and watermark appearance are approximate, not faithful print layout. There is no table UI, Word import, accurate pagination, final translation PDF, signature, payment checkout, or notary approval yet. PDF source previews are canvas images, without OCR, text selection, search, annotation links or PDF scripts.
+This is an initial rich-text editor, **not a Word-equivalent document editor**. The original revision JSON remains the source of truth; plain text is only derived metadata. Both Web and browser validate a restricted schema before opening rich editing. Unknown JSON stays in an advanced field, without automatic conversion or flattening. The preview uses a limited, safe node vocabulary (paragraphs, text/marks, headings, lists, quotes, hard breaks, managed template images). Unsupported elements are flagged and PDF generation rejects them, rather than losing content. Browser preview page metrics/watermark remain approximate; download the draft PDF to inspect print pagination. There is no table UI, Word import, paginated WYSIWYG editor, signed final translation PDF, signature, payment checkout, or notary approval yet. PDF source previews are canvas images, without OCR, text selection, search, annotation links or PDF scripts.
+
+### Draft PDF runtime and API
+
+The print engine uses native Chromium through pinned Playwright, with embedded Noto fonts. Build and install the matching runtime once (PowerShell 7, from the solution directory):
+
+```powershell
+dotnet build ETranslate.slnx
+./scripts/Install-PdfBrowser.ps1
+```
+
+Default installation is `D:\Github\ETranslateProject\.local\pdf-browsers` in this checkout. No Docker/WSL is required. AppHost supplies that path to Documents. With a custom install directory, configure AppHost `PdfBrowserPath`; direct/published Documents needs `PLAYWRIGHT_BROWSERS_PATH` pointing to its own matching runtime. Reinstall after a Playwright upgrade. Font files and license are included in Documents build/publish outputs. Missing browser returns HTTP 503 without changing drafts. Runtime installation needs Internet access; PDF requests do not fetch remote fonts or images.
+
+- `POST .../documents/{documentId}/draft-revisions/{revisionNumber}/pdfs`: create or reuse a PDF (201/200).
+- `GET .../documents/{documentId}/pdfs`: list immutable draft PDFs.
+- `GET .../documents/{documentId}/pdfs/{pdfId}`: private PDF attachment with SHA-256/revision headers and byte ranges.
+
+The prefix is `/api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}`. Metadata includes `kind: DraftUnsigned`, draft/template revision IDs, renderer version, hash and creation time, not storage paths. Unknown content/layout returns 422, occupied renderer 429, unavailable engine 503. No QR, e-imza, PDF/A, PDF encryption or legal acceptance is claimed. Browser export preserves unsaved editor input with JavaScript; without JavaScript its normal redirect cannot preserve unsaved input, so save/copy first. The draft watermark is a label, not protection against editing. See [the architecture decision](docs/adr/0010-immutable-draft-pdf.md) for limits and deployment hardening.
 
 Source downloads pass through authenticated, tenant-authorized Web routes with private/no-store responses and byte-range support. The Documents service remains authoritative for binary-signature validation. Web buffers at most 25 MiB per download; range requests currently fetch the entire upstream source before returning the selected range. Large-scale production use needs streaming/range forwarding, resource limits and malware scanning; MIME checks alone are not antivirus scanning.
 
@@ -219,6 +237,7 @@ With AppHost running, repeatable live checks (PowerShell 7):
 ./tests/ETranslate.EndToEndTests/Verify-WebWorkspace.ps1
 ./tests/ETranslate.EndToEndTests/Verify-TemplateAssets.ps1
 ./tests/ETranslate.EndToEndTests/Verify-TranslatorWorkspace.ps1
+./tests/ETranslate.EndToEndTests/Verify-DraftPdfs.ps1
 ```
 
 The translator check also runs the Web workspace baseline; it tests private sources, MIME/size/antiforgery restrictions, byte ranges, tenant isolation, exact rich JSON preservation, pinned templates, stale saves and unknown-schema fallback. The scripts create isolated development accounts/tenants/documents and leave their fixtures for inspection. Never run against production. `dotnet test` alone does not execute these HTTP smoke scripts; the existing EndToEnd xUnit placeholder remains skipped.

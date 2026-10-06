@@ -75,6 +75,9 @@ summary { cursor: pointer; font-weight: 600; }
 #pdf-controls label { margin: 0; }
 #pdf-controls select { width: auto; }
 .source-files { margin-top: 18px; }
+.draft-pdf-section { margin-top: 22px; border-top: 1px solid var(--border); padding-top: 20px; }
+#draft-pdf-list > div { margin: 14px 0; }
+#draft-pdf-list small { display: block; overflow-wrap: anywhere; color: var(--muted); font-size: 10px; }
 .source-files a { display: block; padding: 8px 0; overflow-wrap: anywhere; }
 .editor-toolbar { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; border: 1px solid var(--border); border-radius: 8px 8px 0 0; background: #f8faf7; }
 .editor-controls .editor-toolbar button { width: auto; margin: 0; padding: 6px 10px; border: 1px solid #cddbd2; color: var(--ink); background: white; font-size: 12px; }

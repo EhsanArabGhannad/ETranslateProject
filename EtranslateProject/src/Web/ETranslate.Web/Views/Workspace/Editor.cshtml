@@ -54,6 +54,19 @@ else { <p class="notice" id="legacy-format-notice">ساختار اصلی سند 
 <button type="submit" disabled="@(!editable)">ذخیره‌ی نسخه‌ی جدید</button><p class="muted">فقط بدنه‌ی ترجمه تغییر می‌کند؛ سربرگ، پابرگ و لوگوی قالب تثبیت‌شده حفظ می‌شوند.</p></form>
 <p><a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">بررسی آخرین نسخه در تب جدید</a> · <a asp-controller="Account" asp-action="Login" target="_blank" rel="noopener">ورود مجدد</a></p>
 <details><summary>تاریخچه‌ی نسخه‌ها (@Model.History.Count)</summary><div class="history">@foreach (var revision in Model.History) { <a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-revisionNumber="@revision.RevisionNumber">نسخه @revision.RevisionNumber <span dir="ltr">@revision.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</span></a> }</div></details>
+<section class="draft-pdf-section"><h3>PDF پیش‌نویس · بدون امضا</h3>
+@if (Model.ViewedRevision > 0) {
+    <form asp-action="GenerateDraftPdf" method="post" id="draft-pdf-form" data-download-base="@Url.Action("DraftPdf", new { tenantId = Model.TenantId, jobId = Model.Job.Id })">
+        <input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="revisionNumber" value="@Model.ViewedRevision" />
+        <button type="submit" class="secondary">ساخت PDF نسخه‌ی ذخیره‌شده‌ی @Model.ViewedRevision</button>
+    </form>
+} else { <p class="muted">برای تولید PDF، ابتدا یک نسخه‌ی ترجمه ذخیره کنید.</p> }
+<p class="muted">فقط نسخه‌ی ذخیره‌شده چاپ می‌شود؛ تغییرات ذخیره‌نشده وارد PDF نمی‌شوند. سربرگ و پابرگ در صفحات تکرار می‌شوند. این فایل امضای الکترونیکی، QR یا تأیید نوتر ندارد.</p>
+<p id="draft-pdf-status" role="status" class="muted"></p><div id="draft-pdf-list">
+@foreach (var pdf in Model.PdfVersions) {
+    <div data-pdf-id="@pdf.Id"><a asp-action="DraftPdf" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-pdfId="@pdf.Id">دانلود PDF پیش‌نویس نسخه‌ی @pdf.RevisionNumber</a><small dir="ltr">SHA-256: @pdf.Sha256</small></div>
+}
+</div></section>
 </section>
 <details class="preview-panel"><summary>پیش‌نمایش ترجمه با سربرگ و قالب</summary><p class="muted">نمایش تقریبی، نه PDF نهایی</p><div id="preview-notice" class="muted" role="status"></div><article class="paper" dir="auto"><div class="watermark" id="preview-watermark"></div><header id="preview-header" class="paper-header"></header><div id="preview-body" class="paper-body"></div><footer id="preview-footer" class="paper-footer"></footer></article></details>
 </div>

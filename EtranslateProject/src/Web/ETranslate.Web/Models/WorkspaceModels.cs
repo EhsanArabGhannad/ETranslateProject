@@ -21,6 +21,8 @@ public sealed record SourceFileView(Guid Id, string OriginalFileName, string Con
 public sealed record DraftView(int RevisionNumber, string EditorContentJson, string? PlainText);
 public sealed record DraftSummary(int RevisionNumber, DateTimeOffset CreatedAtUtc);
 public sealed record AssetView(Guid Id);
+public sealed record PdfVersionView(Guid Id, int RevisionNumber, Guid? TemplateRevisionId,
+    string RendererVersion, long SizeBytes, string Sha256, DateTimeOffset CreatedAtUtc, string Kind);
 public sealed class WorkspaceView
 {
     public List<TenantView> Tenants { get; set; } = [];
@@ -38,6 +40,8 @@ public sealed class EditorView
     public List<DraftSummary> History { get; set; } = [];
     public string EditorContentJson { get; set; } = DocumentText.Empty;
     public int ExpectedRevision { get; set; }
+    public int ViewedRevision { get; set; }
+    public List<PdfVersionView> PdfVersions { get; set; } = [];
     public string? Message { get; set; }
     public bool Conflict { get; set; }
     public bool Historical { get; set; }

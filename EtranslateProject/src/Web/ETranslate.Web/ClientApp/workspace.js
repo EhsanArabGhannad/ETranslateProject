@@ -2,6 +2,7 @@ import { createPreview } from './preview.js';
 import { startRichEditor } from './rich-editor.js';
 import { startSources } from './sources.js';
 import { isRichDocument } from './document-schema.js';
+import { startPdfExport } from './pdf-export.js';
 
 const find = id => document.getElementById(id), workspace = find('editor-workspace');
 if (workspace) {
@@ -56,4 +57,5 @@ if (workspace) {
         dirty = true;
     });
     startSources(workspace); preview();
+    startPdfExport();
 }

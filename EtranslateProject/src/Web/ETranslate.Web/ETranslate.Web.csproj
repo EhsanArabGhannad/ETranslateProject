@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <ProjectReference Include="..\..\BuildingBlocks\ETranslate.Contracts\ETranslate.Contracts.csproj" />
     <ProjectReference Include="..\..\Orchestration\ETranslate.ServiceDefaults\ETranslate.ServiceDefaults.csproj" />
   </ItemGroup>
 

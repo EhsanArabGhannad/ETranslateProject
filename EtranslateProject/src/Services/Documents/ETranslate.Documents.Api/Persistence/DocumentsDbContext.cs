@@ -13,6 +13,7 @@ public sealed class DocumentsDbContext(
     public DbSet<DocumentTemplate> DocumentTemplates => Set<DocumentTemplate>();
     public DbSet<DocumentTemplateRevision> TemplateRevisions => Set<DocumentTemplateRevision>();
     public DbSet<TemplateAsset> TemplateAssets => Set<TemplateAsset>();
+    public DbSet<DocumentPdfVersion> PdfVersions => Set<DocumentPdfVersion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -109,6 +110,19 @@ public sealed class DocumentsDbContext(
         });
 
         modelBuilder.AddInboxStateEntity(entity => entity.ToTable("inbox_state"));
+        modelBuilder.Entity<DocumentPdfVersion>(entity =>
+        {
+            entity.ToTable("pdf_versions");
+            entity.HasKey(pdf => pdf.Id);
+            entity.Property(pdf => pdf.RendererVersion).HasMaxLength(100).IsRequired();
+            entity.Property(pdf => pdf.StorageKey).HasMaxLength(500).IsRequired();
+            entity.Property(pdf => pdf.Sha256).HasMaxLength(64).IsRequired();
+            entity.HasIndex(pdf => new { pdf.DraftRevisionId, pdf.RendererVersion }).IsUnique();
+            entity.HasIndex(pdf => pdf.StorageKey).IsUnique();
+            entity.HasOne<TranslationDocument>().WithMany().HasForeignKey(pdf => pdf.DocumentId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<DocumentDraftRevision>().WithMany().HasForeignKey(pdf => pdf.DraftRevisionId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<DocumentTemplateRevision>().WithMany().HasForeignKey(pdf => pdf.TemplateRevisionId).OnDelete(DeleteBehavior.Restrict);
+        });
         modelBuilder.AddOutboxMessageEntity(entity => entity.ToTable("outbox_messages"));
         modelBuilder.AddOutboxStateEntity(entity => entity.ToTable("outbox_state"));
     }
