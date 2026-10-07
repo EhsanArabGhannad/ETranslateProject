@@ -22,6 +22,12 @@ public sealed class Tenant
     public TenantType Type { get; private init; }
     public DateTimeOffset CreatedAtUtc { get; private init; }
     public bool IsActive { get; private set; }
+    public long TeamVersion { get; private set; }
+    public void TouchTeam(long expectedVersion)
+    {
+        if (TeamVersion != expectedVersion) throw new InvalidOperationException("Team changed; refresh before retrying.");
+        TeamVersion = checked(TeamVersion + 1);
+    }
 
     public ICollection<TenantMembership> Memberships { get; } = new List<TenantMembership>();
 

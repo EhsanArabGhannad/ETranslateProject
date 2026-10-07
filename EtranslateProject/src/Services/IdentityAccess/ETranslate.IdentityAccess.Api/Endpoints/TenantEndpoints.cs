@@ -125,7 +125,7 @@ public static class TenantEndpoints
 
         var tenants = await database.TenantMemberships
             .AsNoTracking()
-            .Where(membership => membership.UserId == user.Id && membership.Tenant.IsActive)
+            .Where(membership => membership.UserId == user.Id && membership.IsActive && membership.Tenant.IsActive)
             .OrderBy(membership => membership.Tenant.Name)
             .Select(membership => new TenantResponse(
                 membership.Tenant.Id,
@@ -156,7 +156,7 @@ public static class TenantEndpoints
             .AsNoTracking()
             .Where(membership =>
                 membership.TenantId == tenantId &&
-                membership.UserId == user.Id &&
+                membership.UserId == user.Id && membership.IsActive &&
                 membership.Tenant.IsActive)
             .Select(membership => new TenantResponse(
                 membership.Tenant.Id,
@@ -187,7 +187,7 @@ public static class TenantEndpoints
             .AsNoTracking()
             .Where(membership =>
                 membership.TenantId == tenantId &&
-                membership.UserId == user.Id &&
+                membership.UserId == user.Id && membership.IsActive &&
                 membership.Tenant.IsActive)
             .Select(membership => new TenantAccessResponse(
                 membership.TenantId,

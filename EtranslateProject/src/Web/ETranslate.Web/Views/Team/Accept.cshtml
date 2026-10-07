@@ -1,0 +1,15 @@
+@model AcceptInvitationView
+@{ ViewData["Title"] = "پذیرش دعوت"; }
+<section class="card"><span class="eyebrow">TEAM INVITATION</span><h1>پذیرش دعوت فضای کاری</h1>
+@if (Model.Message is not null) { <p class="alert" role="alert">@Model.Message</p> }
+@if (Model.Invitation is { } invitation) {
+    <p>@invitation.TenantName · نقش پیشنهادی: @TeamPageView.RoleLabel(invitation.Role)</p>
+    <p>انقضا: <span dir="ltr">@invitation.ExpiresAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</span></p>
+    @if (!invitation.CanAccept) { <p class="notice">این دعوت دیگر قابل پذیرش نیست؛ از مدیر لینک تازه بگیرید.</p> }
+}
+<p class="muted">با پذیرش، عضو فضای کاری بالا می‌شوید. این عملیات امضا یا تعهد قراردادی نیست. با همان حسابی وارد شوید که مدیر دعوت کرده است. اگر لینک هنگام ورود گم شد، پس از ورود دوباره همان لینک را باز کنید.</p>
+<form asp-action="Accept" method="post"><input type="hidden" name="invitationId" value="@Model.InvitationId" />
+    <label for="accept-token">کد محرمانه‌ی دعوت</label><input id="accept-token" name="token" dir="ltr" minlength="43" maxlength="43" required autocomplete="off" />
+    <button type="submit" disabled="@(Model.Invitation is { CanAccept: false })">پذیرش و ورود به فضای کاری</button>
+</form><p><a asp-controller="Workspace" asp-action="Index">بازگشت بدون پذیرش</a></p></section>
+@section Scripts { <script src="~/js/team-invitations.js" asp-append-version="true"></script> }

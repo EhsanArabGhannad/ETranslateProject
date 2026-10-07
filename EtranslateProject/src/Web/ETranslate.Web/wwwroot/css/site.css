@@ -112,3 +112,5 @@ summary { cursor: pointer; font-weight: 600; }
 .review-history { margin-block: 1rem; padding: 1rem; border: 1px solid var(--line, #dce5ea); border-radius: 12px; }
 .review-history small { display: block; overflow-wrap: anywhere; }
 .review-history p { overflow-wrap: anywhere; }
+.team-member { padding-block: 1rem; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.team-member form { margin-block: .7rem; }

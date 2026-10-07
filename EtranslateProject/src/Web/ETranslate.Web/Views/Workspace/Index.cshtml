@@ -4,6 +4,7 @@
 @if (Model.Tenants.Count > 0) {
     <nav class="tenant-tabs" aria-label="فضاهای کاری">@foreach (var tenant in Model.Tenants) { <a class="@(tenant.Id == Model.Tenant?.Id ? "selected" : "")" asp-action="Index" asp-route-tenantId="@tenant.Id">@tenant.Name</a> }</nav>
 }
+@if (Model.Tenant is { Role: "Owner" or "Administrator" } activeTenant) { <p><a asp-controller="Team" asp-action="Index" asp-route-tenantId="@activeTenant.Id">مدیریت اعضا و نقش‌های این فضای کاری ←</a></p> }
 <div class="workspace-grid">
 <section class="card">
     <div class="section-heading"><h2>پرونده‌های ترجمه</h2><span class="badge">@Model.Jobs.Count پرونده</span></div>

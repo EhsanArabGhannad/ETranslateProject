@@ -86,7 +86,7 @@ This check creates isolated development tenants and leaves its test records and 
 
 Save the translation, create its draft PDF, then use **بازبینی و تأیید داخلی** in the editor to submit that exact saved version. The PDF can be selected immediately after generation without losing editor text. Pending/approved documents lock draft saves and source uploads. Owner/Administrator can approve, return with a reason, or reopen an approval for corrections; submitters can withdraw their pending submission with a reason. Returned/reopened translations require a new saved revision and PDF before resubmission. Independent owners may self-review internally. Review history retains actors, UTC timestamps, notes, exact PDF hashes and source-file snapshots.
 
-This is internal preparation, not e-imza, mobil imza, a seal or notarization. It does not change the job-level signing status. Team invitations/role management and review assignment are still future work. See [ADR 0011](docs/adr/0011-document-review-boundary.md) and the [Persian test guide](docs/testing/translator-workspace.fa.md).
+This is internal preparation, not e-imza, mobil imza, a seal or notarization. It does not change the job-level signing status. Team invitations/role management are available; per-job review assignment is still future work. See [ADR 0011](docs/adr/0011-document-review-boundary.md) and the [Persian test guide](docs/testing/translator-workspace.fa.md).
 
 With AppHost running, PowerShell 7 can verify live review and competing requests:
 
@@ -95,6 +95,22 @@ With AppHost running, PowerShell 7 can verify live review and competing requests
 ```
 
 This test creates isolated development fixtures and leaves them for inspection. Do not run on production.
+
+### Team membership and manual invitations
+
+Owner/Administrator can open **مدیریت اعضا و نقش‌های این فضای کاری** from the workspace. Recipients must register an account first. A manager creates a seven-day, single-use invitation and personally delivers its confidential link to the intended person; no email is sent. Acceptance requires both the bound recipient account and the secret code. Only its SHA-256 hash is stored. The code is displayed once, never returned in team listings or integration events, and carried in a URL fragment that the browser removes before submission.
+
+Owner can manage Administrator/Translator/Reviewer members. Administrator can manage only Translator/Reviewer members. Nobody can change their own membership or the Owner. Reviewer currently means **read-only observer**, not an approver; only Owner/Administrator approve internal reviews. Membership can be deactivated/reactivated without deleting the account or document history. Changes apply to subsequent authorization checks, not requests already in flight. Ownership transfer, seat billing, email delivery, verified-email onboarding and per-job assignments are not implemented.
+
+Team mutations use a tenant concurrency version and append an audit record plus an outbox event in the same transaction. Stale requests return 409. Pending invitations, including expired ones, must be cancelled before reissue. An inviter must still have the required role when their invitation is accepted. See [ADR 0012](docs/adr/0012-tenant-team-invitations.md) and the [Persian team test guide](docs/testing/tenant-team.fa.md).
+
+With AppHost running, verify roles, invitation races, antiforgery and cross-service revocation using PowerShell 7:
+
+```powershell
+./tests/ETranslate.EndToEndTests/Verify-TenantTeam.ps1
+```
+
+This creates isolated local development accounts and records, leaves them for inspection, and must not be run against production. Existing memberships are backfilled as active by the new Identity migration.
 
 ### Translation jobs
 

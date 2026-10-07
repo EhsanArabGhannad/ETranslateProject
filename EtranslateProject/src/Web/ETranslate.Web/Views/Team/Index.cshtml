@@ -1,0 +1,43 @@
+@model TeamPageView
+@{ ViewData["Title"] = "اعضا و نقش‌ها"; var team = Model.Team; }
+<a class="back-link" asp-controller="Workspace" asp-action="Index" asp-route-tenantId="@team.TenantId">→ بازگشت به فضای کاری</a>
+<div class="page-heading"><div><span class="eyebrow">TEAM & ACCESS</span><h1>اعضا و نقش‌ها</h1><p>@team.TenantName · نقش شما: @TeamPageView.RoleLabel(team.Role)</p></div><span class="badge">نسخه‌ی تیم @team.TeamVersion</span></div>
+@if (Model.Message is not null) { <div class="alert" role="alert">@Model.Message</div> }
+@if (Model.Created is { } created) {
+    <section class="card"><h2>لینک یک‌بارمصرف دعوت آماده شد</h2><p>برای <span dir="ltr">@created.Email</span> با نقش @TeamPageView.RoleLabel(created.Role). انقضا: <span dir="ltr">@created.ExpiresAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</span></p>
+        <p class="notice">این لینک محرمانه فقط اکنون نمایش داده می‌شود؛ آن را شخصاً به فرد موردنظر تحویل دهید. ایمیل خودکار ارسال نمی‌شود. در صورت گم‌شدن، دعوت را لغو و لینک جدید صادر کنید.</p>
+        <label for="invitation-link">لینک دعوت (کپی کنید)</label><input id="invitation-link" dir="ltr" readonly value="@Model.InviteLink" data-relative-link="true" />
+        <label for="invitation-token">کد دعوت برای ورود دستی</label><input id="invitation-token" dir="ltr" readonly value="@created.Token" />
+        <p>دعوت‌شونده باید با همان حساب ثبت‌شده وارد شود؛ پذیرش فقط با حساب شخص دیگری یا دانستن ایمیل ممکن نیست.</p>
+    </section>
+}
+<div class="workspace-grid"><section class="card"><h2>اعضای فضای کاری (@team.Members.Count)</h2>
+@foreach (var member in team.Members) {
+    <article class="team-member"><h3 dir="ltr">@member.Email</h3><p>@TeamPageView.RoleLabel(member.Role) · @(member.IsActive ? "فعال" : "غیرفعال")</p>
+    @if (member.CanEdit) {
+        <form asp-action="Role" method="post"><input type="hidden" name="tenantId" value="@team.TenantId" /><input type="hidden" name="userId" value="@member.UserId" /><input type="hidden" name="expectedTeamVersion" value="@team.TeamVersion" />
+            <label for="role-@member.UserId">نقش</label><select id="role-@member.UserId" name="role">
+            @if (team.Role == "Owner") { <option value="Administrator" selected="@(member.Role == "Administrator")">مدیر</option> }
+            <option value="Translator" selected="@(member.Role == "Translator")">مترجم</option><option value="Reviewer" selected="@(member.Role == "Reviewer")">ناظر · فقط خواندن</option></select><button class="secondary" type="submit">ثبت نقش</button>
+        </form>
+        <form asp-action="Status" method="post"><input type="hidden" name="tenantId" value="@team.TenantId" /><input type="hidden" name="userId" value="@member.UserId" /><input type="hidden" name="expectedTeamVersion" value="@team.TeamVersion" /><input type="hidden" name="isActive" value="@((!member.IsActive).ToString().ToLowerInvariant())" /><button class="secondary" type="submit">@(member.IsActive ? "غیرفعال‌سازی دسترسی" : "فعال‌سازی دوباره")</button></form>
+    } else { <p class="muted">مالک، نقش خودتان و مدیرانِ خارج از اختیار شما قابل تغییر نیستند.</p> }
+    </article>
+}
+</section><aside class="card"><h2>دعوت عضو جدید</h2><p class="muted">ابتدا شخص موردنظر حسابش را ثبت کند. دعوت ۷ روز اعتبار دارد و تا پذیرش، هیچ دسترسی ایجاد نمی‌کند.</p>
+<form asp-action="Invite" method="post"><input type="hidden" name="tenantId" value="@team.TenantId" /><input type="hidden" name="expectedTeamVersion" value="@team.TeamVersion" />
+    <label for="invite-email">ایمیل حساب ثبت‌شده</label><input type="email" id="invite-email" name="email" dir="ltr" maxlength="256" value="@Model.Email" required />
+    <label for="invite-role">نقش دعوت‌شونده</label><select id="invite-role" name="role">
+    @if (team.Role == "Owner") { <option value="Administrator" selected="@(Model.Role == "Administrator")">مدیر</option> }
+    <option value="Translator" selected="@(Model.Role == "Translator")">مترجم</option><option value="Reviewer" selected="@(Model.Role == "Reviewer")">ناظر · فقط خواندن</option></select><button type="submit">ساخت دعوت یک‌بارمصرف</button>
+</form><p class="muted">مدیر می‌تواند بازبینی را تأیید کند؛ مترجم می‌نویسد و برای بازبینی می‌فرستد؛ ناظر فقط می‌خواند. مدیریت قالب‌ها فعلاً مطابق دسترسی قبلیِ ویرایش اسناد است. دعوت هیچ صلاحیت مترجم رسمی یا امضای قانونی ایجاد نمی‌کند.</p></aside></div>
+<section class="card"><h2>دعوت‌ها (حداکثر ۱۰۰ دعوت اخیر)</h2>
+@foreach (var invitation in team.Invitations) {
+    <article class="team-member"><h3 dir="ltr">@invitation.Email</h3><p>@TeamPageView.RoleLabel(invitation.Role) · @(invitation.IsExpired ? "منقضی‌شده" : invitation.Status == "Pending" ? "در انتظار پذیرش" : invitation.Status == "Accepted" ? "پذیرفته‌شده" : "لغوشده") · انقضا: <span dir="ltr">@invitation.ExpiresAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</span></p>
+        @if (invitation.CanCancel) { <form asp-action="Cancel" method="post"><input type="hidden" name="tenantId" value="@team.TenantId" /><input type="hidden" name="invitationId" value="@invitation.Id" /><input type="hidden" name="expectedTeamVersion" value="@team.TeamVersion" /><button class="secondary" type="submit">لغو دعوت</button></form> }
+    </article>
+}
+</section><section class="card"><details><summary>سابقه‌ی تغییرات تیم (حداکثر ۵۰ تغییر اخیر)</summary>
+@foreach (var entry in team.Audit) { <p>@TeamPageView.ActionLabel(entry.Action) · نسخه @entry.TeamVersion · @TeamPageView.RoleLabel(entry.PreviousRole) → @TeamPageView.RoleLabel(entry.Role)<br /><small dir="ltr">@entry.OccurredAtUtc.ToString("yyyy-MM-dd HH:mm") UTC · Actor: @entry.ActorUserId · Member: @entry.TargetUserId</small></p> }
+</details><p class="muted">غیرفعال‌سازی فقط دسترسی به این فضای کاری را می‌بندد؛ حساب و تاریخچه‌ی ترجمه/بازبینی حذف نمی‌شوند. نقش جدید در درخواست‌های بعدی اعمال می‌شود؛ درخواست در حال اجرا ممکن است تکمیل شود.</p></section>
+@section Scripts { <script src="~/js/team-invitations.js" asp-append-version="true"></script> }

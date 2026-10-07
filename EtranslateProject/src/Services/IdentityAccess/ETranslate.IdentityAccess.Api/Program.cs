@@ -62,6 +62,7 @@ await app.ApplyDatabaseMigrationsAsync();
 app.MapGet("/", () => Results.Ok(new { service = "identity-access", status = "healthy" }));
 app.MapGroup("/api/v1/auth").MapIdentityApi<ApplicationUser>();
 app.MapTenantEndpoints();
+app.MapTenantTeamEndpoints();
 app.MapDefaultEndpoints();
 
 app.Run();
