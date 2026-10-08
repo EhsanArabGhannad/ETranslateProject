@@ -10,7 +10,8 @@ public sealed class LoginInput
 public sealed record TokenResponse(string AccessToken, int ExpiresIn);
 public sealed record TenantView(Guid Id, string Name, string Type, string Role);
 public sealed record JobView(Guid Id, string Title, string SourceLanguageCode, string TargetLanguageCode,
-    string NotaryRequirement, string? NotaryProcessingMode, string? AcceptanceProfile, string? AcceptanceProfileOther);
+    string NotaryRequirement, string? NotaryProcessingMode, string? AcceptanceProfile, string? AcceptanceProfileOther,
+    Guid? AssignedTranslatorUserId = null, long AssignmentVersion = 0);
 public sealed record TemplateView(Guid Id, string Name, bool IsActive, int CurrentRevision);
 public sealed record TemplateDetail(Guid Id, string Name, string? Description, bool IsActive, int CurrentRevision, TemplateRevision Revision);
 public sealed record TemplateRevision(Guid Id, Guid TemplateId, int RevisionNumber, string EditorContentJson,
@@ -43,6 +44,7 @@ public sealed class WorkspaceView
     public TenantView? Tenant { get; set; }
     public List<JobView> Jobs { get; set; } = [];
     public List<TemplateView> Templates { get; set; } = [];
+    public bool AssignedToMe { get; set; }
 }
 public sealed class EditorView
 {

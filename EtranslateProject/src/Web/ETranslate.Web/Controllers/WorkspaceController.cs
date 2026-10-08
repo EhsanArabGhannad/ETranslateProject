@@ -17,7 +17,7 @@ public sealed partial class WorkspaceController(BackendApi api) : Controller
     private static string TemplatesPath(Guid tenantId) => $"{TenantPath(tenantId)}/document-templates";
     private static string DocumentsPath(Guid tenantId, Guid jobId) => $"{JobsPath(tenantId)}/{jobId}/documents";
 
-    [HttpGet] public async Task<IActionResult> Index(Guid? tenantId)
+    [HttpGet] public async Task<IActionResult> Index(Guid? tenantId, bool assignedToMe = false)
     {
         var tenants = await api.ReadAsync<List<TenantView>>("identity-access", "/api/v1/tenants");
         var tenant = tenantId.HasValue ? tenants.Find(item => item.Id == tenantId) : tenants.FirstOrDefault();
@@ -25,7 +25,8 @@ public sealed partial class WorkspaceController(BackendApi api) : Controller
         return View(new WorkspaceView
         {
             Tenants = tenants, Tenant = tenant,
-            Jobs = tenant is null ? [] : await api.ReadAsync<List<JobView>>("translation-workflow", $"{JobsPath(tenant.Id)}?take=100"),
+            AssignedToMe = assignedToMe,
+            Jobs = tenant is null ? [] : await api.ReadAsync<List<JobView>>("translation-workflow", $"{JobsPath(tenant.Id)}?take=100&assignedToMe={assignedToMe.ToString().ToLowerInvariant()}"),
             Templates = tenant is null ? [] : await api.ReadAsync<List<TemplateView>>("documents", TemplatesPath(tenant.Id))
         });
     }

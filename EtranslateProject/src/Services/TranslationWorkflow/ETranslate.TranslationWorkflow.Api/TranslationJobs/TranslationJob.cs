@@ -57,6 +57,29 @@ public sealed partial class TranslationJob
     public string? AcceptanceProfileOther { get; private set; }
     public DateTimeOffset CreatedAtUtc { get; private init; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
+    public Guid? AssignedTranslatorUserId { get; private set; }
+    public long AssignmentVersion { get; private set; }
+    public Guid? AssignmentChangedByUserId { get; private set; }
+    public DateTimeOffset? AssignmentChangedAtUtc { get; private set; }
+
+    public TranslationJobAssignmentChange AssignTranslator(Guid? translatorUserId, Guid actorUserId,
+        long expectedVersion, string? note, DateTimeOffset now)
+    {
+        ArgumentOutOfRangeException.ThrowIfEqual(actorUserId, Guid.Empty);
+        if (translatorUserId == Guid.Empty) throw new ArgumentException("An empty user ID is not an unassignment.");
+        if (expectedVersion != AssignmentVersion) throw new InvalidOperationException("Assignment has changed.");
+        if (note?.Length > 500) throw new ArgumentException("Assignment note cannot exceed 500 characters.");
+        if (AssignedTranslatorUserId == translatorUserId) throw new InvalidOperationException("Assignment is unchanged.");
+        var nextVersion = checked(AssignmentVersion + 1);
+        var change = new TranslationJobAssignmentChange(Id, TenantId, nextVersion, actorUserId,
+            AssignedTranslatorUserId, translatorUserId, string.IsNullOrWhiteSpace(note) ? null : note.Trim(), now);
+        AssignedTranslatorUserId = translatorUserId;
+        AssignmentVersion = nextVersion;
+        AssignmentChangedByUserId = actorUserId;
+        AssignmentChangedAtUtc = now;
+        UpdatedAtUtc = now;
+        return change;
+    }
 
     public static TranslationJob Create(
         Guid tenantId,

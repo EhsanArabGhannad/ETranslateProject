@@ -5,6 +5,7 @@
 <a class="back-link" asp-action="Index" asp-route-tenantId="@Model.TenantId">→ بازگشت به پرونده‌ها</a>
 <div class="page-heading"><div><span class="eyebrow">TRANSLATION STUDIO</span><h1>@Model.Job.Title</h1><p class="muted" dir="auto">@Model.Job.SourceLanguageCode → @Model.Job.TargetLanguageCode · @(Model.Job.NotaryRequirement == "Required" ? "نیازمند نوتر" : "بدون نیاز به نوتر")</p></div><span class="badge">@ReviewStateView.Label(Model.Review?.Status ?? "Draft")</span></div>
 @if (Model.Message is not null) { <div class="alert" role="alert">@Model.Message</div> }
+<p><a asp-action="Assignment" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">تخصیص مترجم و سابقه در تب جدا ←</a> · @(Model.Job.AssignedTranslatorUserId.HasValue ? "مترجم مسئول تعیین شده" : "بدون تخصیص مترجم")</p>
 @if (Model.Document is null) {
     <section class="card empty"><h2>پرونده آماده‌ی شروع است</h2><p>ابتدا سند پیش‌نویس را بسازید. سپس قالب را انتخاب کنید یا بدون قالب بنویسید.</p><form asp-action="StartDocument" method="post"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><button type="submit">شروع نوشتن ترجمه</button></form></section>
 } else {

@@ -63,6 +63,7 @@ app.MapGet("/", () => Results.Ok(new { service = "identity-access", status = "he
 app.MapGroup("/api/v1/auth").MapIdentityApi<ApplicationUser>();
 app.MapTenantEndpoints();
 app.MapTenantTeamEndpoints();
+app.MapTenantAssigneeEndpoints();
 app.MapDefaultEndpoints();
 
 app.Run();

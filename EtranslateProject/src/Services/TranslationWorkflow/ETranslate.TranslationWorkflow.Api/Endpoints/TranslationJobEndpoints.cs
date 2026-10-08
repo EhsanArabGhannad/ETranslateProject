@@ -96,7 +96,8 @@ public static class TranslationJobEndpoints
         TranslationWorkflowDbContext database,
         CancellationToken cancellationToken,
         int skip = 0,
-        int take = 50)
+        int take = 50,
+        bool assignedToMe = false)
     {
         var access = await tenantAccessClient.CheckAccessAsync(
             tenantId,
@@ -113,7 +114,7 @@ public static class TranslationJobEndpoints
 
         var jobs = await database.TranslationJobs
             .AsNoTracking()
-            .Where(job => job.TenantId == tenantId)
+            .Where(job => job.TenantId == tenantId && (!assignedToMe || job.AssignedTranslatorUserId == access.Actor!.UserId))
             .OrderByDescending(job => job.CreatedAtUtc)
             .Skip(skip)
             .Take(take)
@@ -204,7 +205,8 @@ public static class TranslationJobEndpoints
             return Results.Conflict(new { error = "translation_job_is_not_editable", detail = exception.Message });
         }
 
-        await database.SaveChangesAsync(cancellationToken);
+        try { await database.SaveChangesAsync(cancellationToken); }
+        catch (DbUpdateConcurrencyException) { return Results.Conflict(new { error = "translation_job_changed" }); }
         return Results.Ok(ToResponse(job));
     }
 
@@ -235,7 +237,11 @@ public static class TranslationJobEndpoints
             job.AcceptanceProfile,
             job.AcceptanceProfileOther,
             job.CreatedAtUtc,
-            job.UpdatedAtUtc);
+            job.UpdatedAtUtc,
+            job.AssignedTranslatorUserId,
+            job.AssignmentVersion,
+            job.AssignmentChangedByUserId,
+            job.AssignmentChangedAtUtc);
 }
 
 public sealed record CreateTranslationJobRequest(
@@ -271,4 +277,8 @@ public sealed record TranslationJobResponse(
     AcceptanceProfile? AcceptanceProfile,
     string? AcceptanceProfileOther,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    Guid? AssignedTranslatorUserId,
+    long AssignmentVersion,
+    Guid? AssignmentChangedByUserId,
+    DateTimeOffset? AssignmentChangedAtUtc);

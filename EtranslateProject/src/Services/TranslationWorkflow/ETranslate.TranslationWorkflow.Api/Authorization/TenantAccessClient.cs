@@ -69,7 +69,36 @@ public sealed class TenantAccessClient(HttpClient httpClient)
         Guid UserId,
         string TenantType,
         string Role);
+
+    public async Task<AssigneeAccessResult> GetAssigneesAsync(Guid tenantId, Guid? userId, string authorizationHeader, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get,
+            $"/api/v1/tenants/{tenantId}/translation-assignees{(userId.HasValue ? $"/{userId}" : "")}");
+        request.Headers.TryAddWithoutValidation("Authorization", authorizationHeader);
+        try
+        {
+            using var response = await httpClient.SendAsync(request, ct);
+            if (response.StatusCode == HttpStatusCode.Unauthorized) return new(TenantAccessStatus.Unauthorized, []);
+            if (response.StatusCode == HttpStatusCode.Forbidden) return new(TenantAccessStatus.Forbidden, []);
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return new(userId.HasValue ? TenantAccessStatus.Authorized : TenantAccessStatus.IdentityServiceUnavailable, []);
+            if (!response.IsSuccessStatusCode) return new(TenantAccessStatus.IdentityServiceUnavailable, []);
+            if (!userId.HasValue)
+            {
+                var members = await response.Content.ReadFromJsonAsync<List<TranslationAssignee>>(ct);
+                return new(members is null ? TenantAccessStatus.IdentityServiceUnavailable : TenantAccessStatus.Authorized, members ?? []);
+            }
+            var member = await response.Content.ReadFromJsonAsync<TranslationAssignee>(ct);
+            return new(member is null ? TenantAccessStatus.IdentityServiceUnavailable : TenantAccessStatus.Authorized, member is null ? [] : [member]);
+        }
+        catch (HttpRequestException) { return new(TenantAccessStatus.IdentityServiceUnavailable, []); }
+        catch (System.Text.Json.JsonException) { return new(TenantAccessStatus.IdentityServiceUnavailable, []); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return new(TenantAccessStatus.IdentityServiceUnavailable, []); }
+    }
 }
+
+public sealed record TranslationAssignee(Guid UserId, string Email, string Role);
+public sealed record AssigneeAccessResult(TenantAccessStatus Status, IReadOnlyList<TranslationAssignee> Members);
 
 public sealed record TenantActor(
     Guid TenantId,
@@ -77,6 +106,7 @@ public sealed record TenantActor(
     TenantProviderType ProviderType,
     string Role)
 {
+    public bool CanAssignTranslators => Role is "Owner" or "Administrator";
     public bool CanManageTranslationJobs =>
         Role.Equals("Owner", StringComparison.OrdinalIgnoreCase) ||
         Role.Equals("Administrator", StringComparison.OrdinalIgnoreCase) ||

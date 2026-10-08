@@ -48,6 +48,7 @@ await app.ApplyDatabaseMigrationsAsync();
 
 app.MapGet("/", () => Results.Ok(new { service = "translation-workflow", status = "healthy" }));
 app.MapTranslationJobEndpoints();
+app.MapTranslationAssignmentEndpoints();
 app.MapDefaultEndpoints();
 
 app.Run();

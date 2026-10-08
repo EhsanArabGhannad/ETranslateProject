@@ -100,7 +100,7 @@ This test creates isolated development fixtures and leaves them for inspection. 
 
 Owner/Administrator can open **مدیریت اعضا و نقش‌های این فضای کاری** from the workspace. Recipients must register an account first. A manager creates a seven-day, single-use invitation and personally delivers its confidential link to the intended person; no email is sent. Acceptance requires both the bound recipient account and the secret code. Only its SHA-256 hash is stored. The code is displayed once, never returned in team listings or integration events, and carried in a URL fragment that the browser removes before submission.
 
-Owner can manage Administrator/Translator/Reviewer members. Administrator can manage only Translator/Reviewer members. Nobody can change their own membership or the Owner. Reviewer currently means **read-only observer**, not an approver; only Owner/Administrator approve internal reviews. Membership can be deactivated/reactivated without deleting the account or document history. Changes apply to subsequent authorization checks, not requests already in flight. Ownership transfer, seat billing, email delivery, verified-email onboarding and per-job assignments are not implemented.
+Owner can manage Administrator/Translator/Reviewer members. Administrator can manage only Translator/Reviewer members. Nobody can change their own membership or the Owner. Reviewer currently means **read-only observer**, not an approver; only Owner/Administrator approve internal reviews. Membership can be deactivated/reactivated without deleting the account or document history. Changes apply to subsequent authorization checks, not requests already in flight. Ownership transfer, seat billing, email delivery, verified-email onboarding and per-job review assignments are not implemented.
 
 Team mutations use a tenant concurrency version and append an audit record plus an outbox event in the same transaction. Stale requests return 409. Pending invitations, including expired ones, must be cancelled before reissue. An inviter must still have the required role when their invitation is accepted. See [ADR 0012](docs/adr/0012-tenant-team-invitations.md) and the [Persian team test guide](docs/testing/tenant-team.fa.md).
 
@@ -111,6 +111,22 @@ With AppHost running, verify roles, invitation races, antiforgery and cross-serv
 ```
 
 This creates isolated local development accounts and records, leaves them for inspection, and must not be run against production. Existing memberships are backfilled as active by the new Identity migration.
+
+### Responsible translator and My tasks
+
+Open **تخصیص مترجم و سابقه در تب جدا** from a job editor. Owner/Administrator can assign, reassign or remove one responsible translator. The target must currently be an active Owner/Administrator/Translator in that tenant; read-only observers, inactive users and outsiders are rejected. Owners may assign themselves, including in independent-translator workspaces. Jobs remain unassigned by default, including existing jobs migrated from earlier versions.
+
+The workspace's **کارهای من** filter uses the authenticated user ID on the server, before pagination. It is an organizational view, **not a per-job access restriction**: all currently authorized tenant members retain their existing document/job access. Assignment does not rewrite actual revision authors, internal review actors or legal/signature policy. Deactivation removes tenant access but retains the assignment and audit history for a manager to resolve. Reassignment does not unlock approved documents or invalidate an existing review.
+
+Workflow owns assignment state, its concurrency version and immutable change history; Identity validates membership through APIs, with no shared-table reads or cross-service foreign keys. Each successful mutation saves an audit record and a versioned outbox event atomically. The assignment page displays the latest 50 changes, and the manager selector shows at most 200 eligible members. Members without management permission see IDs/history, not a member-email directory. See [ADR 0013](docs/adr/0013-responsible-translator-assignment.md) and the [Persian assignment guide](docs/testing/translation-assignments.fa.md).
+
+With AppHost running, PowerShell 7 can check the complete development path:
+
+```powershell
+./tests/ETranslate.EndToEndTests/Verify-TranslationAssignments.ps1
+```
+
+This includes the team and Web baselines, leaves isolated development fixtures and must not be run on production. HTTP endpoints are `GET/PUT .../translation-jobs/{jobId}/assignment`, `GET .../translation-assignees` and `GET .../translation-jobs?assignedToMe=true`. Assignment PUT requires `translatorUserId` (GUID or explicit null), `expectedAssignmentVersion`, and optional `note` of at most 500 characters. Stale or unchanged assignments return 409.
 
 ### Translation jobs
 

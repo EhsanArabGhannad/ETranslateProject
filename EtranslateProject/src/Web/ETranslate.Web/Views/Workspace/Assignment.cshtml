@@ -1,0 +1,21 @@
+@model AssignmentPageView
+@{ ViewData["Title"] = "تخصیص مترجم"; var assignment = Model.Assignment; }
+<a class="back-link" asp-action="Index" asp-route-tenantId="@Model.TenantId">→ بازگشت به فضای کاری</a>
+<div class="page-heading"><div><span class="eyebrow">WORK ASSIGNMENT</span><h1>مترجم مسئول پرونده</h1><p>@Model.Job.Title</p></div><span class="badge">نسخه‌ی تخصیص @assignment.AssignmentVersion</span></div>
+<section class="card assignment-card"><h2>تخصیص فعلی</h2><p dir="auto">@Model.MemberLabel(assignment.AssignedTranslatorUserId)</p>
+@if (assignment.AssignedTranslatorUserId.HasValue && assignment.CanManage && !Model.Candidates.Any(item => item.UserId == assignment.AssignedTranslatorUserId)) { <p class="notice">عضو فعلی در فهرست اعضای فعالِ دارای دسترسی نوشتن نیست یا خارج از ۲۰۰ گزینه‌ی نمایشی است. عضویت و نقش را بررسی کنید؛ تخصیص قبلی برای سابقه حفظ شده است.</p> }
+@if (assignment.ChangedAtUtc.HasValue) { <p class="muted" dir="ltr">@assignment.ChangedAtUtc.Value.ToString("yyyy-MM-dd HH:mm") UTC · Actor: @assignment.ChangedByUserId</p> }
+<p class="muted">تخصیص فقط مسئول کار را مشخص می‌کند؛ مانع دسترسی سایر اعضای مجاز نمی‌شود و اثبات نویسندگی، امضای قانونی یا تأیید نوتر نیست. نقش‌های مالک/مدیر نیز برای کار مترجمی قابل انتخاب‌اند.</p>
+@if (assignment.CanManage) {
+    <form asp-action="AssignTranslator" method="post"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="expectedAssignmentVersion" value="@assignment.AssignmentVersion" />
+        <label for="assigned-translator">مترجم مسئول</label><select id="assigned-translator" name="translatorUserId"><option value="" selected="@(!assignment.AssignedTranslatorUserId.HasValue)">بدون تخصیص / برداشتن تخصیص</option>
+        @if (assignment.AssignedTranslatorUserId.HasValue && !Model.Candidates.Any(item => item.UserId == assignment.AssignedTranslatorUserId)) { <option value="@assignment.AssignedTranslatorUserId" selected>عضو فعلی در گزینه‌های مجاز نیست؛ انتخاب تازه کنید</option> }
+        @foreach (var member in Model.Candidates) { <option value="@member.UserId" selected="@(member.UserId == assignment.AssignedTranslatorUserId)">@member.Email · @TeamPageView.RoleLabel(member.Role)</option> }</select>
+        <label for="assignment-note">توضیح تغییر (اختیاری)</label><textarea id="assignment-note" name="note" maxlength="500" rows="2"></textarea><button type="submit">ثبت تخصیص مترجم</button>
+    </form><p class="muted">حداکثر ۲۰۰ عضو فعال نمایش داده می‌شوند. پس از تغییر، فهرست «کارهای من» با مسئول جدید به‌روز می‌شود؛ ترجمه‌ها و بازبینی قبلی بدون تغییر باقی می‌مانند.</p>
+} else { <p class="notice">فقط مالک یا مدیر می‌تواند مسئول پرونده را تغییر دهد. شناسه‌ی اعضا برای مشاهده‌ی سابقه نمایش داده می‌شود.</p> }
+</section>
+<section class="card"><h2>سابقه‌ی تخصیص (۵۰ تغییر اخیر)</h2>
+@if (assignment.History.Count == 0) { <p class="muted">هنوز تخصیصی ثبت نشده است.</p> }
+@foreach (var change in assignment.History) { <article class="team-member"><h3>تغییر @change.Version</h3><p dir="auto">@Model.MemberLabel(change.PreviousTranslatorUserId) → @Model.MemberLabel(change.TranslatorUserId)</p><p>@change.Note</p><small dir="ltr">@change.OccurredAtUtc.ToString("yyyy-MM-dd HH:mm") UTC · Actor: @change.ActorUserId</small></article> }
+</section>
