@@ -27,7 +27,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.SlidingExpiration = false;
     });
 builder.Services.AddScoped<BackendApi>();
-foreach (var service in new[] { "identity-access", "translation-workflow", "documents" })
+foreach (var service in new[] { "identity-access", "translation-workflow", "documents", "trust" })
 {
     builder.Services.AddHttpClient(service, client => client.BaseAddress = new Uri($"https+http://{service}"))
         .AddStandardResilienceHandler(options => options.Retry.DisableForUnsafeHttpMethods());

@@ -11,7 +11,7 @@ The repository is a distributed monorepo. Each service is independently deployab
 - Identity & Access: users, tenants, memberships, roles, and translator credentials.
 - Translation Workflow: translation jobs and their lifecycle.
 - Documents: templates, source files, rendering, immutable PDF versions, hashes, and version-bound internal review.
-- Trust: electronic signatures, timestamps, validation, and public verification.
+- Trust: immutable signing preparation for approved unsigned PDFs; real signatures, timestamps and public verification remain future work.
 - Billing: plans, 30-day trials, subscriptions, entitlements, and usage.
 - Notary Integration: physical, digital, and hybrid notary workflows behind an anti-corruption layer.
 - Notifications: asynchronous email, SMS, and in-app notifications.
@@ -40,6 +40,7 @@ Open the Aspire dashboard URL printed in the terminal. The services use one SQL 
 - `ETranslateBilling`
 - `ETranslateWorkflow`
 - `ETranslateDocuments`
+- `ETranslateTrust`
 - `ETranslateMessaging` for the MassTransit SQL transport
 
 The checked-in development settings target `.\ESIMSSQLSERVER` with Windows Authentication. Change the AppHost connection strings through local configuration or user secrets when your SQL Server instance has a different name. No Docker or WSL installation is required for this setup.
@@ -81,6 +82,14 @@ With AppHost running, verify template images, tenant isolation, pinned revisions
 ```
 
 This check creates isolated development tenants and leaves its test records and images available for inspection.
+
+### Signing-request preparation (not real signing)
+
+After internal approval, open **آماده‌سازی درخواست امضا در تب جدا** from the editor. Owner/Administrator can prepare one immutable plan per approved document: one translator stage for independent tenants, translator then office-manager stages for offices. Choose active eligible members, proposed declarations and requested e-İmza/Mobil İmza methods. The plan pins the reviewed PDF/hash/revisions; statements are proposed text, not consent or signatures. Cancel with a reason/version before changing the plan. Reopening approval makes old plans outdated without rewriting their history.
+
+Trust now owns its SQL database (`trustdb`/`ETranslateTrust`) and outbox. `GET/POST .../documents/{documentId}/signing-preparations` and `POST .../{preparationId}/cancel` are authenticated, tenant-scoped endpoints. Documents supplies a current approved-artifact preflight and verifies archived PDF bytes. Real signing/provider capabilities remain disabled; dispatch returns 501, no Signed callback/status exists, and the PDF remains DraftUnsigned. No QR, final signed PDF or legal acceptance is introduced. See [ADR 0014](docs/adr/0014-signing-preparation-boundary.md) and the [Persian test guide](docs/testing/signing-preparations.fa.md).
+
+With AppHost running, use `./tests/ETranslate.EndToEndTests/Verify-SigningPreparations.ps1` (PowerShell 7). Pass `-WebUrl http://localhost:5067` if using the HTTP Web profile. This runs the Web/team baseline and creates retained development-only fixtures. Do not run against production.
 
 ### Internal translation review
 

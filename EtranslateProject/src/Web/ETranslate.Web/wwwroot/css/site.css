@@ -115,3 +115,6 @@ summary { cursor: pointer; font-weight: 600; }
 .team-member { padding-block: 1rem; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
 .assignment-card { overflow-wrap: anywhere; }
 .team-member form { margin-block: .7rem; }
+/* Signing preparation is planning-only; preserve and wrap proposed text and hashes. */
+.signing-statement { white-space: pre-wrap; overflow-wrap: anywhere; }
+.signing-hash { overflow-wrap: anywhere; font-size: .85rem; }

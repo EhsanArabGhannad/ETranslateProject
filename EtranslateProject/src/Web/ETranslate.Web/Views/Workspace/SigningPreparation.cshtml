@@ -1,0 +1,53 @@
+@model SigningPageView
+@{ ViewData["Title"] = "آماده‌سازی درخواست امضا"; var state = Model.State; }
+<a class="back-link" asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id">→ بازگشت به ترجمه</a>
+<div class="page-heading"><div><span class="eyebrow">SIGNING PREPARATION · NOT SIGNED</span><h1>آماده‌سازی درخواست امضا</h1><p>@Model.Job.Title</p></div><span class="badge">فقط برنامه‌ریزی</span></div>
+<p class="notice">این صفحه امضا، رضایت امضاکننده، تأیید نوتر یا سند رسمی ایجاد نمی‌کند. بیانیه‌ها فقط متن پیشنهادی‌اند. PDF مرجع همچنان پیش‌نویس بدون امضاست؛ درج بیانیه‌ها و QR در PDF نهایی و اتصال به ارائه‌دهنده در مرحله‌ی بعد انجام می‌شود.</p>
+@if (Model.Error is not null) { <p class="notice" role="alert">@Model.Error</p> }
+@if (Model.Error is not null && !Model.CanPrepare) { <section class="card"><h2>متن ارسال‌شده‌ی شما (ثبت نشده)</h2><p class="signing-statement" dir="auto">@Model.Form.TranslatorStatement</p><p class="signing-statement" dir="auto">@Model.Form.OfficeStatement</p><p class="muted">متن را پیش از تازه‌سازی صفحه کپی کنید.</p></section> }
+<section class="card"><h2>نسخه‌ی مرجع</h2>
+@if (!state.ArtifactServiceAvailable) { <p class="notice">بررسی PDF فعلاً در دسترس نیست؛ وضعیت تازگی درخواست‌ها نامشخص است و درخواست جدید ثبت نمی‌شود.</p> }
+else if (state.Artifact is { } artifact) {
+    <p>تأیید داخلی دور @artifact.ReviewRound · ترجمه‌ی نسخه‌ی @artifact.RevisionNumber · پیش‌نویس بدون امضا</p>
+    <p class="signing-hash" dir="ltr">SHA-256: @artifact.Sha256</p>
+    <a asp-action="DraftPdf" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-pdfId="@artifact.PdfVersionId">دانلود PDF مرجع (خصوصی و بدون امضا)</a>
+} else { <p class="notice">ابتدا PDF نسخه‌ی جاری را بسازید، برای بازبینی بفرستید و تأیید داخلی بگیرید.</p> }
+<p class="muted">تأیید داخلی صحت حقوقی یا صلاحیت رسمی مترجم را اثبات نمی‌کند. تخصیص مسئول پرونده نیز با انتخاب امضاکننده متفاوت است.</p>
+<button type="button" disabled>ارسال برای امضای واقعی — هنوز فعال نیست</button>
+</section>
+@if (Model.CanPrepare) {
+<section class="card"><h2>ثبت برنامه‌ی درخواست</h2><form asp-action="PrepareSigning" method="post">
+    <input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" />
+    <input asp-for="Form.ExpectedReviewId" type="hidden" /><input asp-for="Form.ExpectedPdfVersionId" type="hidden" />
+    <label asp-for="Form.TranslatorUserId">۱. امضاکننده‌ی پیشنهادی ترجمه</label><select asp-for="Form.TranslatorUserId"><option value="">انتخاب عضو فعال</option>
+    @foreach (var member in Model.Candidates) { <option value="@member.UserId">@member.Email · @TeamPageView.RoleLabel(member.Role)</option> }</select>
+    <label asp-for="Form.TranslatorMethod">روش پیشنهادی مترجم</label><select asp-for="Form.TranslatorMethod"><option value="EImza">e-İmza</option><option value="MobilImza">Mobil İmza</option></select>
+    <label asp-for="Form.TranslatorStatement">متن پیشنهادی بیانیه‌ی مترجم (نه بیانیه‌ی پذیرفته‌شده)</label><textarea asp-for="Form.TranslatorStatement" maxlength="4000" rows="4" required></textarea>
+    @if (state.SignaturePolicy == "TranslatorAndTranslationOffice") {
+        <label asp-for="Form.OfficeSignerUserId">۲. امضاکننده‌ی پیشنهادی دارالترجمه</label><select asp-for="Form.OfficeSignerUserId"><option value="">انتخاب مالک یا مدیر فعال</option>
+        @foreach (var member in Model.Candidates.Where(item => item.Role is "Owner" or "Administrator")) { <option value="@member.UserId">@member.Email · @TeamPageView.RoleLabel(member.Role)</option> }</select>
+        <label asp-for="Form.OfficeMethod">روش پیشنهادی دارالترجمه</label><select asp-for="Form.OfficeMethod"><option value="EImza">e-İmza</option><option value="MobilImza">Mobil İmza</option></select>
+        <label asp-for="Form.OfficeStatement">متن پیشنهادی بیانیه‌ی دارالترجمه</label><textarea asp-for="Form.OfficeStatement" maxlength="4000" rows="4" required></textarea>
+    }
+    <button type="submit">ثبت آماده‌سازی (بدون امضا)</button>
+</form><p class="muted">حداکثر ۲۰۰ عضو فعال نمایش داده می‌شوند. پس از ثبت، انتخاب‌ها و متن پیشنهادی قابل ویرایش نیستند؛ برای تغییر، درخواست را لغو و دوباره آماده کنید. PIN، کلید خصوصی یا رمز توکن را اینجا وارد نکنید.</p></section>
+} else if (!state.CanManage) { <p class="notice">فقط مالک یا مدیر می‌تواند درخواست را آماده یا لغو کند.</p> }
+<section class="card"><h2>سابقه‌ی آماده‌سازی (۲۰ درخواست اخیر)</h2>
+@if (state.Preparations.Count == 0) { <p class="muted">هنوز برنامه‌ای ثبت نشده است.</p> }
+@foreach (var item in state.Preparations) {
+<article class="team-member"><h3>@(item.Status == "Prepared" ? "آماده‌شده — بدون امضا" : "لغوشده") · نسخه‌ی ترجمه @item.RevisionNumber</h3>
+    <p class="muted" dir="ltr">@item.Id · @item.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC · Actor: @item.CreatedByUserId</p>
+    <p class="signing-hash" dir="ltr">SHA-256: @item.PdfSha256</p>
+    @if (item.Status == "Prepared" && state.ArtifactServiceAvailable && !item.IsCurrentArtifact) { <p class="notice">این برنامه دیگر به تأیید جاری وصل نیست. آن را لغو و پس از تأیید نسخه‌ی جدید، دوباره آماده کنید.</p> }
+    @foreach (var stage in item.Stages) {
+        <h4>@stage.Order. @(stage.Role == "Translator" ? "مترجم" : "دارالترجمه") — @stage.RequestedMethod</h4><p dir="auto">@Model.MemberLabel(stage.SignerUserId)</p>
+        <p class="signing-statement" dir="auto">@stage.ProposedStatement</p>
+    }
+    @if (item.Status == "Cancelled") { <p>دلیل لغو: @item.CancellationReason</p><small dir="ltr">@item.CancelledAtUtc?.ToString("yyyy-MM-dd HH:mm") UTC · Actor: @item.CancelledByUserId</small> }
+    @if (item.Status == "Prepared" && state.CanManage) {
+        <form asp-action="CancelSigningPreparation" method="post"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="preparationId" value="@item.Id" /><input type="hidden" name="expectedVersion" value="@item.Version" />
+        <label for="cancel-@item.Id">دلیل لغو آماده‌سازی</label><textarea id="cancel-@item.Id" name="reason" maxlength="2000" rows="2" required></textarea><button type="submit" class="secondary">لغو آماده‌سازی</button></form>
+    }
+</article>
+}
+</section>

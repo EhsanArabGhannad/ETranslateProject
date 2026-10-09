@@ -20,6 +20,7 @@
     <ProjectReference Include="..\..\src\Services\Documents\ETranslate.Documents.Api\ETranslate.Documents.Api.csproj" />
     <ProjectReference Include="..\..\src\Services\IdentityAccess\ETranslate.IdentityAccess.Api\ETranslate.IdentityAccess.Api.csproj" />
     <ProjectReference Include="..\..\src\Services\TranslationWorkflow\ETranslate.TranslationWorkflow.Api\ETranslate.TranslationWorkflow.Api.csproj" />
+    <ProjectReference Include="..\..\src\Services\Trust\ETranslate.Trust.Api\ETranslate.Trust.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>

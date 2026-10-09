@@ -11,6 +11,7 @@ var identityDatabase = builder.AddConnectionString("identitydb");
 var billingDatabase = builder.AddConnectionString("billingdb");
 var workflowDatabase = builder.AddConnectionString("workflowdb");
 var documentsDatabase = builder.AddConnectionString("documentsdb");
+var trustDatabase = builder.AddConnectionString("trustdb");
 var messaging = builder.AddConnectionString("messaging");
 
 var identityAccess = builder.AddProject<Projects.ETranslate_IdentityAccess_Api>("identity-access")
@@ -30,7 +31,10 @@ var documents = builder.AddProject<Projects.ETranslate_Documents_Api>("documents
     .WithReference(translationWorkflow)
     .WaitFor(identityAccess)
     .WaitFor(translationWorkflow);
-var trust = builder.AddProject<Projects.ETranslate_Trust_Api>("trust");
+var trust = builder.AddProject<Projects.ETranslate_Trust_Api>("trust")
+    .WithReference(trustDatabase).WithReference(messaging).WithReference(identityAccess)
+    .WithReference(documents).WithReference(translationWorkflow)
+    .WaitFor(identityAccess).WaitFor(documents).WaitFor(translationWorkflow);
 var billing = builder.AddProject<Projects.ETranslate_Billing_Api>("billing")
     .WithReference(billingDatabase)
     .WithReference(messaging);
@@ -46,12 +50,14 @@ var gateway = builder.AddProject<Projects.ETranslate_Gateway>("gateway")
     .WithExternalHttpEndpoints();
 
 builder.AddProject<Projects.ETranslate_Web>("web")
+    .WithReference(trust)
     .WithReference(identityAccess)
     .WithReference(translationWorkflow)
     .WithReference(documents)
     .WaitFor(identityAccess)
     .WaitFor(translationWorkflow)
     .WaitFor(documents)
+    .WaitFor(trust)
     .WithExternalHttpEndpoints();
 
 builder.AddProject<Projects.ETranslate_Notifications_Worker>("notifications")
