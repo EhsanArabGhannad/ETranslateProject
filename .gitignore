@@ -62,3 +62,4 @@ nunit-*.xml
 **/node_modules/
 .local/
 EtranslateProject/tmp/
+EtranslateProject/output/

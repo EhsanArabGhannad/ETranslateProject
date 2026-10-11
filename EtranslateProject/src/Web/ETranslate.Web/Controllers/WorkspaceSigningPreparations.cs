@@ -16,6 +16,7 @@ public sealed partial class WorkspaceController
         return (new SigningPageView
         {
             TenantId = tenantId, Job = job, State = state,
+            Previews = await api.ReadAsync<List<SigningPreviewView>>("documents", $"{DocumentsPath(tenantId, jobId)}/{document.Id}/signing-previews"),
             Candidates = state.CanManage ? await api.ReadAsync<List<AssigneeView>>("identity-access", $"{TenantPath(tenantId)}/translation-assignees") : [],
             Form = new()
             {

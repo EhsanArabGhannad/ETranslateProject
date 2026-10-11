@@ -1,6 +1,10 @@
 @ETranslate.Billing.Api_HostAddress = http://localhost:5249
 
-GET {{ETranslate.Billing.Api_HostAddress}}/weatherforecast/
+@tenantId = REPLACE_WITH_YOUR_TENANT_ID
+@accessToken = REPLACE_WITH_YOUR_IDENTITY_ACCESS_TOKEN
+
+GET {{ETranslate.Billing.Api_HostAddress}}/api/v1/tenants/{{tenantId}}/subscription
+Authorization: Bearer {{accessToken}}
 Accept: application/json
 
 ###

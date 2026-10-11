@@ -29,6 +29,7 @@ builder.Services.AddHttpClient<TenantAccessClient>(client =>
     client.BaseAddress = new Uri("https+http://identity-access"));
 builder.Services.AddHttpClient<TranslationJobClient>(client =>
     client.BaseAddress = new Uri("https+http://translation-workflow"));
+builder.Services.AddHttpClient<SigningPlanClient>(client => client.BaseAddress = new Uri("https+http://trust"));
 
 var configuredStorageRoot = builder.Configuration[$"{DocumentStorageOptions.SectionName}:RootPath"];
 var storageRoot = string.IsNullOrWhiteSpace(configuredStorageRoot)
@@ -40,6 +41,7 @@ var storageRoot = string.IsNullOrWhiteSpace(configuredStorageRoot)
 builder.Services.AddSingleton(new DocumentStorageOptions { RootPath = storageRoot });
 builder.Services.AddSingleton<IDocumentBlobStore, LocalDocumentBlobStore>();
 builder.Services.AddSingleton<IDraftPdfRenderer, ChromiumDraftPdfRenderer>();
+builder.Services.AddSingleton<ISigningPreviewRenderer, SigningPreviewRenderer>();
 
 builder.Services.AddOptions<SqlTransportOptions>()
     .Configure(options => options.ConnectionString = messagingConnectionString);

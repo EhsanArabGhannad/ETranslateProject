@@ -27,8 +27,10 @@ public static class DraftPdfHtml
         var header = Part(input.HeaderJson, "header");
         var footer = Part(input.FooterJson, "footer");
         var watermark = Watermark(input.WatermarkJson);
+        var appendix = input.PreviewPlan is null ? "" : SigningPreviewRenderer.AppendixHtml(input.PreviewPlan, input.PreviewId);
         var width = layout!.DimensionsMm.Width - layout.Left - layout.Right;
-        var title = $"Translation draft - revision {input.RevisionNumber}";
+        var title = input.PreviewPlan is null ? $"Translation draft - revision {input.RevisionNumber}" : "Signing proposal appendix - UNSIGNED";
+        var appendixCss = input.PreviewPlan is null ? "" : ".proposal-stage {break-before:page;} .proposal-warning {color:#843737; border:.3mm solid #d8b3b3; padding:3mm;} .proposal-hash {font-size:9pt; overflow-wrap:anywhere;}";
         var css = $$"""
             {{fontCss}}
             * { box-sizing:border-box; }
@@ -48,9 +50,10 @@ public static class DraftPdfHtml
             .watermark {position:fixed; inset:35% 0 auto; text-align:center; font-size:32pt; z-index:-1; overflow-wrap:anywhere;}
             .draft-watermark {position:fixed; top:48%; left:0; width:100%; text-align:center; color:#8b3131; opacity:.10; font-size:28pt; transform:rotate(-30deg); z-index:-1;}
             """;
+        if (input.PreviewPlan is not null) css += appendixCss;
         var htmlDocument = $$"""
             <!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'; script-src 'none'; base-uri 'none'"><title>{{Encode(title)}}</title><style>{{css}}</style></head>
-            <body><header class="letterhead">{{header}}</header><footer class="letterfoot">{{footer}}</footer>{{watermark}}<div class="draft-watermark" dir="ltr">DRAFT - UNSIGNED</div><main>{{body}}</main></body></html>
+            <body><header class="letterhead">{{header}}</header><footer class="letterfoot">{{footer}}</footer>{{watermark}}<div class="draft-watermark" dir="ltr">DRAFT - UNSIGNED</div><main>{{body}}{{appendix}}</main></body></html>
             """;
         return new PreparedPdf(htmlDocument, layout);
     }

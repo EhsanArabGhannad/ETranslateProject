@@ -29,6 +29,9 @@ public static partial class DocumentEndpoints
         group.MapGet("/{documentId:guid}/pdfs/{pdfId:guid}", DownloadDraftPdfAsync);
         group.MapGet("/{documentId:guid}/reviews", GetReviewsAsync);
         group.MapGet("/{documentId:guid}/signing-artifact", GetSigningArtifactAsync);
+        group.MapPost("/{documentId:guid}/signing-preparations/{preparationId:guid}/preview-pdfs", CreateSigningPreviewAsync);
+        group.MapGet("/{documentId:guid}/signing-previews", GetSigningPreviewsAsync);
+        group.MapGet("/{documentId:guid}/signing-previews/{previewId:guid}/file", DownloadSigningPreviewAsync);
         group.MapPost("/{documentId:guid}/reviews", SubmitReviewAsync);
         group.MapPost("/{documentId:guid}/reviews/{reviewId:guid}/decision", DecideReviewAsync);
         group.MapPost("/{documentId:guid}/source-files", UploadSourceFileAsync)

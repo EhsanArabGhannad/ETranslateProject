@@ -25,8 +25,11 @@ public sealed class SigningPageView
     public JobView Job { get; set; } = null!;
     public SigningStateView State { get; set; } = null!;
     public List<AssigneeView> Candidates { get; set; } = [];
+    public List<SigningPreviewView> Previews { get; set; } = [];
     public SigningProposalForm Form { get; set; } = new();
     public string? Error { get; set; }
     public bool CanPrepare => State.CanManage && State.ArtifactServiceAvailable && State.Artifact is not null && !State.Preparations.Any(item => item.Status == "Prepared");
     public string MemberLabel(Guid id) => Candidates.Find(item => item.UserId == id)?.Email ?? id.ToString();
 }
+public sealed record SigningPreviewView(Guid Id, Guid PreparationId, Guid SourcePdfVersionId, string SourcePdfSha256,
+    string Sha256, long SizeBytes, string Kind, string RendererVersion, DateTimeOffset CreatedAtUtc);

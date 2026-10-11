@@ -184,6 +184,74 @@ namespace ETranslate.Documents.Api.Persistence.Migrations
                     b.ToTable("document_reviews", "documents");
                 });
 
+            modelBuilder.Entity("ETranslate.Documents.Api.Documents.DocumentSigningPreview", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PlanSnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("PreparationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RendererVersion")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("ReviewId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("SourcePdfSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("SourcePdfVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReviewId");
+
+                    b.HasIndex("SourcePdfVersionId");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique();
+
+                    b.HasIndex("DocumentId", "CreatedAtUtc");
+
+                    b.HasIndex("PreparationId", "RendererVersion")
+                        .IsUnique();
+
+                    b.ToTable("signing_previews", "documents");
+                });
+
             modelBuilder.Entity("ETranslate.Documents.Api.Documents.DocumentTemplate", b =>
                 {
                     b.Property<Guid>("Id")
@@ -632,6 +700,27 @@ namespace ETranslate.Documents.Api.Persistence.Migrations
                     b.HasOne("ETranslate.Documents.Api.Documents.DocumentPdfVersion", null)
                         .WithMany()
                         .HasForeignKey("PdfVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ETranslate.Documents.Api.Documents.DocumentSigningPreview", b =>
+                {
+                    b.HasOne("ETranslate.Documents.Api.Documents.TranslationDocument", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ETranslate.Documents.Api.Documents.DocumentReview", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ETranslate.Documents.Api.Documents.DocumentPdfVersion", null)
+                        .WithMany()
+                        .HasForeignKey("SourcePdfVersionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

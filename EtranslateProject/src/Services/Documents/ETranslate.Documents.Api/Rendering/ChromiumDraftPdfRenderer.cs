@@ -72,7 +72,7 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
                     Bottom = $"{DraftPdfHtml.Number(layout.Bottom + footerReserve + 8)}mm", Left = $"{DraftPdfHtml.Number(layout.Left)}mm"
                 },
                 PrintBackground = true, DisplayHeaderFooter = true, HeaderTemplate = "<span></span>",
-                FooterTemplate = $"<div style=\"font:8px sans-serif;width:100%;text-align:center;color:#843737\">DRAFT - UNSIGNED | Revision {input.RevisionNumber} | Page <span class=\"pageNumber\"></span> of <span class=\"totalPages\"></span></div>",
+                FooterTemplate = $"<div style=\"font:8px sans-serif;width:100%;text-align:center;color:#843737\">{(input.PreviewPlan is null ? $"DRAFT - UNSIGNED | Revision {input.RevisionNumber} | Page" : "SIGNING PREVIEW - UNSIGNED | Appendix page")} <span class=\"pageNumber\"></span> of <span class=\"totalPages\"></span></div>",
                 Tagged = true, Outline = false
             }).WaitAsync(token);
             if (bytes.LongLength is <= 0 or > DraftPdfPolicy.MaximumBytes) throw new PdfRenderValidationException("Rendered PDF exceeds the size limit.");

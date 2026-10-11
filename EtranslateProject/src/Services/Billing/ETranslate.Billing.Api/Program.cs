@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using ETranslate.Billing.Api.Consumers;
+using ETranslate.Billing.Api.Authorization;
 using ETranslate.Billing.Api.Endpoints;
 using ETranslate.Billing.Api.Persistence;
 using ETranslate.Billing.Api.Workers;
@@ -19,6 +20,7 @@ var messagingConnectionString = builder.Configuration.GetConnectionString("messa
     ?? throw new InvalidOperationException("Connection string 'messaging' is not configured.");
 
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddHttpClient<SubscriptionAccessClient>(client => client.BaseAddress = new Uri("https+http://identity-access"));
 builder.Services.AddDbContext<BillingDbContext>(options =>
     options.UseSqlServer(billingConnectionString, sqlServer => sqlServer.EnableRetryOnFailure()));
 

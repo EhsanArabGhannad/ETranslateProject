@@ -1,6 +1,6 @@
 # ADR 0002: Tenant onboarding and subscription trial
 
-- Status: Accepted; infrastructure details superseded by ADR 0005
+- Status: Accepted; infrastructure details superseded by ADR 0005; read access updated by ADR 0016
 - Date: 2026-09-01
 
 ## Context
@@ -23,5 +23,5 @@ An ETranslate customer is either an independent translator or a translation offi
 
 - A temporary Billing outage does not roll back a successfully created tenant; the outbox delivers the event after recovery.
 - Duplicate message delivery does not create duplicate subscriptions.
-- Subscription authorization is not inferred from a caller-supplied tenant header. Public subscription access will be added through the authenticated gateway; the current read endpoint is internal.
+- Subscription authorization is not inferred from a caller-supplied tenant header. ADR 0016 adds the authenticated, live membership-checked Billing read API and Web BFF page; the legacy internal read alias requires the same check.
 - Local end-to-end development requires access to the configured SQL Server instance.

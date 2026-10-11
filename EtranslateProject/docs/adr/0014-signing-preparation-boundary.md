@@ -2,6 +2,8 @@
 
 Status: Accepted for the development slice
 
+Follow-up: [ADR 0015](0015-unsigned-signing-preview.md) adds a separate unsigned PDF planning preview, without changing this signature/consent boundary or the archived reference artifact.
+
 ## Context
 
 The editor, archived unsigned PDFs, internal review, office teams and translator assignment exist. No real e-İmza/Mobil İmza provider has been selected or integrated. We need a tenant-scoped plan for eventual signing without representing internal approval, a proposed declaration, an image or a simulated callback as a valid signature.

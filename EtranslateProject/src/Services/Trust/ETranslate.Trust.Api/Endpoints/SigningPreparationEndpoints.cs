@@ -17,6 +17,7 @@ public static class SigningPreparationEndpoints
         var group = endpoints.MapGroup("/api/v1/tenants/{tenantId:guid}/translation-jobs/{translationJobId:guid}/documents/{documentId:guid}/signing-preparations")
             .WithTags("Signing Preparation");
         group.MapGet("/", GetAsync); group.MapPost("/", CreateAsync);
+        group.MapGet("/{preparationId:guid}/preview-snapshot", PreviewSnapshotAsync);
         group.MapPost("/{preparationId:guid}/cancel", CancelAsync);
         group.MapPost("/{preparationId:guid}/dispatch", DispatchDisabledAsync);
         return endpoints;
@@ -31,6 +32,22 @@ public static class SigningPreparationEndpoints
     private static IResult Error(int status) => status == 503 ? Results.Problem(statusCode: 503, title: "A required service is unavailable.") : Results.StatusCode(status);
     private static IResult Conflict() => Results.Conflict(new { error = "signing_preparation_conflict", detail = "Approval or preparation changed. Refresh; cancel an existing preparation before reissuing." });
     private static IResult Invalid(string message) => Results.ValidationProblem(new Dictionary<string, string[]> { ["preparation"] = [message] });
+
+    // Database-only after Identity authorization: no Documents call, so runtime dependency lookup cannot recurse.
+    private static async Task<IResult> PreviewSnapshotAsync(Guid tenantId, Guid translationJobId, Guid documentId, Guid preparationId,
+        HttpContext context, TrustDependencyClient dependencies, TrustDbContext db, CancellationToken ct)
+    {
+        context.Response.Headers.CacheControl = "private, no-store";
+        var access = await ActorAsync(tenantId, context, dependencies, ct); if (access.Status != 200) return Error(access.Status);
+        var item = await db.Preparations.AsNoTracking().Include(item => item.Stages).SingleOrDefaultAsync(item =>
+            item.Id == preparationId && item.TenantId == tenantId && item.TranslationJobId == translationJobId && item.DocumentId == documentId, ct);
+        if (item is null) return Results.NotFound();
+        return Results.Ok(new SigningPreviewSnapshotV1(item.Id, item.TenantId, item.TranslationJobId, item.DocumentId, item.Status.ToString(),
+            item.Version, item.SignaturePolicy, item.ReviewId, item.ReviewRound, item.PdfVersionId, item.DraftRevisionId, item.RevisionNumber,
+            item.TemplateRevisionId, item.PdfSha256, item.PdfSizeBytes, item.ArtifactKind, item.CreatedByUserId, item.CreatedAtUtc,
+            item.Stages.OrderBy(stage => stage.Order).Select(stage => new SigningPreviewStageV1(stage.Order, stage.Role.ToString(),
+                stage.SignerUserId, stage.ProposedStatement, stage.RequestedMethod.ToString())).ToArray()));
+    }
 
     private static async Task<IResult> GetAsync(Guid tenantId, Guid translationJobId, Guid documentId, HttpContext context,
         TrustDependencyClient dependencies, TrustDbContext db, ISignatureProviderCapabilities provider, CancellationToken ct)

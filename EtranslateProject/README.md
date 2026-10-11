@@ -53,7 +53,7 @@ The checked-in development settings target `.\ESIMSSQLSERVER` with Windows Authe
    - `IndependentTranslator`
    - `TranslationOffice`
 4. Billing consumes `TenantCreatedV1` and creates a 30-day trial automatically.
-5. The internal subscription can be inspected at `GET /internal/v1/subscriptions/{tenantId}` on Billing. This endpoint is for service-to-service access and is not a public authorization boundary.
+5. Active tenant members can inspect the subscription at `GET /api/v1/tenants/{tenantId}/subscription` on Billing with their bearer token, or open **وضعیت اشتراک و دورهٔ آزمایشی** from the workspace. The legacy `/internal/v1/subscriptions/{tenantId}` alias now requires the same authentication and live membership check; anonymous internal reads are no longer supported.
 
 Example tenant request:
 
@@ -83,6 +83,16 @@ With AppHost running, verify template images, tenant isolation, pinned revisions
 
 This check creates isolated development tenants and leaves its test records and images available for inspection.
 
+### Secure subscription overview (read-only)
+
+Owner, Administrator, Translator and Reviewer can view their own workspace's status, trial dates and remaining days. The trial is exactly 30 days, not a calendar month. Remaining days round up; exact dates and the observation time are shown explicitly in Istanbul time (UTC+03:00). Reading or refreshing never creates, renews or extends the trial.
+
+Billing returns 200 for an existing subscription, 202/Pending for an authorized tenant whose onboarding event has not produced a subscription yet, 401 for absent/invalid authentication, and 403 for outsiders/inactive members. Identity failures return 503 without bypassing authorization. The Web BFF forwards server-only tokens and shows unavailable/invalid data separately from expiry. Both routes are private/no-store. Web does not wait for Billing at startup, so a Billing outage does not by itself prevent access to the workspace.
+
+This slice introduces no checkout, price, paid activation, renewal, seat charging or expired-trial enforcement, and requires no database migration. An expired subscription does not yet block translation work. See [ADR 0016](docs/adr/0016-secure-subscription-overview.md) and the [Persian test guide](docs/testing/subscription-overview.fa.md).
+
+With AppHost running, execute `./tests/ETranslate.EndToEndTests/Verify-Subscriptions.ps1` in PowerShell 7 (add `-WebUrl http://localhost:5067` for HTTP). It includes the Web/team baseline and retains synthetic fixtures. Optional `-TestExpiredFixture` changes only the independent tenant created by that run using the configured native development SQL instance; use **only locally**, never against production. Optional `-HtmlOutputDirectory ./tmp/subscriptions` saves read-only rendered HTML fixtures for visual inspection, without scripts, forms or active links.
+
 ### Signing-request preparation (not real signing)
 
 After internal approval, open **آماده‌سازی درخواست امضا در تب جدا** from the editor. Owner/Administrator can prepare one immutable plan per approved document: one translator stage for independent tenants, translator then office-manager stages for offices. Choose active eligible members, proposed declarations and requested e-İmza/Mobil İmza methods. The plan pins the reviewed PDF/hash/revisions; statements are proposed text, not consent or signatures. Cancel with a reason/version before changing the plan. Reopening approval makes old plans outdated without rewriting their history.
@@ -90,6 +100,16 @@ After internal approval, open **آماده‌سازی درخواست امضا د
 Trust now owns its SQL database (`trustdb`/`ETranslateTrust`) and outbox. `GET/POST .../documents/{documentId}/signing-preparations` and `POST .../{preparationId}/cancel` are authenticated, tenant-scoped endpoints. Documents supplies a current approved-artifact preflight and verifies archived PDF bytes. Real signing/provider capabilities remain disabled; dispatch returns 501, no Signed callback/status exists, and the PDF remains DraftUnsigned. No QR, final signed PDF or legal acceptance is introduced. See [ADR 0014](docs/adr/0014-signing-preparation-boundary.md) and the [Persian test guide](docs/testing/signing-preparations.fa.md).
 
 With AppHost running, use `./tests/ETranslate.EndToEndTests/Verify-SigningPreparations.ps1` (PowerShell 7). Pass `-WebUrl http://localhost:5067` if using the HTTP Web profile. This runs the Web/team baseline and creates retained development-only fixtures. Do not run against production.
+
+### Unsigned signing-proposal PDF preview
+
+The signing preparation page can now create/download a separate private `SigningPreviewUnsigned` PDF. Documents imports the approved unsigned translation pages unchanged, then adds a planning appendix with metadata and each exact proposed declaration. It never replaces the source PDF or records consent/signatures. Only active Owner/Administrator can generate a current Prepared plan; active tenant members can download existing historical snapshots after cancellation/reopening. Repeated generation reuses the same archived bytes. Both source and preview hashes are clearly labeled. No public verification, QR, encryption, office seal or final signable artifact is introduced.
+
+- `POST .../documents/{documentId}/signing-preparations/{preparationId}/preview-pdfs`: create/reuse (201/200), stale/cancelled plan 409.
+- `GET .../documents/{documentId}/signing-previews`: latest 100 private metadata records.
+- `GET .../documents/{documentId}/signing-previews/{previewId}/file`: verified private attachment with byte ranges.
+
+Run `./tests/ETranslate.EndToEndTests/Verify-SigningPreviews.ps1` with AppHost running. This includes the Web/team/preparation baseline; use only on development fixtures. See [ADR 0015](docs/adr/0015-unsigned-signing-preview.md) and the [Persian test guide](docs/testing/signing-previews.fa.md). Real signing still requires a selected provider, separately pinned final artifact and validated signer consent/authority.
 
 ### Internal translation review
 

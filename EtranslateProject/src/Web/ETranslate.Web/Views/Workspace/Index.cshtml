@@ -5,6 +5,7 @@
     <nav class="tenant-tabs" aria-label="فضاهای کاری">@foreach (var tenant in Model.Tenants) { <a class="@(tenant.Id == Model.Tenant?.Id ? "selected" : "")" asp-action="Index" asp-route-tenantId="@tenant.Id" asp-route-assignedToMe="@Model.AssignedToMe">@tenant.Name</a> }</nav>
 }
 @if (Model.Tenant is { Role: "Owner" or "Administrator" } activeTenant) { <p><a asp-controller="Team" asp-action="Index" asp-route-tenantId="@activeTenant.Id">مدیریت اعضا و نقش‌های این فضای کاری ←</a></p> }
+@if (Model.Tenant is { } subscriptionTenant) { <p><a asp-controller="Subscription" asp-action="Index" asp-route-tenantId="@subscriptionTenant.Id">وضعیت اشتراک و دورهٔ آزمایشی ←</a></p> }
 <div class="workspace-grid">
 <section class="card">
     <div class="section-heading"><h2>@(Model.AssignedToMe ? "کارهای محول‌شده به من" : "پرونده‌های ترجمه")</h2><span class="badge">@Model.Jobs.Count پرونده</span></div>

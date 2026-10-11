@@ -1,0 +1,26 @@
+@model SubscriptionPageView
+@{ ViewData["Title"] = "وضعیت اشتراک"; }
+<a class="back-link" asp-controller="Workspace" asp-action="Index" asp-route-tenantId="@Model.Tenant.Id">→ بازگشت به فضای کاری</a>
+<div class="page-heading"><div><span class="eyebrow">SUBSCRIPTION · READ ONLY</span><h1>وضعیت اشتراک</h1><p>@Model.Tenant.Name</p></div><span class="badge">@(Model.Tenant.Type == "TranslationOffice" ? "دارالترجمه" : "مترجم مستقل")</span></div>
+<section class="card" aria-label="اطلاعات اشتراک">
+@if (Model.Error is not null) {
+    <p class="notice" role="alert">@Model.Error</p>
+} else if (Model.Subscription is { } subscription) {
+    <h2>@subscription.StatusLabel</h2>
+    @if (subscription.Status == "Pending") {
+        <p class="notice">فضای کاری ایجاد شده، اما ثبت خودکار اشتراک هنوز تکمیل نشده است. این صفحه اشتراک جدید یا دورهٔ آزمایشی تازه ایجاد نمی‌کند؛ کمی بعد دوباره بررسی کنید.</p>
+    } else {
+        <p>طرح: @(subscription.PlanCode == "trial" ? "آزمایشی رایگان · ۳۰ روز" : subscription.PlanCode)</p>
+        @if (subscription.RemainingTrialDays is { } days) {
+            <p>زمان باقی‌مانده: <strong>@days روز</strong></p>
+            @if (subscription.Status == "Trialing") { <p class="muted">روز باقی‌مانده به بالا گرد می‌شود؛ کمتر از ۲۴ ساعت، ۱ روز نمایش داده می‌شود. زمان دقیق پایان را در ادامه ببینید.</p> }
+        }
+        @if (subscription.TrialStartedAtUtc is { } start) { <p>شروع دورهٔ آزمایشی: <time datetime="@start.ToString("O")" dir="ltr">@SubscriptionView.IstanbulTime(start)</time></p> }
+        @if (subscription.TrialEndsAtUtc is { } end) { <p>پایان دورهٔ آزمایشی: <time datetime="@end.ToString("O")" dir="ltr">@SubscriptionView.IstanbulTime(end)</time></p> }
+        @if (subscription.Status == "Expired") { <p class="notice">دورهٔ آزمایشی پایان یافته است. در این مرحله فقط وضعیت نمایش داده می‌شود؛ محدودسازی ساخت یا ویرایش ترجمه هنوز اعمال نشده است و اسناد قبلی حذف نمی‌شوند.</p> }
+    }
+    <p class="muted">زمان بررسی: <time datetime="@subscription.ObservedAtUtc.ToString("O")" dir="ltr">@SubscriptionView.IstanbulTime(subscription.ObservedAtUtc)</time> · همهٔ زمان‌ها به وقت استانبول، UTC+03:00، با تاریخ میلادی نمایش داده می‌شوند.</p>
+}
+<p><a class="back-link" asp-action="Index" asp-route-tenantId="@Model.Tenant.Id">بررسی دوبارهٔ وضعیت اشتراک</a></p>
+</section>
+<section class="card"><h2>این مرحله چه کاری انجام می‌دهد؟</h2><p>اشتراک به فضای کاری تعلق دارد؛ اعضای فعال همان فضا وضعیت مشترک آن را می‌بینند. دورهٔ فعلی دقیقاً ۳۰ روز است، نه یک ماه تقویمی، و با باز کردن این صفحه تمدید نمی‌شود.</p><p class="muted">خرید، تمدید، قیمت‌گذاری، درگاه پرداخت و محدودسازی امکانات هنوز فعال نیستند. هیچ پرداخت یا اشتراک پولی از این صفحه ثبت نمی‌شود.</p></section>

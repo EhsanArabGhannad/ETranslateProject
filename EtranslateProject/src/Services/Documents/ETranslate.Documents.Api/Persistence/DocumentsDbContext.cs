@@ -15,6 +15,7 @@ public sealed class DocumentsDbContext(
     public DbSet<TemplateAsset> TemplateAssets => Set<TemplateAsset>();
     public DbSet<DocumentPdfVersion> PdfVersions => Set<DocumentPdfVersion>();
     public DbSet<DocumentReview> Reviews => Set<DocumentReview>();
+    public DbSet<DocumentSigningPreview> SigningPreviews => Set<DocumentSigningPreview>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -137,6 +138,21 @@ public sealed class DocumentsDbContext(
             entity.HasOne<TranslationDocument>().WithMany().HasForeignKey(review => review.DocumentId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<DocumentPdfVersion>().WithMany().HasForeignKey(review => review.PdfVersionId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<DocumentDraftRevision>().WithMany().HasForeignKey(review => review.DraftRevisionId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<DocumentSigningPreview>(entity =>
+        {
+            entity.ToTable("signing_previews"); entity.HasKey(item => item.Id);
+            entity.Property(item => item.SourcePdfSha256).HasMaxLength(64).IsRequired();
+            entity.Property(item => item.Sha256).HasMaxLength(64).IsRequired();
+            entity.Property(item => item.RendererVersion).HasMaxLength(100).IsRequired();
+            entity.Property(item => item.StorageKey).HasMaxLength(500).IsRequired();
+            entity.Property(item => item.PlanSnapshotJson).HasColumnType("nvarchar(max)").IsRequired();
+            entity.HasIndex(item => new { item.PreparationId, item.RendererVersion }).IsUnique();
+            entity.HasIndex(item => item.StorageKey).IsUnique();
+            entity.HasIndex(item => new { item.DocumentId, item.CreatedAtUtc });
+            entity.HasOne<TranslationDocument>().WithMany().HasForeignKey(item => item.DocumentId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<DocumentReview>().WithMany().HasForeignKey(item => item.ReviewId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<DocumentPdfVersion>().WithMany().HasForeignKey(item => item.SourcePdfVersionId).OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.AddOutboxMessageEntity(entity => entity.ToTable("outbox_messages"));
         modelBuilder.AddOutboxStateEntity(entity => entity.ToTable("outbox_state"));

@@ -4,7 +4,11 @@ namespace ETranslate.Documents.Api.Rendering;
 
 public sealed record DraftPdfInput(Guid DocumentId, int RevisionNumber, Guid? TemplateRevisionId,
     string BodyJson, string? HeaderJson, string? FooterJson, string? LayoutJson, string? WatermarkJson,
-    IReadOnlyDictionary<Guid, PdfImage> Images);
+    IReadOnlyDictionary<Guid, PdfImage> Images)
+{
+    public ETranslate.Contracts.Trust.SigningPreviewSnapshotV1? PreviewPlan { get; init; }
+    public Guid PreviewId { get; init; }
+}
 public sealed record PdfImage(string ContentType, byte[] Bytes);
 public sealed record PreparedPdf(string Html, DocumentPageLayout Layout);
 public interface IDraftPdfRenderer

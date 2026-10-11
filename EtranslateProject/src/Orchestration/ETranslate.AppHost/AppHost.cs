@@ -35,9 +35,13 @@ var trust = builder.AddProject<Projects.ETranslate_Trust_Api>("trust")
     .WithReference(trustDatabase).WithReference(messaging).WithReference(identityAccess)
     .WithReference(documents).WithReference(translationWorkflow)
     .WaitFor(identityAccess).WaitFor(documents).WaitFor(translationWorkflow);
+// Runtime snapshot lookup only. Do not add a reverse WaitFor and create a startup cycle.
+documents.WithReference(trust);
 var billing = builder.AddProject<Projects.ETranslate_Billing_Api>("billing")
     .WithReference(billingDatabase)
-    .WithReference(messaging);
+    .WithReference(messaging)
+    .WithReference(identityAccess)
+    .WaitFor(identityAccess);
 var notaryIntegration = builder.AddProject<Projects.ETranslate_NotaryIntegration_Api>("notary-integration");
 
 var gateway = builder.AddProject<Projects.ETranslate_Gateway>("gateway")
@@ -50,6 +54,7 @@ var gateway = builder.AddProject<Projects.ETranslate_Gateway>("gateway")
     .WithExternalHttpEndpoints();
 
 builder.AddProject<Projects.ETranslate_Web>("web")
+    .WithReference(billing)
     .WithReference(trust)
     .WithReference(identityAccess)
     .WithReference(translationWorkflow)
