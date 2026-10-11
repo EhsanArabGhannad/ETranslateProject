@@ -9,6 +9,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace ETranslate.Trust.Api.Endpoints;
+using ETranslate.SubscriptionAccess;
 
 public static class SigningPreparationEndpoints
 {
@@ -16,6 +17,7 @@ public static class SigningPreparationEndpoints
     {
         var group = endpoints.MapGroup("/api/v1/tenants/{tenantId:guid}/translation-jobs/{translationJobId:guid}/documents/{documentId:guid}/signing-preparations")
             .WithTags("Signing Preparation");
+        group.AddEndpointFilter<SubscriptionWriteFilter>();
         group.MapGet("/", GetAsync); group.MapPost("/", CreateAsync);
         group.MapGet("/{preparationId:guid}/preview-snapshot", PreviewSnapshotAsync);
         group.MapPost("/{preparationId:guid}/cancel", CancelAsync);

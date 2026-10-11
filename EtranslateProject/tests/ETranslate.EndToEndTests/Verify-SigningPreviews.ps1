@@ -5,12 +5,13 @@ param(
     [string]$WorkflowUrl = 'http://localhost:5285',
     [string]$DocumentsUrl = 'http://localhost:5241',
     [string]$TrustUrl = 'http://localhost:5033',
+    [string]$BillingUrl = 'http://localhost:5249',
     [switch]$EmitBrowserFixture,
     [string]$OutputDirectory
 )
 $ErrorActionPreference = 'Stop'
 $emitPreviewFixture = $EmitBrowserFixture; $previewOutputDirectory = $OutputDirectory
-. "$PSScriptRoot/Verify-SigningPreparations.ps1" -WebUrl $WebUrl -IdentityUrl $IdentityUrl -WorkflowUrl $WorkflowUrl -DocumentsUrl $DocumentsUrl -TrustUrl $TrustUrl
+. "$PSScriptRoot/Verify-SigningPreparations.ps1" -WebUrl $WebUrl -IdentityUrl $IdentityUrl -WorkflowUrl $WorkflowUrl -DocumentsUrl $DocumentsUrl -TrustUrl $TrustUrl -BillingUrl $BillingUrl
 $previewPriorChecks = $checks
 $handler = [Net.Http.HttpClientHandler]::new(); $handler.AllowAutoRedirect = $false
 $client = [Net.Http.HttpClient]::new($handler); $client.Timeout = [TimeSpan]::FromSeconds(45)

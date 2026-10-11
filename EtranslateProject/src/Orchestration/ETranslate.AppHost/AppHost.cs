@@ -42,6 +42,10 @@ var billing = builder.AddProject<Projects.ETranslate_Billing_Api>("billing")
     .WithReference(messaging)
     .WithReference(identityAccess)
     .WaitFor(identityAccess);
+// Runtime-only subscription checks: reads must not wait for Billing startup.
+translationWorkflow.WithReference(billing);
+documents.WithReference(billing);
+trust.WithReference(billing);
 var notaryIntegration = builder.AddProject<Projects.ETranslate_NotaryIntegration_Api>("notary-integration");
 
 var gateway = builder.AddProject<Projects.ETranslate_Gateway>("gateway")

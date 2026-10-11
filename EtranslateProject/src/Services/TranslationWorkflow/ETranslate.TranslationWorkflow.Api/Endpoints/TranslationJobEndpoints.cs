@@ -6,6 +6,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 namespace ETranslate.TranslationWorkflow.Api.Endpoints;
+using ETranslate.SubscriptionAccess;
 
 public static class TranslationJobEndpoints
 {
@@ -13,6 +14,7 @@ public static class TranslationJobEndpoints
     {
         var group = endpoints.MapGroup("/api/v1/tenants/{tenantId:guid}/translation-jobs")
             .WithTags("Translation Jobs");
+        group.AddEndpointFilter<SubscriptionWriteFilter>();
 
         group.MapPost("/", CreateTranslationJobAsync);
         group.MapGet("/", GetTranslationJobsAsync);

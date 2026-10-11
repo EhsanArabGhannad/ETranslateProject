@@ -23,7 +23,7 @@ public sealed partial class WorkspaceController
         }
         catch (BackendException error)
         {
-            var message = error.Status switch
+            var message = error.IsSubscriptionError ? error.UserMessage : error.Status switch
             {
                 HttpStatusCode.UnprocessableEntity => "ساختار، چیدمان یا اندازه‌ی سند برای PDF پشتیبانی نمی‌شود؛ هیچ بخشی حذف یا ساده نشده است.",
                 HttpStatusCode.TooManyRequests => "موتور PDF در حال کار است؛ کمی بعد دوباره امتحان کنید.",

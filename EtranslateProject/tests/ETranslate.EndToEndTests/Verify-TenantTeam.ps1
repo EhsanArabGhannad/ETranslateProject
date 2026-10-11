@@ -4,10 +4,11 @@ param(
     [string]$IdentityUrl = 'http://localhost:5031',
     [string]$WorkflowUrl = 'http://localhost:5285',
     [string]$DocumentsUrl = 'http://localhost:5241',
+    [string]$BillingUrl = 'http://localhost:5249',
     [switch]$EmitBrowserFixture
 )
 $ErrorActionPreference = 'Stop'
-. "$PSScriptRoot/Verify-WebWorkspace.ps1" -WebUrl $WebUrl -IdentityUrl $IdentityUrl -WorkflowUrl $WorkflowUrl -DocumentsUrl $DocumentsUrl
+. "$PSScriptRoot/Verify-WebWorkspace.ps1" -WebUrl $WebUrl -IdentityUrl $IdentityUrl -WorkflowUrl $WorkflowUrl -DocumentsUrl $DocumentsUrl -BillingUrl $BillingUrl
 $baselineChecks = $checks
 $handler = [Net.Http.HttpClientHandler]::new(); $handler.AllowAutoRedirect = $false
 $client = [Net.Http.HttpClient]::new($handler); $client.Timeout = [TimeSpan]::FromSeconds(45)

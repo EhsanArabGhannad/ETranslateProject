@@ -2,6 +2,8 @@
 
 Status: Accepted for the development slice
 
+Update: ADR 0017 adds write enforcement. The read-only overview and its authorization remain; the no-enforcement statements below describe the original slice.
+
 Date: 2026-10-11
 
 ## Decision

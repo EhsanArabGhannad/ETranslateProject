@@ -3,7 +3,8 @@ param(
     [string]$WebUrl = 'https://localhost:7049',
     [string]$IdentityUrl = 'http://localhost:5031',
     [string]$WorkflowUrl = 'http://localhost:5285',
-    [string]$DocumentsUrl = 'http://localhost:5241'
+    [string]$DocumentsUrl = 'http://localhost:5241',
+    [string]$BillingUrl = 'http://localhost:5249'
 )
 $ErrorActionPreference = 'Stop'
 $script:checks = 0
@@ -44,6 +45,20 @@ function Api([string]$Method, [string]$Url, $Body, [int]$Status, $Headers = $bea
     }
 }
 
+function Await-SubscriptionProvisioning([string]$Id) {
+    # Fixture setup waits for the asynchronous event; never retry a business mutation.
+    for ($attempt = 0; $attempt -lt 40; $attempt++) {
+        $response = Invoke-WebRequest "$BillingUrl/api/v1/tenants/$Id/subscription/write-access" -Headers $bearer -SkipHttpErrorCheck -TimeoutSec 10
+        if ($response.StatusCode -eq 200) {
+            $decision = ConvertFrom-Json ([string]$response.Content)
+            if ($decision.canWrite -and $decision.tenantId -eq $Id) { return }
+            if ($decision.status -ne 'Pending') { throw 'Fixture did not receive a valid trial' }
+        } else { throw "Subscription fixture provisioning returned $($response.StatusCode)" }
+        Start-Sleep -Milliseconds 250
+    }
+    throw 'Subscription provisioning exceeded the local fixture wait budget'
+}
+
 # Each run leaves isolated development fixtures for manual inspection; no production cleanup.
 $runId = [Guid]::NewGuid().ToString('N')
 $email = "web-$runId@etranslate.local"
@@ -66,6 +81,7 @@ try {
     Assert-Check (-not [string]::IsNullOrEmpty($tenantId)) 'Tenant creation must select new workspace'
     $login = Api POST "$IdentityUrl/api/v1/auth/login" @{ email = $email; password = $password } 200 @{}
     $bearer = @{ Authorization = "Bearer $($login.accessToken)" }
+    Await-SubscriptionProvisioning $tenantId
     $page = Web GET "/Workspace?tenantId=$tenantId" 200
     $csrf = Csrf $page.Body
     Web POST '/Workspace/CreateTemplate' 302 (Fields @{ tenantId = $tenantId; name = 'Web A4'; header = 'Office letterhead'; footer = 'Office footer'; starterText = 'Initial translation'; watermark = 'DRAFT'; __RequestVerificationToken = $csrf }) | Out-Null

@@ -6,10 +6,10 @@
     <section class="draft-pdf-section review-section"><h3>بازبینی و تأیید داخلی</h3>
     <p class="muted">این تأیید جای امضا، سوگند مترجم یا نوتر نیست. مسئول بازبینی باید PDF و مدارک مبدأ را بررسی کند. در حساب مترجم مستقل، مالک می‌تواند بازبینی خود را ثبت کند.</p>
     <p><span class="badge">@ReviewStateView.Label(state.Status)</span> · دور بازبینی @state.Round</p>
-    @if (!Model.Historical && !Model.Conflict && state.CanManage && !state.Locked && needsNewRevision) {
+    @if (Model.CanWrite && !Model.Historical && !Model.Conflict && state.CanManage && !state.Locked && needsNewRevision) {
         <p class="notice">پس از برگشت یا بازگشایی، اصلاحات را در یک نسخه‌ی جدید ذخیره کنید؛ سپس PDF جدید بسازید و برای بازبینی بفرستید.</p>
     }
-    @if (!Model.Historical && !Model.Conflict && state.CanManage && !state.Locked && !needsNewRevision && Model.ViewedRevision > 0) {
+    @if (Model.CanWrite && !Model.Historical && !Model.Conflict && state.CanManage && !state.Locked && !needsNewRevision && Model.ViewedRevision > 0) {
             <form asp-action="SubmitReview" method="post" class="review-form">
                 <input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" />
                 <input type="hidden" name="expectedRevision" value="@Model.ViewedRevision" /><input type="hidden" name="expectedRound" value="@state.Round" />
@@ -19,7 +19,7 @@
             </form>
         if (pdfs.Count == 0) { <p id="review-pdf-needed" class="notice">ابتدا PDF نسخه‌ی ذخیره‌شده را بسازید تا ارسال برای بازبینی فعال شود.</p> }
     }
-    @if (!Model.Historical && !Model.Conflict && latest is not null) {
+    @if (Model.CanWrite && !Model.Historical && !Model.Conflict && latest is not null) {
         var actions = new List<(string Action, string Label)>();
         if (state.Status == "AwaitingReview") {
             if (state.CanReview) { actions.Add(("Approve", "تأیید داخلی این نسخه")); actions.Add(("RequestChanges", "برگشت برای اصلاح")); }

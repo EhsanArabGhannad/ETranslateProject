@@ -16,6 +16,7 @@ public sealed partial class WorkspaceController
         return (new SigningPageView
         {
             TenantId = tenantId, Job = job, State = state,
+            WriteStatus = await WriteStatusAsync(tenantId),
             Previews = await api.ReadAsync<List<SigningPreviewView>>("documents", $"{DocumentsPath(tenantId, jobId)}/{document.Id}/signing-previews"),
             Candidates = state.CanManage ? await api.ReadAsync<List<AssigneeView>>("identity-access", $"{TenantPath(tenantId)}/translation-assignees") : [],
             Form = new()
@@ -42,10 +43,10 @@ public sealed partial class WorkspaceController
             TempData["Notice"] = "برنامه‌ی درخواست ثبت شد؛ هیچ امضا یا رضایت امضاکننده‌ای ثبت نشده است.";
             return RedirectToAction(nameof(SigningPreparation), new { tenantId, jobId });
         }
-        catch (BackendException error) when (error.Status is HttpStatusCode.BadRequest or HttpStatusCode.Conflict)
+        catch (BackendException error) when (error.Status is HttpStatusCode.BadRequest or HttpStatusCode.Conflict or HttpStatusCode.PaymentRequired || error.IsSubscriptionError)
         {
             page.Form = form;
-            page.Error = error.Status == HttpStatusCode.Conflict
+            page.Error = error.IsSubscriptionError ? error.UserMessage : error.Status == HttpStatusCode.Conflict
                 ? "نسخه‌ی تأییدشده یا درخواست فعال تغییر کرده است. متن واردشده حفظ شده؛ صفحه را تازه کنید و قبل از ثبت مجدد، نسخه‌ها را بررسی کنید."
                 : "امضاکننده باید عضو فعال و مجاز همین فضای کاری باشد؛ بیانیه و روش پیشنهادی هر مرحله را بررسی کنید (حداکثر ۴۰۰۰ نویسه).";
             Response.StatusCode = (int)error.Status;

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ETranslate.SubscriptionAccess;
 
 namespace ETranslate.Web.Models;
 
@@ -40,6 +41,8 @@ public sealed record ReviewStateView(string Status, int Round, Guid UserId, bool
 }
 public sealed class WorkspaceView
 {
+    public SubscriptionWriteStatus WriteStatus { get; set; } = SubscriptionWriteStatus.Unavailable;
+    public bool CanWrite => WriteStatus == SubscriptionWriteStatus.Allowed;
     public List<TenantView> Tenants { get; set; } = [];
     public TenantView? Tenant { get; set; }
     public List<JobView> Jobs { get; set; } = [];
@@ -48,6 +51,8 @@ public sealed class WorkspaceView
 }
 public sealed class EditorView
 {
+    public SubscriptionWriteStatus WriteStatus { get; set; } = SubscriptionWriteStatus.Unavailable;
+    public bool CanWrite => WriteStatus == SubscriptionWriteStatus.Allowed;
     public Guid TenantId { get; set; }
     public JobView Job { get; set; } = null!;
     public DocumentView? Document { get; set; }

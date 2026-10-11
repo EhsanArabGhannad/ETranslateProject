@@ -1,4 +1,5 @@
 namespace ETranslate.Web.Models;
+using ETranslate.SubscriptionAccess;
 
 public sealed record SigningArtifactView(Guid ReviewId, int ReviewRound, Guid PdfVersionId, int RevisionNumber, string Sha256, string Kind);
 public sealed record SigningProviderView(string Provider, bool RealSigningEnabled, bool EImza, bool MobilImza);
@@ -21,6 +22,8 @@ public sealed class SigningProposalForm
 }
 public sealed class SigningPageView
 {
+    public SubscriptionWriteStatus WriteStatus { get; set; } = SubscriptionWriteStatus.Unavailable;
+    public bool CanWrite => WriteStatus == SubscriptionWriteStatus.Allowed;
     public Guid TenantId { get; set; }
     public JobView Job { get; set; } = null!;
     public SigningStateView State { get; set; } = null!;
@@ -28,7 +31,7 @@ public sealed class SigningPageView
     public List<SigningPreviewView> Previews { get; set; } = [];
     public SigningProposalForm Form { get; set; } = new();
     public string? Error { get; set; }
-    public bool CanPrepare => State.CanManage && State.ArtifactServiceAvailable && State.Artifact is not null && !State.Preparations.Any(item => item.Status == "Prepared");
+    public bool CanPrepare => CanWrite && State.CanManage && State.ArtifactServiceAvailable && State.Artifact is not null && !State.Preparations.Any(item => item.Status == "Prepared");
     public string MemberLabel(Guid id) => Candidates.Find(item => item.UserId == id)?.Email ?? id.ToString();
 }
 public sealed record SigningPreviewView(Guid Id, Guid PreparationId, Guid SourcePdfVersionId, string SourcePdfSha256,

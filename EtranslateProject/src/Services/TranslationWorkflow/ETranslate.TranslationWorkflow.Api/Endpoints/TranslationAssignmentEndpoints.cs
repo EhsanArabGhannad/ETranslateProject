@@ -7,12 +7,14 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace ETranslate.TranslationWorkflow.Api.Endpoints;
+using ETranslate.SubscriptionAccess;
 
 public static class TranslationAssignmentEndpoints
 {
     public static IEndpointRouteBuilder MapTranslationAssignmentEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/v1/tenants/{tenantId:guid}/translation-jobs").WithTags("Translation Assignments");
+        group.AddEndpointFilter<SubscriptionWriteFilter>();
         group.MapGet("/{translationJobId:guid}/assignment", GetAsync);
         group.MapPut("/{translationJobId:guid}/assignment", AssignAsync);
         endpoints.MapGet("/api/v1/tenants/{tenantId:guid}/translation-assignees", CandidatesAsync).WithTags("Translation Assignments");

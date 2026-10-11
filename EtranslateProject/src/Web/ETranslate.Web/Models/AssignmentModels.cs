@@ -1,4 +1,5 @@
 namespace ETranslate.Web.Models;
+using ETranslate.SubscriptionAccess;
 
 public sealed record AssigneeView(Guid UserId, string Email, string Role);
 public sealed record AssignmentChangeView(Guid Id, long Version, Guid ActorUserId, Guid? PreviousTranslatorUserId,
@@ -7,6 +8,8 @@ public sealed record AssignmentStateView(Guid TranslationJobId, Guid? AssignedTr
     Guid? ChangedByUserId, DateTimeOffset? ChangedAtUtc, Guid UserId, bool CanManage, IReadOnlyList<AssignmentChangeView> History);
 public sealed class AssignmentPageView
 {
+    public SubscriptionWriteStatus WriteStatus { get; set; } = SubscriptionWriteStatus.Unavailable;
+    public bool CanWrite => WriteStatus == SubscriptionWriteStatus.Allowed;
     public Guid TenantId { get; set; }
     public JobView Job { get; set; } = null!;
     public AssignmentStateView Assignment { get; set; } = null!;

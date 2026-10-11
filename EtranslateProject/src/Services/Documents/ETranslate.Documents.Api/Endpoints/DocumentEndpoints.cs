@@ -8,6 +8,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace ETranslate.Documents.Api.Endpoints;
+using ETranslate.SubscriptionAccess;
 
 public static partial class DocumentEndpoints
 {
@@ -16,6 +17,7 @@ public static partial class DocumentEndpoints
         var group = endpoints.MapGroup(
                 "/api/v1/tenants/{tenantId:guid}/translation-jobs/{translationJobId:guid}/documents")
             .WithTags("Documents");
+        group.AddEndpointFilter<SubscriptionWriteFilter>();
 
         group.MapPost("/", CreateDocumentAsync);
         group.MapGet("/", GetDocumentAsync);

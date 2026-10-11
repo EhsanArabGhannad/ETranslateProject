@@ -21,7 +21,7 @@ if ($TestExpiredFixture) {
 $emitSubscriptionFixture = $EmitBrowserFixture; $subscriptionBillingUrl = $BillingUrl
 $subscriptionHtmlDirectory = $HtmlOutputDirectory
 $testSubscriptionExpiredFixture = $TestExpiredFixture
-. "$PSScriptRoot/Verify-TenantTeam.ps1" -WebUrl $WebUrl -IdentityUrl $IdentityUrl -WorkflowUrl $WorkflowUrl -DocumentsUrl $DocumentsUrl
+. "$PSScriptRoot/Verify-TenantTeam.ps1" -WebUrl $WebUrl -IdentityUrl $IdentityUrl -WorkflowUrl $WorkflowUrl -DocumentsUrl $DocumentsUrl -BillingUrl $BillingUrl
 $subscriptionPriorChecks = $checks
 $handler = [Net.Http.HttpClientHandler]::new(); $handler.AllowAutoRedirect = $false
 $client = [Net.Http.HttpClient]::new($handler); $client.Timeout = [TimeSpan]::FromSeconds(45)
@@ -132,9 +132,9 @@ try {
         Assert-Check ($expired.status -eq 'Expired' -and $expired.remainingTrialDays -eq 0) 'API must observe expiry even before worker persistence'
         $expiredPage = Web GET "/Subscription?tenantId=$fixtureGuid" 200
         $decoded = [Net.WebUtility]::HtmlDecode($expiredPage.Body)
-        Assert-Check ($decoded -match 'منقضی‌شده' -and $decoded -match 'محدودسازی ساخت یا ویرایش ترجمه هنوز اعمال نشده') 'Expired UI must not claim enforcement or delete documents'
+        Assert-Check ($decoded -match 'منقضی‌شده' -and $decoded -match 'فقط‌خواندنی') 'Expired UI must show enforcement without deleting documents'
         Save-SubscriptionHtml $expiredPage 'subscription-expired.html'
-        Api POST "$WorkflowUrl/api/v1/tenants/$fixtureGuid/translation-jobs" @{ title = 'Expired trial read-only slice check'; sourceLanguageCode = 'fa'; targetLanguageCode = 'tr'; notaryRequirement = 'NotRequired' } 201 | Out-Null
+        Api POST "$WorkflowUrl/api/v1/tenants/$fixtureGuid/translation-jobs" @{ title = 'Expired trial read-only slice check'; sourceLanguageCode = 'fa'; targetLanguageCode = 'tr'; notaryRequirement = 'NotRequired' } 402 | Out-Null
     }
     $page = Web GET $subscriptionPage 200
     Logout-Web $page

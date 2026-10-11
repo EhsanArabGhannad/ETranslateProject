@@ -5,11 +5,12 @@ param(
     [string]$WorkflowUrl = 'http://localhost:5285',
     [string]$DocumentsUrl = 'http://localhost:5241',
     [string]$TrustUrl = 'http://localhost:5033',
+    [string]$BillingUrl = 'http://localhost:5249',
     [switch]$EmitBrowserFixture
 )
 $ErrorActionPreference = 'Stop'
 $emitSigningFixture = $EmitBrowserFixture; $signingTrustUrl = $TrustUrl
-. "$PSScriptRoot/Verify-TenantTeam.ps1" -WebUrl $WebUrl -IdentityUrl $IdentityUrl -WorkflowUrl $WorkflowUrl -DocumentsUrl $DocumentsUrl
+. "$PSScriptRoot/Verify-TenantTeam.ps1" -WebUrl $WebUrl -IdentityUrl $IdentityUrl -WorkflowUrl $WorkflowUrl -DocumentsUrl $DocumentsUrl -BillingUrl $BillingUrl
 $priorChecks = $checks
 $handler = [Net.Http.HttpClientHandler]::new(); $handler.AllowAutoRedirect = $false
 $client = [Net.Http.HttpClient]::new($handler); $client.Timeout = [TimeSpan]::FromSeconds(45)

@@ -1,4 +1,6 @@
 using System.Net;
+using ETranslate.SubscriptionAccess;
+using Microsoft.AspNetCore.Authentication;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ETranslate.Web.Models;
@@ -10,8 +12,16 @@ using Microsoft.AspNetCore.Mvc;
 namespace ETranslate.Web.Controllers;
 
 [Authorize]
-public sealed partial class WorkspaceController(BackendApi api) : Controller
+public sealed partial class WorkspaceController(BackendApi api, SubscriptionWriteClient subscriptions) : Controller
 {
+    private async Task<SubscriptionWriteStatus> WriteStatusAsync(Guid tenantId)
+    {
+        var token = await HttpContext.GetTokenAsync("access_token");
+        var status = await subscriptions.CheckAsync(tenantId, token is null ? null : $"Bearer {token}", HttpContext.RequestAborted);
+        if (status == SubscriptionWriteStatus.Unauthorized) throw new BackendException(HttpStatusCode.Unauthorized);
+        if (status == SubscriptionWriteStatus.Forbidden) throw new BackendException(HttpStatusCode.Forbidden);
+        return status;
+    }
     private static string TenantPath(Guid tenantId) => $"/api/v1/tenants/{tenantId}";
     private static string JobsPath(Guid tenantId) => $"{TenantPath(tenantId)}/translation-jobs";
     private static string TemplatesPath(Guid tenantId) => $"{TenantPath(tenantId)}/document-templates";
@@ -25,6 +35,7 @@ public sealed partial class WorkspaceController(BackendApi api) : Controller
         return View(new WorkspaceView
         {
             Tenants = tenants, Tenant = tenant,
+            WriteStatus = tenant is null ? SubscriptionWriteStatus.Unavailable : await WriteStatusAsync(tenant.Id),
             AssignedToMe = assignedToMe,
             Jobs = tenant is null ? [] : await api.ReadAsync<List<JobView>>("translation-workflow", $"{JobsPath(tenant.Id)}?take=100&assignedToMe={assignedToMe.ToString().ToLowerInvariant()}"),
             Templates = tenant is null ? [] : await api.ReadAsync<List<TemplateView>>("documents", TemplatesPath(tenant.Id))
@@ -69,7 +80,8 @@ public sealed partial class WorkspaceController(BackendApi api) : Controller
             TenantId = tenantId,
             Job = await api.ReadAsync<JobView>("translation-workflow", $"{JobsPath(tenantId)}/{jobId}"),
             Document = await api.FindAsync<DocumentView>("documents", DocumentsPath(tenantId, jobId)),
-            Templates = await api.ReadAsync<List<TemplateView>>("documents", TemplatesPath(tenantId))
+            Templates = await api.ReadAsync<List<TemplateView>>("documents", TemplatesPath(tenantId)),
+            WriteStatus = await WriteStatusAsync(tenantId)
         };
         if (model.Document is { } document)
         {
@@ -122,6 +134,7 @@ public sealed partial class WorkspaceController(BackendApi api) : Controller
         string json = editorContentJson ?? "";
         string? message = null;
         var conflict = false;
+        var failureStatus = 400;
         try
         {
             if (!ModelState.IsValid) throw new BackendException(HttpStatusCode.BadRequest);
@@ -152,6 +165,7 @@ public sealed partial class WorkspaceController(BackendApi api) : Controller
         catch (BackendException error) when (error.Status != HttpStatusCode.Unauthorized)
         {
             conflict = error.Status == HttpStatusCode.Conflict;
+            failureStatus = (int)error.Status;
             message = conflict ? "نسخه یا وضعیت بازبینی سند تغییر کرده است. متن شما حفظ شده؛ آن را کپی کنید و آخرین وضعیت را در تب دیگری بررسی کنید." : error.UserMessage;
             if (mode == "text") json = DocumentText.FromPlainText(plainText ?? "");
         }
@@ -161,7 +175,7 @@ public sealed partial class WorkspaceController(BackendApi api) : Controller
         model.Conflict = conflict;
         model.Message = message;
         ModelState.Clear();
-        Response.StatusCode = conflict ? 409 : 400;
+        Response.StatusCode = failureStatus;
         return View("Editor", model);
     }
 

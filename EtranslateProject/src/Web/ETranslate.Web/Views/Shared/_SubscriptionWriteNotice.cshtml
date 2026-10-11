@@ -1,0 +1,4 @@
+@model SubscriptionWriteNotice
+@if (Model.Status != ETranslate.SubscriptionAccess.SubscriptionWriteStatus.Allowed) {
+    <div class="notice" role="status" data-subscription-readonly="true">@Model.Message <a asp-controller="Subscription" asp-action="Index" asp-route-tenantId="@Model.TenantId">بررسی وضعیت اشتراک</a></div>
+}

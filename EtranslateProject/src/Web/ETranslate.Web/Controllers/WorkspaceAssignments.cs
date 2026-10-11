@@ -13,6 +13,7 @@ public sealed partial class WorkspaceController
         return View(new AssignmentPageView
         {
             TenantId = tenantId, Assignment = state,
+            WriteStatus = await WriteStatusAsync(tenantId),
             Job = await api.ReadAsync<JobView>("translation-workflow", $"{JobsPath(tenantId)}/{jobId}"),
             Candidates = state.CanManage ? await api.ReadAsync<List<AssigneeView>>("translation-workflow", $"{TenantPath(tenantId)}/translation-assignees") : []
         });

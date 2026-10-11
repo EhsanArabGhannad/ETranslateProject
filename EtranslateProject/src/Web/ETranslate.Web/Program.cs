@@ -1,4 +1,5 @@
 using ETranslate.Web.Services;
+using ETranslate.SubscriptionAccess;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Http.Resilience;
@@ -7,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Configure each named backend once: PDF generation needs a longer attempt than ordinary API calls.
 builder.AddServiceDefaults(enableHttpResilience: false);
+builder.Services.AddSubscriptionWriteAccess();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews(options =>

@@ -4,6 +4,7 @@
 <div class="page-heading"><div><span class="eyebrow">SIGNING PREPARATION · NOT SIGNED</span><h1>آماده‌سازی درخواست امضا</h1><p>@Model.Job.Title</p></div><span class="badge">فقط برنامه‌ریزی</span></div>
 <p class="notice">این صفحه امضا، رضایت امضاکننده، تأیید نوتر یا سند رسمی ایجاد نمی‌کند. بیانیه‌ها فقط متن پیشنهادی‌اند. می‌توانید یک PDF جداگانه با صفحات ترجمه‌ی مرجع و پیوست بیانیه‌ها بسازید؛ PDF مرجع تغییر نمی‌کند. پیش‌نمایش فاقد امضا و QR است و برای ارسال به ارائه‌دهنده‌ی امضا آماده نیست.</p>
 @if (Model.Error is not null) { <p class="notice" role="alert">@Model.Error</p> }
+<partial name="_SubscriptionWriteNotice" model="new SubscriptionWriteNotice(Model.TenantId, Model.WriteStatus)" />
 @if (Model.Error is not null && !Model.CanPrepare) { <section class="card"><h2>متن ارسال‌شده‌ی شما (ثبت نشده)</h2><p class="signing-statement" dir="auto">@Model.Form.TranslatorStatement</p><p class="signing-statement" dir="auto">@Model.Form.OfficeStatement</p><p class="muted">متن را پیش از تازه‌سازی صفحه کپی کنید.</p></section> }
 <section class="card"><h2>نسخه‌ی مرجع</h2>
 @if (!state.ArtifactServiceAvailable) { <p class="notice">بررسی PDF فعلاً در دسترس نیست؛ وضعیت تازگی درخواست‌ها نامشخص است و درخواست جدید ثبت نمی‌شود.</p> }
@@ -49,10 +50,10 @@ else if (state.Artifact is { } artifact) {
         <p class="signing-hash" dir="ltr">Preview SHA-256: @preview.Sha256</p>
         <p class="muted">این فایل یک تصویر ثابت از برنامه‌ی ثبت‌شده است؛ لغو یا بازگشایی بعدی داخل آن منعکس نمی‌شود. شناسه‌ی حساب امضاکننده در پیوست، احراز هویت حقوقی یا گواهی امضا نیست.</p>
     }
-    @if (item.Status == "Prepared" && state.CanManage && state.ArtifactServiceAvailable && item.IsCurrentArtifact) {
+    @if (item.Status == "Prepared" && Model.CanWrite && state.CanManage && state.ArtifactServiceAvailable && item.IsCurrentArtifact) {
         <form asp-action="GenerateSigningPreview" method="post"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="preparationId" value="@item.Id" /><button type="submit" class="secondary">ساخت یا دریافت پیش‌نمایش PDF بدون امضا</button></form>
     }
-    @if (item.Status == "Prepared" && state.CanManage) {
+    @if (item.Status == "Prepared" && Model.CanWrite && state.CanManage) {
         <form asp-action="CancelSigningPreparation" method="post"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="preparationId" value="@item.Id" /><input type="hidden" name="expectedVersion" value="@item.Version" />
         <label for="cancel-@item.Id">دلیل لغو آماده‌سازی</label><textarea id="cancel-@item.Id" name="reason" maxlength="2000" rows="2" required></textarea><button type="submit" class="secondary">لغو آماده‌سازی</button></form>
     }

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using ETranslate.SubscriptionAccess;
 using ETranslate.TranslationWorkflow.Api.Authorization;
 using ETranslate.TranslationWorkflow.Api.Endpoints;
 using ETranslate.TranslationWorkflow.Api.Persistence;
@@ -8,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+builder.Services.AddSubscriptionWriteAccess();
 builder.Services.AddProblemDetails();
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));

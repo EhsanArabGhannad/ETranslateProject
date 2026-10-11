@@ -19,9 +19,9 @@ public sealed partial class WorkspaceController
             TempData["Notice"] = "پیش‌نمایش PDF آماده است: صفحات ترجمه‌ی مرجع همراه با پیوست بیانیه‌های پیشنهادی؛ بدون امضا یا رضایت ثبت‌شده.";
         }
         catch (BackendException error) when (error.Status is HttpStatusCode.Conflict or HttpStatusCode.UnprocessableEntity or
-            HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable)
+            HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable or HttpStatusCode.PaymentRequired)
         {
-            TempData["Notice"] = error.Status switch
+            TempData["Notice"] = error.IsSubscriptionError ? error.UserMessage : error.Status switch
             {
                 HttpStatusCode.Conflict => "درخواست لغو شده یا PDF تأییدشده تغییر کرده است؛ پیش‌نمایش جدید ساخته نمی‌شود. آخرین وضعیت را بررسی کنید.",
                 HttpStatusCode.UnprocessableEntity => "پیش‌نمایش از محدودیت صفحه، اندازه یا ساختار PDF عبور می‌کند؛ متن حذف یا خلاصه نشده است.",

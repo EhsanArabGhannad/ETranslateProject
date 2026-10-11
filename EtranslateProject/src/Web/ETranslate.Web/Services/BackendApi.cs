@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -26,7 +27,25 @@ public sealed class BackendApi(IHttpClientFactory clients, IHttpContextAccessor 
         try
         {
             // Buffer small JSON/images; the upstream limits assets to 5 MiB.
-            return await clients.CreateClient(service).SendAsync(request, completion, accessor.HttpContext!.RequestAborted);
+            var response = await clients.CreateClient(service).SendAsync(request, completion, accessor.HttpContext!.RequestAborted);
+            // Preserve only our known subscription codes, never arbitrary upstream display text.
+            if (response.StatusCode is HttpStatusCode.PaymentRequired or HttpStatusCode.ServiceUnavailable)
+            {
+                try
+                {
+                    var problem = await response.Content.ReadFromJsonAsync<JsonElement>(accessor.HttpContext.RequestAborted);
+                    if (problem.ValueKind == JsonValueKind.Object && problem.TryGetProperty("code", out var code) && code.ValueKind == JsonValueKind.String &&
+                        (response.StatusCode == HttpStatusCode.PaymentRequired && code.GetString() == "subscription_required" ||
+                         response.StatusCode == HttpStatusCode.ServiceUnavailable && code.GetString() is "subscription_pending" or "subscription_unavailable"))
+                    {
+                        response.Dispose();
+                        throw new BackendException(response.StatusCode, code.GetString());
+                    }
+                }
+                catch (JsonException) { }
+                catch (NotSupportedException) { }
+            }
+            return response;
         }
         catch (HttpRequestException) { throw new BackendException(HttpStatusCode.ServiceUnavailable); }
         catch (TimeoutRejectedException) { throw new BackendException(HttpStatusCode.ServiceUnavailable); }
@@ -59,10 +78,17 @@ public sealed class BackendApi(IHttpClientFactory clients, IHttpContextAccessor 
         if (!response.IsSuccessStatusCode) throw new BackendException(response.StatusCode);
     }
 }
-public sealed class BackendException(HttpStatusCode status) : Exception("Backend request failed.")
+public sealed class BackendException(HttpStatusCode status, string? code = null) : Exception("Backend request failed.")
 {
     public HttpStatusCode Status { get; } = status;
-    public string UserMessage => Status switch
+    public string? Code { get; } = code;
+    public bool IsSubscriptionError => Code is "subscription_required" or "subscription_pending" or "subscription_unavailable";
+    public string UserMessage => Code switch
+    {
+        "subscription_required" => "اشتراک معتبر لازم است؛ فضای کاری فقط‌خواندنی است. مشاهده و دانلود اسناد قبلی و مدیریت اعضا همچنان در دسترس است. پرداخت و تمدید آنلاین هنوز فعال نیست.",
+        "subscription_pending" => "ثبت اشتراک هنوز تکمیل نشده است؛ عملیات جدید موقتاً متوقف است. کمی بعد دوباره بررسی کنید.",
+        "subscription_unavailable" => "وضعیت اشتراک قابل بررسی نیست؛ این خطا به‌معنای انقضا نیست. عملیات جدید موقتاً متوقف است، اما اسناد قبلی قابل مشاهده‌اند.",
+        _ => Status switch
     {
         HttpStatusCode.BadRequest => "اطلاعات ارسال‌شده معتبر نیست. نام، زبان‌ها و فیلدهای ضروری را بررسی کنید.",
         HttpStatusCode.Conflict => "اطلاعات تغییر کرده یا مورد تکراری است. صفحه را دوباره باز کنید و بررسی کنید.",
@@ -70,6 +96,7 @@ public sealed class BackendException(HttpStatusCode status) : Exception("Backend
         HttpStatusCode.NotFound => "مورد درخواستی در این فضای کاری پیدا نشد.",
         HttpStatusCode.Unauthorized => "نشست ورود پایان یافته؛ دوباره وارد شوید.",
         _ => "سرویس موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید."
+        }
     };
 }
 public sealed class ApiExceptionFilter : IAsyncExceptionFilter

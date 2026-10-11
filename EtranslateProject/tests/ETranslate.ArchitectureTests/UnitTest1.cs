@@ -5,6 +5,25 @@ namespace ETranslate.ArchitectureTests;
 public sealed class ServiceBoundaryTests
 {
     [Fact]
+    public void Business_mutation_route_groups_must_include_subscription_enforcement()
+    {
+        var root = FindRepositoryRoot();
+        var mutationFiles = 0;
+        foreach (var service in new[] { "TranslationWorkflow", "Documents", "Trust" })
+        {
+            var directory = Path.Combine(root.FullName, "src", "Services", service, $"ETranslate.{service}.Api", "Endpoints");
+            foreach (var file in Directory.GetFiles(directory, "*.cs"))
+            {
+                var source = File.ReadAllText(file);
+                if (!new[] { ".MapPost(", ".MapPut(", ".MapPatch(", ".MapDelete(" }.Any(source.Contains)) continue;
+                mutationFiles++;
+                Assert.Contains("group.AddEndpointFilter<SubscriptionWriteFilter>()", source);
+            }
+        }
+        Assert.True(mutationFiles >= 5);
+    }
+
+    [Fact]
     public void Services_DoNotReferenceOtherServiceProjectsDirectly()
     {
         var repositoryRoot = FindRepositoryRoot();

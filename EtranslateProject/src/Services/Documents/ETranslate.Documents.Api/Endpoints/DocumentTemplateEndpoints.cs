@@ -7,6 +7,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace ETranslate.Documents.Api.Endpoints;
+using ETranslate.SubscriptionAccess;
 
 public static partial class DocumentTemplateEndpoints
 {
@@ -14,6 +15,7 @@ public static partial class DocumentTemplateEndpoints
     {
         var group = endpoints.MapGroup("/api/v1/tenants/{tenantId:guid}/document-templates")
             .WithTags("Document Templates");
+        group.AddEndpointFilter<SubscriptionWriteFilter>();
 
         group.MapPost("/", CreateTemplateAsync);
         group.MapGet("/", GetTemplatesAsync);
