@@ -6,6 +6,8 @@ Date: 2026-10-12
 
 Updates ADR 0017's formerly unbounded Active state. This is not a payment-provider integration.
 
+Follow-up: [ADR 0019](0019-nonpayable-try-purchase-orders.md) adds nonpayable TRY drafts and nullable server price configuration, and changes catalog eligibility to the live Identity tenant type. The paid allocation/reconciliation boundary below remains unchanged.
+
 ## Decision
 
 Billing owns configurable plan profiles, paid access bounds and immutable allocation history. Default profiles are `independent-monthly` and `office-monthly`, matched to the corresponding tenant types. Codes, display names, enabled flags and calendar-month counts (1..12) are configured in Billing's `SubscriptionPlans:Plans`; changes require a service restart. No price, currency, tax, checkout, invoice or automatic debit is invented. An authenticated `GET .../subscription/plans` returns enabled profiles eligible for the recorded tenant type, with `purchaseEnabled=false`, `pricingConfigured=false` and UTC period policy. Profile availability is not payment availability.

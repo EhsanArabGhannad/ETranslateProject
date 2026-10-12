@@ -23,15 +23,15 @@ public static class SubscriptionEndpoints
     }
 
     private static async Task<IResult> GetPlansAsync(Guid tenantId, HttpContext context, SubscriptionAccessClient access,
-        BillingDbContext database, BillingPlanCatalog catalog, CancellationToken ct)
+        BillingPlanCatalog catalog, CancellationToken ct)
     {
         context.Response.Headers.CacheControl = "private, no-store";
-        var authorized = await access.CheckAsync(tenantId, context.Request.Headers.Authorization.ToString(), ct);
-        if (authorized != 200) return authorized == 503
-            ? Results.Problem(statusCode: 503, title: "subscription_access_service_unavailable") : Results.StatusCode(authorized);
-        var type = await database.Subscriptions.Where(s => s.TenantId == tenantId).Select(s => s.TenantType).SingleOrDefaultAsync(ct);
-        return Results.Ok(new { tenantId, tenantType = type, eligibilityKnown = type is "IndependentTranslator" or "TranslationOffice",
-            periodTimeZone = "UTC", purchaseEnabled = false, pricingConfigured = false,
+        var authorized = await access.GetActorAsync(tenantId, context.Request.Headers.Authorization.ToString(), ct);
+        if (authorized.Status != 200) return authorized.Status == 503
+            ? Results.Problem(statusCode: 503, title: "subscription_access_service_unavailable") : Results.StatusCode(authorized.Status);
+        var type = authorized.Actor!.TenantType;
+        return Results.Ok(new { tenantId, tenantType = type, eligibilityKnown = true, currency = "TRY",
+            periodTimeZone = "UTC", purchaseEnabled = false, pricingConfigured = catalog.Plans.Any(p => p.Enabled && p.TenantType == type && p.PriceTry.HasValue),
             plans = catalog.Plans.Where(p => p.Enabled && p.TenantType == type).ToArray() });
     }
 

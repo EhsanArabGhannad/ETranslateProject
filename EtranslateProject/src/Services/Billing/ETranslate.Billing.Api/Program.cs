@@ -5,6 +5,7 @@ using ETranslate.Billing.Api.Endpoints;
 using ETranslate.Billing.Api.Persistence;
 using ETranslate.Billing.Api.Workers;
 using ETranslate.Billing.Api.Subscriptions;
+using ETranslate.Billing.Api.Orders;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,6 +27,7 @@ builder.Services.AddDbContextFactory<BillingDbContext>(options =>
     options.UseSqlServer(billingConnectionString, sqlServer => sqlServer.EnableRetryOnFailure()), ServiceLifetime.Scoped);
 builder.Services.AddSingleton(new BillingPlanCatalog(builder.Configuration.GetSection("SubscriptionPlans").Get<BillingPlansOptions>()?.Plans ?? []));
 builder.Services.AddScoped<PaidPeriodApplicationService>();
+builder.Services.AddScoped<PurchaseOrderService>();
 
 builder.Services.AddOptions<SqlTransportOptions>()
     .Configure(options => options.ConnectionString = messagingConnectionString);
@@ -58,11 +60,18 @@ builder.Services.AddHostedService<TrialExpirationWorker>();
 
 var app = builder.Build();
 
-app.UseExceptionHandler();
+// Development minimal-API binding throws for malformed/unknown JSON. Preserve its
+// client-error status instead of converting a rejected request into a server error.
+app.UseExceptionHandler(new ExceptionHandlerOptions
+{
+    StatusCodeSelector = error => error is BadHttpRequestException badRequest
+        ? badRequest.StatusCode : StatusCodes.Status500InternalServerError
+});
 await app.ApplyDatabaseMigrationsAsync();
 
 app.MapGet("/", () => Results.Ok(new { service = "billing", status = "healthy" }));
 app.MapSubscriptionEndpoints();
+app.MapPurchaseOrderEndpoints();
 app.MapDefaultEndpoints();
 
 app.Run();

@@ -1,4 +1,5 @@
 using ETranslate.Billing.Api.Subscriptions;
+using ETranslate.Billing.Api.Orders;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,7 @@ public sealed class BillingDbContext(DbContextOptions<BillingDbContext> options)
 {
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
     public DbSet<PaidSubscriptionPeriod> PaidPeriods => Set<PaidSubscriptionPeriod>();
+    public DbSet<SubscriptionPurchaseOrder> PurchaseOrders => Set<SubscriptionPurchaseOrder>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,6 +40,21 @@ public sealed class BillingDbContext(DbContextOptions<BillingDbContext> options)
         });
 
         modelBuilder.AddInboxStateEntity(entity => entity.ToTable("inbox_state"));
+        modelBuilder.Entity<SubscriptionPurchaseOrder>(entity =>
+        {
+            entity.ToTable("purchase_orders"); entity.HasKey(o => o.Id);
+            entity.Property(o => o.PlanCode).HasMaxLength(80).IsRequired();
+            entity.Property(o => o.PlanName).HasMaxLength(200).IsRequired();
+            entity.Property(o => o.TenantType).HasMaxLength(30).IsRequired();
+            entity.Property(o => o.Currency).HasMaxLength(3).IsRequired();
+            entity.Property(o => o.Intent).HasMaxLength(20).IsRequired();
+            entity.Property(o => o.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(o => o.AmountTry).HasPrecision(18, 2);
+            entity.Property(o => o.Version).IsConcurrencyToken();
+            entity.HasIndex(o => new { o.TenantId, o.RequestId }).IsUnique();
+            entity.HasIndex(o => new { o.TenantId, o.CreatedAtUtc });
+            entity.HasOne<Subscription>().WithMany().HasForeignKey(o => o.SubscriptionId).OnDelete(DeleteBehavior.Restrict);
+        });
         modelBuilder.AddOutboxMessageEntity(entity => entity.ToTable("outbox_messages"));
         modelBuilder.AddOutboxStateEntity(entity => entity.ToTable("outbox_state"));
     }

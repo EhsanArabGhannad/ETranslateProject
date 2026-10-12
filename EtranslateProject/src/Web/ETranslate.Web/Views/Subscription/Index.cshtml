@@ -3,6 +3,7 @@
 <a class="back-link" asp-controller="Workspace" asp-action="Index" asp-route-tenantId="@Model.Tenant.Id">→ بازگشت به فضای کاری</a>
 <div class="page-heading"><div><span class="eyebrow">SUBSCRIPTION · READ ONLY</span><h1>وضعیت اشتراک</h1><p>@Model.Tenant.Name</p></div><span class="badge">@(Model.Tenant.Type == "TranslationOffice" ? "دارالترجمه" : "مترجم مستقل")</span></div>
 <section class="card" aria-label="اطلاعات اشتراک">
+@if (Model.Tenant.Role is "Owner" or "Administrator") { <p><a asp-controller="PurchaseOrders" asp-action="Index" asp-route-tenantId="@Model.Tenant.Id">پیش‌سفارش خرید یا تمدید — بدون پرداخت ←</a></p> }
 @if (Model.Error is not null) {
     <p class="notice" role="alert">@Model.Error</p>
 } else if (Model.Subscription is { } subscription) {
