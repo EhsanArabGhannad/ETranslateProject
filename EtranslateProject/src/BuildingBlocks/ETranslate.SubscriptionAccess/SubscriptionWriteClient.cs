@@ -46,7 +46,13 @@ public sealed class SubscriptionWriteClient(HttpClient http, TimeProvider clock)
         if (decision.CanWrite)
         {
             if (decision.Reason is not null) return SubscriptionWriteStatus.Unavailable;
-            if (decision.Status == "Active") return SubscriptionWriteStatus.Allowed;
+            if (decision.Status == "Active")
+            {
+                if (decision.PaidStartsAtUtc is not { } start || decision.PaidEndsAtUtc is not { } paidEnd ||
+                    start > decision.ObservedAtUtc || paidEnd <= decision.ObservedAtUtc || paidEnd <= start || now < start)
+                    return SubscriptionWriteStatus.Unavailable;
+                return now < paidEnd ? SubscriptionWriteStatus.Allowed : SubscriptionWriteStatus.Required;
+            }
             if (decision.Status != "Trialing" || decision.TrialEndsAtUtc is not { } end || end <= decision.ObservedAtUtc)
                 return SubscriptionWriteStatus.Unavailable;
             return end > now ? SubscriptionWriteStatus.Allowed : SubscriptionWriteStatus.Required;
@@ -55,7 +61,7 @@ public sealed class SubscriptionWriteClient(HttpClient http, TimeProvider clock)
             return SubscriptionWriteStatus.Pending;
         if (decision.Status is "Expired" or "PastDue" or "Canceled" && decision.Reason == "subscription_required")
         {
-            if (decision.Status == "Expired" && (decision.TrialEndsAtUtc is null || decision.TrialEndsAtUtc > decision.ObservedAtUtc))
+            if (decision.Status == "Expired" && !(decision.TrialEndsAtUtc <= decision.ObservedAtUtc || decision.PaidEndsAtUtc <= decision.ObservedAtUtc))
                 return SubscriptionWriteStatus.Unavailable;
             return SubscriptionWriteStatus.Required;
         }

@@ -4,6 +4,8 @@ Status: Accepted for the development slice
 
 Date: 2026-10-11
 
+Update: ADR 0018 now requires bounded paid dates for Active and adds internal idempotent allocation; statements about missing paid dates below describe the original slice.
+
 Supersedes ADR 0016's lack of enforcement, not its secure read-only overview.
 
 ## Decision

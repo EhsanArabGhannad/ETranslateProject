@@ -11,6 +11,14 @@
         <p class="notice">فضای کاری ایجاد شده، اما ثبت خودکار اشتراک هنوز تکمیل نشده است. این صفحه اشتراک جدید یا دورهٔ آزمایشی تازه ایجاد نمی‌کند؛ کمی بعد دوباره بررسی کنید.</p>
     } else {
         <p>طرح: @(subscription.PlanCode == "trial" ? "آزمایشی رایگان · ۳۰ روز" : subscription.PlanCode)</p>
+        @if (subscription.PaidStartsAtUtc is { } paidStart && subscription.PaidEndsAtUtc is { } paidEnd) {
+            <h3>@(paidStart > subscription.ObservedAtUtc ? "دورهٔ پولی پس از پایان آزمایشی شروع می‌شود" : "بازهٔ دسترسی پولی")</h3>
+            <p>@subscription.PaidPlanName · @subscription.PaidMonths ماه تقویمی ثبت‌شده</p>
+            <p>شروع دسترسی پولی: <time datetime="@paidStart.ToString("O")" dir="ltr">@SubscriptionView.IstanbulTime(paidStart)</time></p>
+            <p>پایان دسترسی پولی: <time datetime="@paidEnd.ToString("O")" dir="ltr">@SubscriptionView.IstanbulTime(paidEnd)</time></p>
+            <p>روزهای باقی‌ماندهٔ دسترسی پولی: @subscription.RemainingPaidDays روز</p>
+            <p class="muted">این اطلاعات وضعیت ثبت‌شدهٔ Billing است، نه رسید پرداخت یا امکان خرید. محاسبهٔ ماه تقویمی در UTC انجام می‌شود؛ خرید و تمدید آنلاین هنوز فعال نیستند.</p>
+        }
         @if (subscription.RemainingTrialDays is { } days) {
             <p>زمان باقی‌مانده: <strong>@days روز</strong></p>
             @if (subscription.Status == "Trialing") { <p class="muted">روز باقی‌مانده به بالا گرد می‌شود؛ کمتر از ۲۴ ساعت، ۱ روز نمایش داده می‌شود. زمان دقیق پایان را در ادامه ببینید.</p> }

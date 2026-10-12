@@ -23,7 +23,7 @@ public sealed class TenantCreatedConsumer(
 
         var startedAtUtc = context.Message.OccurredAtUtc;
         var occurredAtUtc = timeProvider.GetUtcNow();
-        var subscription = Subscription.StartTrial(tenantId, startedAtUtc);
+        var subscription = Subscription.StartTrial(tenantId, startedAtUtc, context.Message.TenantType);
         database.Subscriptions.Add(subscription);
 
         await context.Publish(

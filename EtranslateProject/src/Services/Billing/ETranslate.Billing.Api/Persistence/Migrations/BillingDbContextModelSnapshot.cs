@@ -23,13 +23,90 @@ namespace ETranslate.Billing.Api.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("ETranslate.Billing.Api.Subscriptions.PaidSubscriptionPeriod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("AppliedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("ConfirmedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("EndsAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Months")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PaymentReference")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<string>("PlanCode")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("PlanName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset>("StartsAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("SubscriptionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubscriptionId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("Provider", "PaymentReference")
+                        .IsUnique();
+
+                    b.ToTable("paid_periods", "billing");
+                });
+
             modelBuilder.Entity("ETranslate.Billing.Api.Subscriptions.Subscription", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset?>("BillingAnchorUtc")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("PaidEndsAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("PaidMonths")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PaidPlanName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTimeOffset?>("PaidStartsAtUtc")
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("PlanCode")
@@ -45,6 +122,10 @@ namespace ETranslate.Billing.Api.Persistence.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("TenantType")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<DateTimeOffset?>("TrialEndsAtUtc")
                         .HasColumnType("datetimeoffset");
 
@@ -53,6 +134,10 @@ namespace ETranslate.Billing.Api.Persistence.Migrations
 
                     b.Property<DateTimeOffset>("UpdatedAtUtc")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
@@ -230,6 +315,15 @@ namespace ETranslate.Billing.Api.Persistence.Migrations
                     b.HasIndex("Created");
 
                     b.ToTable("outbox_state", "billing");
+                });
+
+            modelBuilder.Entity("ETranslate.Billing.Api.Subscriptions.PaidSubscriptionPeriod", b =>
+                {
+                    b.HasOne("ETranslate.Billing.Api.Subscriptions.Subscription", null)
+                        .WithMany()
+                        .HasForeignKey("SubscriptionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>

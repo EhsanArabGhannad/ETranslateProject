@@ -25,7 +25,9 @@ $http = [Net.Http.HttpClient]::new(); $http.Timeout = [TimeSpan]::FromSeconds(45
 function Set-SubscriptionFixture([Guid]$Id, [int]$Status, [switch]$Fresh) {
     if ($Id -notin @([Guid]$tenantId, [Guid]$other.id) -or $Status -notin @(1,2,3,4,5)) { throw 'Invalid retained synthetic fixture' }
     $startDays = if ($Fresh) { -1 } else { -31 }; $endDays = if ($Fresh) { 29 } else { -1 }
-    $query = "DECLARE @fixtureNow datetimeoffset = SYSUTCDATETIME(); UPDATE billing.subscriptions SET Status=$Status, TrialStartedAtUtc=DATEADD(day,$startDays,@fixtureNow), TrialEndsAtUtc=DATEADD(day,$endDays,@fixtureNow) WHERE TenantId='$Id' AND PlanCode='trial'; IF @@ROWCOUNT<>1 THROW 51000, 'Expected one synthetic trial fixture', 1;"
+    $statusName = @{ 1='Trialing'; 2='Active'; 3='PastDue'; 4='Canceled'; 5='Expired' }[$Status]
+    $paidFixture = if ($Status -eq 2) { "PlanCode='office-monthly', PaidPlanName='Synthetic office monthly', PaidStartsAtUtc=@fixtureNow, BillingAnchorUtc=@fixtureNow, PaidEndsAtUtc=DATEADD(month,1,@fixtureNow), PaidMonths=1" } else { "PlanCode='trial', PaidPlanName=NULL, PaidStartsAtUtc=NULL, BillingAnchorUtc=NULL, PaidEndsAtUtc=NULL, PaidMonths=0" }
+    $query = "DECLARE @fixtureNow datetimeoffset = SYSUTCDATETIME(); UPDATE billing.subscriptions SET Status='$statusName', $paidFixture, Version=Version+1, TrialStartedAtUtc=DATEADD(day,$startDays,@fixtureNow), TrialEndsAtUtc=DATEADD(day,$endDays,@fixtureNow) WHERE TenantId='$Id' AND PlanCode IN ('trial','office-monthly'); IF @@ROWCOUNT<>1 THROW 51000, 'Expected one synthetic trial fixture', 1;"
     & sqlcmd -S '.\ESIMSSQLSERVER' -d ETranslateBilling -E -C -b -Q $query | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Local subscription fixture setup failed' }
 }

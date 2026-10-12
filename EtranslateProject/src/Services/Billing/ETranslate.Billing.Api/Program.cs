@@ -4,6 +4,7 @@ using ETranslate.Billing.Api.Authorization;
 using ETranslate.Billing.Api.Endpoints;
 using ETranslate.Billing.Api.Persistence;
 using ETranslate.Billing.Api.Workers;
+using ETranslate.Billing.Api.Subscriptions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,8 +22,10 @@ var messagingConnectionString = builder.Configuration.GetConnectionString("messa
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHttpClient<SubscriptionAccessClient>(client => client.BaseAddress = new Uri("https+http://identity-access"));
-builder.Services.AddDbContext<BillingDbContext>(options =>
-    options.UseSqlServer(billingConnectionString, sqlServer => sqlServer.EnableRetryOnFailure()));
+builder.Services.AddDbContextFactory<BillingDbContext>(options =>
+    options.UseSqlServer(billingConnectionString, sqlServer => sqlServer.EnableRetryOnFailure()), ServiceLifetime.Scoped);
+builder.Services.AddSingleton(new BillingPlanCatalog(builder.Configuration.GetSection("SubscriptionPlans").Get<BillingPlansOptions>()?.Plans ?? []));
+builder.Services.AddScoped<PaidPeriodApplicationService>();
 
 builder.Services.AddOptions<SqlTransportOptions>()
     .Configure(options => options.ConnectionString = messagingConnectionString);

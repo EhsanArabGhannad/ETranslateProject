@@ -25,8 +25,9 @@ public sealed class TrialExpirationWorker(
 
         var elapsedTrials = await database.Subscriptions
             .Where(subscription =>
-                subscription.Status == Subscriptions.SubscriptionStatus.Trialing &&
-                subscription.TrialEndsAtUtc <= now)
+                subscription.Status == Subscriptions.SubscriptionStatus.Trialing && subscription.TrialEndsAtUtc <= now ||
+                subscription.Status == Subscriptions.SubscriptionStatus.Active &&
+                (subscription.PaidEndsAtUtc == null || subscription.PaidEndsAtUtc <= now))
             .ToListAsync(cancellationToken);
 
         foreach (var subscription in elapsedTrials)
@@ -39,7 +40,12 @@ public sealed class TrialExpirationWorker(
             return;
         }
 
-        await database.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("Expired {TrialCount} elapsed trial subscriptions.", elapsedTrials.Count);
+        try { await database.SaveChangesAsync(cancellationToken); }
+        catch (DbUpdateConcurrencyException)
+        {
+            logger.LogInformation("Subscription expiry raced with a period update; effective reads remain authoritative.");
+            return;
+        }
+        logger.LogInformation("Expired {SubscriptionCount} elapsed subscriptions.", elapsedTrials.Count);
     }
 }

@@ -13,11 +13,26 @@ public static class SubscriptionEndpoints
             .WithTags("Subscriptions");
         endpoints.MapGet("/api/v1/tenants/{tenantId:guid}/subscription/write-access", GetWriteAccessAsync)
             .WithTags("Subscriptions");
+        endpoints.MapGet("/api/v1/tenants/{tenantId:guid}/subscription/plans", GetPlansAsync)
+            .WithTags("Subscriptions");
         // Compatibility alias, protected by the same live tenant membership check.
         endpoints.MapGet("/internal/v1/subscriptions/{tenantId:guid}", GetSubscriptionAsync)
             .WithTags("Internal Billing");
 
         return endpoints;
+    }
+
+    private static async Task<IResult> GetPlansAsync(Guid tenantId, HttpContext context, SubscriptionAccessClient access,
+        BillingDbContext database, BillingPlanCatalog catalog, CancellationToken ct)
+    {
+        context.Response.Headers.CacheControl = "private, no-store";
+        var authorized = await access.CheckAsync(tenantId, context.Request.Headers.Authorization.ToString(), ct);
+        if (authorized != 200) return authorized == 503
+            ? Results.Problem(statusCode: 503, title: "subscription_access_service_unavailable") : Results.StatusCode(authorized);
+        var type = await database.Subscriptions.Where(s => s.TenantId == tenantId).Select(s => s.TenantType).SingleOrDefaultAsync(ct);
+        return Results.Ok(new { tenantId, tenantType = type, eligibilityKnown = type is "IndependentTranslator" or "TranslationOffice",
+            periodTimeZone = "UTC", purchaseEnabled = false, pricingConfigured = false,
+            plans = catalog.Plans.Where(p => p.Enabled && p.TenantType == type).ToArray() });
     }
 
     private static async Task<IResult> GetWriteAccessAsync(Guid tenantId, HttpContext context,

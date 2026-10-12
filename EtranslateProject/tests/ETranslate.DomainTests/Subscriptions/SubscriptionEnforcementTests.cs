@@ -29,7 +29,7 @@ public sealed class SubscriptionEnforcementTests
     }
 
     [Theory]
-    [InlineData(SubscriptionStatus.Active, true)] [InlineData(SubscriptionStatus.PastDue, false)]
+    [InlineData(SubscriptionStatus.Active, false)] [InlineData(SubscriptionStatus.PastDue, false)]
     [InlineData(SubscriptionStatus.Canceled, false)] [InlineData(SubscriptionStatus.Expired, false)]
     public void Only_active_or_valid_trial_can_write(SubscriptionStatus status, bool allowed)
     {
