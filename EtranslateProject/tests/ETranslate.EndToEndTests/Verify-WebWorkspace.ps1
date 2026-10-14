@@ -83,7 +83,9 @@ try {
     $bearer = @{ Authorization = "Bearer $($login.accessToken)" }
     Await-SubscriptionProvisioning $tenantId
     $page = Web GET "/Workspace?tenantId=$tenantId" 200
-    $csrf = Csrf $page.Body
+    Assert-Check ($page.Body -notmatch 'id="template-name"|class="logo-form"') 'Workspace no longer embeds template management forms'
+    $templatesPage = Web GET "/Settings/Templates?tenantId=$tenantId" 200
+    $csrf = Csrf $templatesPage.Body
     Web POST '/Workspace/CreateTemplate' 302 (Fields @{ tenantId = $tenantId; name = 'Web A4'; header = 'Office letterhead'; footer = 'Office footer'; starterText = 'Initial translation'; watermark = 'DRAFT'; __RequestVerificationToken = $csrf }) | Out-Null
     $templatesPath = "$DocumentsUrl/api/v1/tenants/$tenantId/document-templates"
     $templates = @(Api GET $templatesPath $null 200)

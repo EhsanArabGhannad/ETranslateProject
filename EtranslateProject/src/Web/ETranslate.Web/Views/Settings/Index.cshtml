@@ -1,0 +1,10 @@
+@model SettingsPageView
+@{ ViewData["Title"] = "تنظیمات"; }
+<div class="page-heading"><div><span class="eyebrow">WORKSPACE SETTINGS</span><h1>تنظیمات</h1><p class="muted">@(Model.Tenant?.Name ?? "ابتدا یک فضای کاری بسازید")</p></div></div>
+@if (Model.Tenants.Count > 0) {
+    <nav class="tenant-tabs" aria-label="فضاهای کاری">@foreach (var tenant in Model.Tenants) { <a class="@(tenant.Id == Model.Tenant?.Id ? "selected" : "")" asp-action="Index" asp-route-tenantId="@tenant.Id">@tenant.Name</a> }</nav>
+}
+@if (Model.Tenant is not null) {
+    <section class="card settings-card"><h2>قالب‌ها</h2><p>قالب‌های همین فضای کاری، سربرگ، لوگو، پابرگ و تنظیمات صفحه را مدیریت کنید.</p><a class="settings-link" asp-action="Templates" asp-route-tenantId="@Model.Tenant.Id">باز کردن مدیریت قالب‌ها ←</a><p class="muted">انتخاب قالب برای یک سند، همچنان در ویرایشگر همان پرونده انجام می‌شود.</p></section>
+}
+else { <section class="card empty"><h2>هنوز فضای کاری ندارید</h2><a asp-controller="Workspace" asp-action="Index">ساخت فضای کاری</a></section> }

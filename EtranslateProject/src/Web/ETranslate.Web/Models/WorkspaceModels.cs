@@ -46,11 +46,11 @@ public sealed class WorkspaceView
     public List<TenantView> Tenants { get; set; } = [];
     public TenantView? Tenant { get; set; }
     public List<JobView> Jobs { get; set; } = [];
-    public List<TemplateView> Templates { get; set; } = [];
     public bool AssignedToMe { get; set; }
 }
 public sealed class EditorView
 {
+    public TenantView? Tenant { get; set; }
     public SubscriptionWriteStatus WriteStatus { get; set; } = SubscriptionWriteStatus.Unavailable;
     public bool CanWrite => WriteStatus == SubscriptionWriteStatus.Allowed;
     public Guid TenantId { get; set; }

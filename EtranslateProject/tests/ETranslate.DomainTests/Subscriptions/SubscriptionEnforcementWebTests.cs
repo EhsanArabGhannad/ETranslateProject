@@ -70,6 +70,7 @@ public sealed class SubscriptionEnforcementWebTests
             object value = path switch
             {
                 "/api/v1/tenants" => new[] { new TenantView(Tenant, "Fixture office", "TranslationOffice", "Owner") },
+                var p when p == $"/api/v1/tenants/{Tenant}" => new TenantView(Tenant, "Fixture office", "TranslationOffice", "Owner"),
                 var p when p.EndsWith("/subscription/write-access") => Decision(write),
                 var p when p.EndsWith("/translation-jobs") => new[] { JobView() },
                 var p when p.EndsWith($"/translation-jobs/{Job}") => JobView(),

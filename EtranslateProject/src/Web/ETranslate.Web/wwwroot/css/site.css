@@ -25,6 +25,12 @@ h2 { font-size: 20px; margin-bottom: 12px; } h3 { font-size: 15px; margin-bottom
 .brand-sub { display: block; font-size: 9px; font-weight: 400; letter-spacing: 1.8px; margin-top: 6px; }
 .topbar nav { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
 .account { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.app-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px max(4vw, 20px); background: white; border-bottom: 1px solid var(--border); }
+.app-navigation a { display: inline-block; padding: 7px 16px; border-radius: 8px; color: var(--ink); }
+.app-navigation a.current { color: white; background: var(--accent); font-weight: bold; }
+.navigation-tenant { margin-inline-start: auto; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.settings-card { max-width: 760px; }
+.settings-link { display: inline-block; margin-bottom: 12px; font-weight: bold; }
 .shell { max-width: 1440px; margin: auto; padding: 40px max(4vw, 20px); min-height: 75vh; }
 .page-heading, .section-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .page-heading { margin-bottom: 25px; }

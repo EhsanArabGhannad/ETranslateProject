@@ -4,8 +4,6 @@
 @if (Model.Tenants.Count > 0) {
     <nav class="tenant-tabs" aria-label="فضاهای کاری">@foreach (var tenant in Model.Tenants) { <a class="@(tenant.Id == Model.Tenant?.Id ? "selected" : "")" asp-action="Index" asp-route-tenantId="@tenant.Id" asp-route-assignedToMe="@Model.AssignedToMe">@tenant.Name</a> }</nav>
 }
-@if (Model.Tenant is { Role: "Owner" or "Administrator" } activeTenant) { <p><a asp-controller="Team" asp-action="Index" asp-route-tenantId="@activeTenant.Id">مدیریت اعضا و نقش‌های این فضای کاری ←</a></p> }
-@if (Model.Tenant is { } subscriptionTenant) { <p><a asp-controller="Subscription" asp-action="Index" asp-route-tenantId="@subscriptionTenant.Id">وضعیت اشتراک و دورهٔ آزمایشی ←</a></p> }
 @if (Model.Tenant is not null) { <partial name="_SubscriptionWriteNotice" model="new SubscriptionWriteNotice(Model.Tenant.Id, Model.WriteStatus)" /> }
 <div class="workspace-grid">
 <section class="card">
@@ -31,17 +29,4 @@
 } else { <h2>فضای کاری اختصاصی</h2><p class="muted">هر فضا اعضا، پرونده‌ها و قالب‌های مستقل دارد.</p> }
 </fieldset></aside>
 </div>
-@if (Model.Tenant is not null) {
-<section class="card templates-section"><div class="section-heading"><div><span class="eyebrow">DOCUMENT IDENTITY</span><h2>قالب‌های اختصاصی</h2></div><span class="muted">سربرگ، لوگو، پابرگ و واترمارک</span></div>
-<fieldset class="subscription-lock" disabled="@(!Model.CanWrite)"><div class="workspace-grid"><div>
-@foreach (var template in Model.Templates) {
-    <article class="template-row"><h3>@template.Name <span class="badge">نسخه @template.CurrentRevision · @(template.IsActive ? "فعال" : "بایگانی")</span></h3>
-        @if (template.IsActive) { <form asp-action="AddLogo" method="post" enctype="multipart/form-data" class="logo-form"><input type="hidden" name="tenantId" value="@Model.Tenant.Id" /><input type="hidden" name="templateId" value="@template.Id" /><label for="logo-@template.Id">افزودن لوگو به سربرگ</label><input id="logo-@template.Id" name="file" type="file" accept="image/png,image/jpeg" required /><button class="secondary" type="submit">ثبت نسخه‌ی جدید با لوگو</button></form> }
-    </article>
-}
-@if (Model.Templates.Count == 0) { <p class="empty">قالبی ندارید؛ اولین سربرگ را بسازید.</p> }
-<p class="muted">تغییر قالب، نسخه‌ی تثبیت‌شده در اسناد قبلی را تغییر نمی‌دهد. لوگوی جدید به سربرگ اضافه می‌شود.</p></div>
-<form asp-action="CreateTemplate" method="post"><input type="hidden" name="tenantId" value="@Model.Tenant.Id" /><h3>قالب جدید</h3><label for="template-name">نام قالب</label><input id="template-name" name="name" maxlength="200" required /><label for="header-text">متن سربرگ</label><textarea id="header-text" name="header" rows="2" maxlength="10000"></textarea><label for="starter">متن اولیه‌ی ترجمه</label><textarea id="starter" name="starterText" rows="3" maxlength="50000"></textarea><label for="footer-text">متن پابرگ</label><input id="footer-text" name="footer" maxlength="2000" /><label for="watermark">واترمارک (اختیاری)</label><input id="watermark" name="watermark" maxlength="100" /><details class="page-layout-fields"><summary>تنظیمات صفحه</summary><div class="two-fields"><div><label for="page-size">اندازه‌ی کاغذ</label><select id="page-size" name="pageSize"><option>A4</option><option>A5</option><option>Letter</option><option>Legal</option></select></div><div><label for="page-orientation">جهت صفحه</label><select id="page-orientation" name="orientation"><option value="Portrait">عمودی</option><option value="Landscape">افقی</option></select></div></div><div class="two-fields"><div><label for="margin-top">حاشیه‌ی بالا (میلی‌متر)</label><input id="margin-top" name="marginTop" type="number" min="5" max="50" step="0.5" value="25" required /></div><div><label for="margin-right">حاشیه‌ی راست (میلی‌متر)</label><input id="margin-right" name="marginRight" type="number" min="5" max="50" step="0.5" value="20" required /></div><div><label for="margin-bottom">حاشیه‌ی پایین (میلی‌متر)</label><input id="margin-bottom" name="marginBottom" type="number" min="5" max="50" step="0.5" value="20" required /></div><div><label for="margin-left">حاشیه‌ی چپ (میلی‌متر)</label><input id="margin-left" name="marginLeft" type="number" min="5" max="50" step="0.5" value="20" required /></div></div><p class="muted">فضای سربرگ، پابرگ و شماره‌ی صفحه جداگانه رزرو می‌شود. تنظیمات همراه نسخه‌ی قالب تثبیت می‌شوند.</p></details><button type="submit">ساخت قالب</button></form>
-</div></fieldset></section>
-}
 <details class="card" open="@(Model.Tenant is null)"><summary>ساخت فضای کاری جدید</summary><form asp-action="CreateTenant" method="post" class="tenant-form"><div><label for="tenant-name">نام فضای کاری</label><input id="tenant-name" name="name" maxlength="200" required /></div><div><label for="slug">شناسه‌ی انگلیسی یکتا</label><input id="slug" name="slug" dir="ltr" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="100" required placeholder="my-office" /></div><div><label for="type">نوع فعالیت</label><select id="type" name="type"><option value="IndependentTranslator">مترجم مستقل</option><option value="TranslationOffice">دارالترجمه</option></select></div><button type="submit">ساخت فضای کاری</button></form><p class="muted">اشتراک آزمایشی ۳۰روزه؛ پرداخت آنلاین هنوز در این مرحله پیاده‌سازی نشده است.</p></details>

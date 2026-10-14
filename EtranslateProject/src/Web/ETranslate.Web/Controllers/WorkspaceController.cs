@@ -37,8 +37,7 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
             Tenants = tenants, Tenant = tenant,
             WriteStatus = tenant is null ? SubscriptionWriteStatus.Unavailable : await WriteStatusAsync(tenant.Id),
             AssignedToMe = assignedToMe,
-            Jobs = tenant is null ? [] : await api.ReadAsync<List<JobView>>("translation-workflow", $"{JobsPath(tenant.Id)}?take=100&assignedToMe={assignedToMe.ToString().ToLowerInvariant()}"),
-            Templates = tenant is null ? [] : await api.ReadAsync<List<TemplateView>>("documents", TemplatesPath(tenant.Id))
+            Jobs = tenant is null ? [] : await api.ReadAsync<List<JobView>>("translation-workflow", $"{JobsPath(tenant.Id)}?take=100&assignedToMe={assignedToMe.ToString().ToLowerInvariant()}")
         });
     }
 
@@ -79,10 +78,12 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
         {
             TenantId = tenantId,
             Job = await api.ReadAsync<JobView>("translation-workflow", $"{JobsPath(tenantId)}/{jobId}"),
+            Tenant = await api.ReadAsync<TenantView>("identity-access", TenantPath(tenantId)),
             Document = await api.FindAsync<DocumentView>("documents", DocumentsPath(tenantId, jobId)),
             Templates = await api.ReadAsync<List<TemplateView>>("documents", TemplatesPath(tenantId)),
             WriteStatus = await WriteStatusAsync(tenantId)
         };
+        if (model.Tenant?.Id != tenantId) throw new BackendException(HttpStatusCode.BadGateway);
         if (model.Document is { } document)
         {
             model.ExpectedRevision = document.CurrentDraftRevision;
@@ -185,7 +186,7 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
     {
         var layout = new DocumentPageLayout(pageSize, orientation, marginTop, marginRight, marginBottom, marginLeft);
         if (!ModelState.IsValid || !layout.IsValid)
-        { TempData["Notice"] = "اندازه، جهت یا حاشیه‌های صفحه معتبر نیست؛ حاشیه‌ها باید بین ۵ و ۵۰ میلی‌متر باشند."; return RedirectToAction(nameof(Index), new { tenantId }); }
+        { TempData["Notice"] = "اندازه، جهت یا حاشیه‌های صفحه معتبر نیست؛ حاشیه‌ها باید بین ۵ و ۵۰ میلی‌متر باشند."; return TemplateSettings(tenantId); }
         try
         {
             await api.PostAsync<TemplateDetail>("documents", TemplatesPath(tenantId), new
@@ -201,7 +202,7 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
         }
         catch (BackendException error) when (error.Status is HttpStatusCode.BadRequest or HttpStatusCode.Conflict)
         { TempData["Notice"] = error.UserMessage; }
-        return RedirectToAction(nameof(Index), new { tenantId });
+        return TemplateSettings(tenantId);
     }
 
     [HttpPost, RequestSizeLimit(5_500_000)]
@@ -209,12 +210,12 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
     {
         if (file is null || file.Length is <= 0 or > 5 * 1024 * 1024 ||
             file.ContentType is not ("image/png" or "image/jpeg"))
-        { TempData["Notice"] = "لوگو باید PNG یا JPEG و حداکثر ۵ مگابایت باشد."; return RedirectToAction(nameof(Index), new { tenantId }); }
+        { TempData["Notice"] = "لوگو باید PNG یا JPEG و حداکثر ۵ مگابایت باشد."; return TemplateSettings(tenantId); }
         var path = $"{TemplatesPath(tenantId)}/{templateId}";
         var template = await api.ReadAsync<TemplateDetail>("documents", path);
         var header = JsonNode.Parse(template.Revision.HeaderContentJson ?? DocumentText.Empty) as JsonObject;
         if (header?["content"] is not JsonArray)
-        { TempData["Notice"] = "ساختار سربرگ این قالب در رابط ساده پشتیبانی نمی‌شود؛ از API استفاده کنید."; return RedirectToAction(nameof(Index), new { tenantId }); }
+        { TempData["Notice"] = "ساختار سربرگ این قالب در رابط ساده پشتیبانی نمی‌شود؛ از API استفاده کنید."; return TemplateSettings(tenantId); }
         try
         {
             using var form = new MultipartFormDataContent();
@@ -236,8 +237,11 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
         }
         catch (BackendException error) when (error.Status is HttpStatusCode.BadRequest or HttpStatusCode.Conflict)
         { TempData["Notice"] = $"{error.UserMessage} اگر تصویر بارگذاری شده باشد، در دارایی‌های قالب باقی می‌ماند."; }
-        return RedirectToAction(nameof(Index), new { tenantId });
+        return TemplateSettings(tenantId);
     }
+
+    private RedirectToActionResult TemplateSettings(Guid tenantId)
+        => RedirectToAction(nameof(SettingsController.Templates), "Settings", new { tenantId });
 
     [HttpGet] public async Task<IActionResult> Asset(Guid tenantId, Guid templateId, Guid assetId)
     {

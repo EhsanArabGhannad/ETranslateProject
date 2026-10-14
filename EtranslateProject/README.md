@@ -288,6 +288,10 @@ The default development blob provider stores content under the current user's lo
 
 ### Web translator workspace
 
+The [template-management and UI-language roadmap (Persian)](docs/roadmap/template-management.fa.md) tracks the next slices. Turkish (`tr-TR`) UI with an LTR application shell is now planned as step 6, before final regression testing; it is not implemented yet. Translation content retains its independent language/direction and historical data is not translated automatically.
+
+Authenticated pages now share a tenant-scoped menu: jobs, My tasks, manager team access, subscription and settings. Template management forms have moved to **تنظیمات ← قالب‌ها**, at `/Settings/Templates?tenantId=...`; Workspace no longer loads those lists/forms. Existing create/logo POST routes remain compatible and redirect back to scoped template settings. Editor template selection/pinning remains unchanged and links to settings in a separate tab. This step adds no unified edit/logo form, new layout modes, footer policies or late template attachment. No migration is required. See [ADR 0021](docs/adr/0021-scoped-navigation-and-template-settings.md) and the [Persian navigation test guide](docs/testing/navigation-settings.fa.md). Run `./tests/ETranslate.EndToEndTests/Verify-Navigation.ps1` locally for HTTP and desktop/mobile Chromium checks.
+
 Start the AppHost, then open [the local Web UI](https://localhost:7049). The interface currently uses Persian labels with automatic document-text direction; Turkish/localized UI is future work.
 
 1. Register or log in with an Identity Access account.
