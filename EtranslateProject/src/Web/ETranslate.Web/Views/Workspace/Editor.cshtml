@@ -52,7 +52,10 @@ else if (Model.Document.CurrentDraftRevision == 0) {
     <button type="button" data-command="bulletList" aria-pressed="false">فهرست نقطه‌ای</button><button type="button" data-command="orderedList" aria-pressed="false">فهرست شماره‌دار</button>
     <button type="button" data-command="rtl" aria-label="جهت راست به چپ">راست‌به‌چپ</button><button type="button" data-command="ltr" aria-label="جهت چپ به راست">چپ‌به‌راست</button><button type="button" data-command="auto">جهت خودکار</button>
     <button type="button" data-command="undo">واگرد</button><button type="button" data-command="redo">ازنو</button>
-</div><div id="rich-text"></div><p class="muted">قالب‌بندی به متن انتخاب‌شده یا پاراگراف جاری اعمال می‌شود. واردکردن فایل Word و حفظ کامل قالب‌بندی آن پشتیبانی نمی‌شود.</p></div>
+    <button type="button" data-command="insertTable">جدول ۳×۳ با سطر عنوان</button>
+    <button type="button" data-command="addRowAfter">سطر بعد</button><button type="button" data-command="addColumnAfter">ستون بعد</button>
+    <button type="button" data-command="deleteRow">حذف سطر</button><button type="button" data-command="deleteColumn">حذف ستون</button><button type="button" data-command="deleteTable">حذف جدول</button>
+</div><div id="rich-text"></div><p class="muted">قالب‌بندی به متن انتخاب‌شده یا پاراگراف جاری اعمال می‌شود. جدول ساده تا ۵۰ سطر و ۱۲ ستون پشتیبانی می‌شود؛ ادغام سلول، عرض دستی و ورود کامل فایل Word پشتیبانی نمی‌شوند. برای تغییر جدول، داخل یکی از سلول‌ها کلیک کنید.</p></div>
 <p id="editor-format-status" class="muted" role="status"></p>
 @if (plain is not null) { <label for="translation-text">هر خط یک پاراگراف</label><textarea id="translation-text" name="plainText" rows="18" dir="auto" readonly="@(!editable)" maxlength="1000000">@plain</textarea><textarea id="document-json" name="editorContentJson" hidden>@Model.EditorContentJson</textarea> }
 else { <p class="notice" id="legacy-format-notice">ساختار اصلی سند حفظ شده است. اگر ویرایشگر غنی از این ساختار پشتیبانی نکند، ویرایش پیشرفته‌ی JSON در دسترس می‌ماند.</p><label for="document-json">ساختار سند (ویرایش پیشرفته)</label><textarea id="document-json" name="editorContentJson" rows="18" dir="ltr" readonly="@(!editable)" maxlength="2000000">@Model.EditorContentJson</textarea> }

@@ -1,5 +1,7 @@
 # 0010 - Immutable unsigned draft PDFs
 
+Follow-up: [ADR 0020](0020-simple-translation-tables.md) adds bounded body tables and a v8 renderer. Repeating body-column headings are separate from the vector letterhead overlay below; archived PDFs remain unchanged.
+
 Status: Accepted for the development slice.
 
 ## Decision

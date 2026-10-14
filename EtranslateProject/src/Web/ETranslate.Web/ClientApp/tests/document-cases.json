@@ -7,7 +7,7 @@
   { "name": "quotation", "valid": true, "document": { "type": "doc", "content": [{ "type": "blockquote", "content": [{ "type": "paragraph" }] }] } },
   { "name": "arbitrary URL image", "valid": false, "document": { "type": "doc", "content": [{ "type": "image", "attrs": { "src": "https://example.org/tracker.png" } }] } },
   { "name": "unknown root metadata", "valid": false, "document": { "type": "doc", "custom": true, "content": [] } },
-  { "name": "table not yet supported", "valid": false, "document": { "type": "doc", "content": [{ "type": "table", "content": [] }] } },
+  { "name": "empty table rejected", "valid": false, "document": { "type": "doc", "content": [{ "type": "table", "content": [] }] } },
   { "name": "style cannot be discarded", "valid": false, "document": { "type": "doc", "content": [{ "type": "paragraph", "attrs": { "textAlign": "center" } }] } },
   { "name": "link mark unsupported", "valid": false, "document": { "type": "doc", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "link", "marks": [{ "type": "link", "attrs": { "href": "javascript:alert(1)" } }] }] }] } },
   { "name": "invalid direction", "valid": false, "document": { "type": "doc", "attrs": { "dir": "sideways" }, "content": [] } },

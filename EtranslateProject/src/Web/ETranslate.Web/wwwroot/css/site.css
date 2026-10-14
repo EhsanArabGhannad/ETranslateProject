@@ -86,6 +86,11 @@ summary { cursor: pointer; font-weight: 600; }
 #rich-text .ProseMirror p { margin-bottom: 12px; min-height: 1.9em; }
 #rich-text .ProseMirror img { max-width: 180px; max-height: 110px; object-fit: contain; }
 #rich-text .ProseMirror h2 { font-size: 23px; }
+#rich-text table, .paper table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 14px; }
+#rich-text th, #rich-text td, .paper th, .paper td { border: 1px solid #87969c; padding: 8px; vertical-align: top; text-align: start; overflow-wrap: anywhere; position: relative; }
+#rich-text th, .paper th { background: #edf1f3; font-weight: bold; }
+#rich-text td p, #rich-text th p, .paper td p, .paper th p { margin-bottom: 4px; }
+#rich-text .selectedCell { background: #d9eee4; }
 .ProseMirror-selectednode { outline: 2px solid #84b8a5; }
 .ProseMirror-hideselection *::selection { background: transparent; }
 .ProseMirror-gapcursor { display: none; position: absolute; pointer-events: none; }

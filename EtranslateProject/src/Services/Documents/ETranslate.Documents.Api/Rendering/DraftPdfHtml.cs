@@ -41,6 +41,10 @@ public static class DraftPdfHtml
             h1 {font-size:20pt;} h2 {font-size:17pt;} h3 {font-size:15pt;} h4,h5,h6 {font-size:12pt;}
             ul,ol {padding-inline-start:8mm; margin:0 0 4mm;} li>p {margin-bottom:1mm;}
             blockquote {margin:3mm 0; padding-inline-start:4mm; border-inline-start:1mm solid #bbc4c9;}
+            table {width:100%; table-layout:fixed; border-collapse:collapse; margin:0 0 4mm;}
+            thead {display:table-header-group;} tbody {display:table-row-group;}
+            tr {break-inside:avoid;} th,td {border:.25mm solid #87969c; padding:2mm; vertical-align:top; text-align:start; overflow-wrap:anywhere;}
+            th {background:#edf1f3; font-weight:700;} th p,td p {margin-bottom:1mm;}
             img {display:block; max-width:40mm; max-height:20mm; width:auto; height:auto; object-fit:contain; break-inside:avoid;}
             .letterhead,.letterfoot {width:{{Number(width)}}mm; font-size:9pt; line-height:1.5;}
             .letterhead {position:fixed; top:0; padding-bottom:3mm; border-bottom:.2mm solid #bcc6ca;}
@@ -96,6 +100,16 @@ public static class DraftPdfHtml
         if (type == "hardBreak") { html.Append("<br>"); return; }
         node.TryGetProperty("attrs", out var attrs);
         var direction = attrs.ValueKind == JsonValueKind.Object && attrs.TryGetProperty("dir", out var dir) ? dir.GetString() : "auto";
+        if (type == "table")
+        {
+            var rows = node.GetProperty("content").EnumerateArray().ToArray();
+            var hasHeader = rows[0].GetProperty("content").EnumerateArray().All(cell => cell.GetProperty("type").GetString() == "tableHeader");
+            html.Append($"<table dir=\"{direction}\">");
+            if (hasHeader) { html.Append("<thead>"); Render(rows[0], html, images); html.Append("</thead>"); }
+            html.Append("<tbody>");
+            foreach (var row in rows.Skip(hasHeader ? 1 : 0)) Render(row, html, images);
+            html.Append("</tbody></table>"); return;
+        }
         if (type == "image")
         {
             var id = attrs.GetProperty("assetId").GetGuid();
@@ -107,7 +121,8 @@ public static class DraftPdfHtml
         var tagName = type switch
         {
             "paragraph" => "p", "heading" => $"h{attrs.GetProperty("level").GetInt32()}",
-            "bulletList" => "ul", "orderedList" => "ol", "listItem" => "li", "blockquote" => "blockquote", _ => "div"
+            "bulletList" => "ul", "orderedList" => "ol", "listItem" => "li", "blockquote" => "blockquote",
+            "tableRow" => "tr", "tableCell" => "td", "tableHeader" => "th", _ => "div"
         };
         html.Append($"<{tagName} dir=\"{direction}\"");
         if (type == "orderedList" && attrs.ValueKind == JsonValueKind.Object)

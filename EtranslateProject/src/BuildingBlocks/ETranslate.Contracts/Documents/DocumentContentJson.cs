@@ -29,7 +29,7 @@ public static class DocumentContentJson
             !node.TryGetProperty("type", out var kind) || kind.ValueKind != JsonValueKind.String) return false;
         var type = kind.GetString()!;
         if (type is not ("doc" or "header" or "footer" or "paragraph" or "heading" or "text" or "hardBreak" or "image" or
-            "bulletList" or "orderedList" or "listItem" or "blockquote")) return false;
+            "bulletList" or "orderedList" or "listItem" or "blockquote" or "table" or "tableRow" or "tableCell" or "tableHeader")) return false;
         if (parent is null ? type != rootType : !CanContain(parent, type)) return false;
         var seen = new HashSet<string>();
         foreach (var field in node.EnumerateObject())
@@ -51,16 +51,27 @@ public static class DocumentContentJson
         if (type == "hardBreak") return true;
         if (type == "heading" && (!node.TryGetProperty("attrs", out var headingAttrs) || !headingAttrs.TryGetProperty("level", out _))) return false;
         if (!node.TryGetProperty("content", out var children)) return type == "paragraph" || type == "heading";
-        if (type is "bulletList" or "orderedList" or "listItem" or "blockquote" && children.GetArrayLength() == 0) return false;
+        if (type is "bulletList" or "orderedList" or "listItem" or "blockquote" or "table" or "tableRow" or "tableCell" or "tableHeader" && children.GetArrayLength() == 0) return false;
         if (type == "listItem" && (!children[0].TryGetProperty("type", out var first) || first.GetString() != "paragraph")) return false;
         foreach (var child in children.EnumerateArray())
             if (!Validate(child, type, depth + 1, ref remaining, rootType)) return false;
+        if (type == "table")
+        {
+            if (children.GetArrayLength() > 50) return false;
+            var columns = children[0].GetProperty("content").GetArrayLength();
+            if (columns is < 1 or > 12 || children.EnumerateArray().Any(row => row.GetProperty("content").GetArrayLength() != columns)) return false;
+        }
+        if (type == "tableRow" && children.GetArrayLength() > 12) return false;
         return true;
     }
     private static bool CanContain(string parent, string child) => parent switch
     {
         "paragraph" or "heading" => child is "text" or "hardBreak",
         "bulletList" or "orderedList" => child == "listItem",
+        "table" => child == "tableRow",
+        "tableRow" => child is "tableCell" or "tableHeader",
+        "tableCell" or "tableHeader" => child is "paragraph" or "heading" or "bulletList" or "orderedList" or "blockquote",
+        "doc" when child == "table" => true,
         "doc" or "header" or "footer" or "listItem" or "blockquote" => child is "paragraph" or "heading" or "bulletList" or "orderedList" or "image" or "blockquote",
         _ => false
     };
@@ -78,6 +89,11 @@ public static class DocumentContentJson
                 field.Value.ValueKind == JsonValueKind.String && field.Value.GetString() is "1" or "a" or "A" or "i" or "I")) continue;
             if (type == "image" && field.Name == "assetId" && field.Value.ValueKind == JsonValueKind.String &&
                 Guid.TryParseExact(field.Value.GetString(), "D", out _)) continue;
+            if (type is "tableCell" or "tableHeader")
+            {
+                if (field.Name is "colspan" or "rowspan" && field.Value.ValueKind == JsonValueKind.Number && field.Value.TryGetInt32(out var span) && span == 1) continue;
+                if (field.Name is "colwidth" or "align" && field.Value.ValueKind == JsonValueKind.Null) continue;
+            }
             return false;
         }
         return true;

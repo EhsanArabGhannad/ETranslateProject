@@ -40,6 +40,11 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
                         HeaderMm: document.querySelector('.letterhead').getBoundingClientRect().height * 25.4 / 96,
                         FooterMm: document.querySelector('.letterfoot').getBoundingClientRect().height * 25.4 / 96,
                         BodyMm: document.querySelector('main').getBoundingClientRect().height * 25.4 / 96,
+                        MaximumTableRowMm: Math.max(0, ...[...document.querySelectorAll('main table')].map(table => {
+                            const header = table.tHead?.getBoundingClientRect().height ?? 0;
+                            const row = Math.max(0, ...[...table.querySelectorAll('tbody tr')].map(row => row.getBoundingClientRect().height));
+                            return (header + row) * 25.4 / 96;
+                        })),
                         OversizedImage: [...document.images].some(image => image.naturalWidth * image.naturalHeight > 16000000)
                     };
                 }
@@ -54,6 +59,8 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
             var bodyHeight = layout.DimensionsMm.Height - layout.Top - layout.Bottom - headerReserve - footerReserve - 8;
             if (bodyHeight < 60 || metrics.BodyMm / bodyHeight > 50)
                 throw new PdfRenderValidationException("Page layout leaves too little space or the document exceeds the draft PDF length limit.");
+            if (metrics.MaximumTableRowMm > bodyHeight)
+                throw new PdfRenderValidationException("A table row with its repeated heading is taller than the printable page; shorten its cells before generating a PDF.");
             // Browser fragmentation is used only for body text, never for repeating letterhead/footer.
             await page.EvaluateAsync<bool>("""
                 () => {
@@ -111,7 +118,7 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
         catch (PlaywrightException error) { throw new PdfRendererUnavailableException(error); }
         finally { _slot.Release(); }
     }
-    private sealed record PrintMetrics(decimal HeaderMm, decimal FooterMm, decimal BodyMm, bool OversizedImage);
+    private sealed record PrintMetrics(decimal HeaderMm, decimal FooterMm, decimal BodyMm, decimal MaximumTableRowMm, bool OversizedImage);
     private static byte[] ApplyLetterhead(byte[] body, byte[] letterhead, CancellationToken token)
     {
         using var bodyStream = new MemoryStream(body, writable:false);

@@ -1,5 +1,7 @@
-import { Editor, Node } from '@tiptap/core';
+import { Editor, Extension, Node } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+import { TableKit } from '@tiptap/extension-table';
+import { Plugin } from '@tiptap/pm/state';
 import { guid, isRichDocument, normalizeEmptyText } from './document-schema.js';
 import { assetUrl } from './preview.js';
 
@@ -28,10 +30,21 @@ export function startRichEditor(workspace, onChanged, preview) {
             }
         });
         const editable = workspace.dataset.editable === 'true';
+        const PreservationPolicy = Extension.create({
+            name: 'preservationPolicy',
+            addProseMirrorPlugins() {
+                return [new Plugin({ filterTransaction: transaction => {
+                    if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON())) return true;
+                    status.textContent = 'این تغییر خارج از ساختار مجاز است. جدول باید ساده، بدون ادغام و حداکثر ۵۰ سطر و ۱۲ ستون باشد؛ متن قبلی حفظ شد.';
+                    return false;
+                } })];
+            }
+        });
         editor = new Editor({
             element: document.getElementById('rich-text'), injectCSS: false, editable, textDirection: 'auto',
             extensions: [StarterKit.configure({ code: false, codeBlock: false, link: false, horizontalRule: false,
-                dropcursor: false, trailingNode: false }), ManagedImage],
+                dropcursor: false, trailingNode: false }), ManagedImage,
+                TableKit.configure({ table: { resizable: false, View: null } }), PreservationPolicy],
             content: { type: 'doc', content: [{ type: 'paragraph' }] },
             editorProps: { attributes: { role: 'textbox', 'aria-label': 'متن ترجمه', 'aria-multiline': 'true', spellcheck: 'false' } },
             onUpdate: ({ editor }) => {
@@ -47,10 +60,25 @@ export function startRichEditor(workspace, onChanged, preview) {
             .setContent(value, { emitUpdate: false, errorOnInvalidContent: true }).run();
         initializing = false;
         const buttons = Array.from(document.querySelectorAll('.editor-toolbar button'));
+        const tableCommands = ['addRowAfter', 'addColumnAfter', 'deleteRow', 'deleteColumn', 'deleteTable'];
+        function tableSize() {
+            const position = editor.state.selection.$from;
+            for (let depth = position.depth; depth > 0; depth--) {
+                const node = position.node(depth);
+                if (node.type.name === 'table') return { rows: node.childCount, columns: node.firstChild.childCount };
+            }
+            return null;
+        }
+        function canTableCommand(command) {
+            const size = tableSize();
+            if (command === 'insertTable') return !size && editor.state.selection.$from.depth === 1 && editor.can().insertTable({ rows: 3, cols: 3, withHeaderRow: true });
+            return !!size && (command !== 'addRowAfter' || size.rows < 50) && (command !== 'addColumnAfter' || size.columns < 12) && editor.can()[command]();
+        }
         function updateToolbar() {
             for (const button of buttons) {
                 const command = button.dataset.command;
-                button.disabled = !editable || !editor.isEditable || (command === 'undo' && !editor.can().undo()) || (command === 'redo' && !editor.can().redo());
+                button.disabled = !editable || !editor.isEditable || (command === 'undo' && !editor.can().undo()) || (command === 'redo' && !editor.can().redo()) ||
+                    ([...tableCommands, 'insertTable'].includes(command) && !canTableCommand(command));
                 if (button.hasAttribute('aria-pressed')) button.setAttribute('aria-pressed', String(editor.isActive(command, command === 'heading' ? { level: 2 } : undefined)));
             }
         }
@@ -64,7 +92,10 @@ export function startRichEditor(workspace, onChanged, preview) {
                     paragraph: () => chain.setParagraph(), heading: () => chain.toggleHeading({ level: 2 }),
                     bulletList: () => chain.toggleBulletList(), orderedList: () => chain.toggleOrderedList(),
                     rtl: () => chain.setTextDirection('rtl'), ltr: () => chain.setTextDirection('ltr'), auto: () => chain.setTextDirection('auto'),
-                    undo: () => chain.undo(), redo: () => chain.redo()
+                    undo: () => chain.undo(), redo: () => chain.redo(),
+                    insertTable: () => chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }),
+                    addRowAfter: () => chain.addRowAfter(), addColumnAfter: () => chain.addColumnAfter(),
+                    deleteRow: () => chain.deleteRow(), deleteColumn: () => chain.deleteColumn(), deleteTable: () => chain.deleteTable()
                 };
                 operations[command]?.().run(); updateToolbar();
             });

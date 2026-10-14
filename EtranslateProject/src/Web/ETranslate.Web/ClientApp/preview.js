@@ -1,4 +1,4 @@
-import { guid } from './document-schema.js';
+import { guid, isRichDocument } from './document-schema.js';
 
 export function assetUrl(workspace, assetId) {
     const { tenantId, templateId } = workspace.dataset;
@@ -29,7 +29,7 @@ export function createPreview(workspace) {
             parent.append(image); return;
         }
         if (node.type === 'hardBreak') { parent.append(document.createElement('br')); return; }
-        const tags = new Map([['paragraph', 'p'], ['heading', 'h3'], ['bulletList', 'ul'], ['orderedList', 'ol'], ['listItem', 'li'], ['blockquote', 'blockquote']]);
+        const tags = new Map([['paragraph', 'p'], ['heading', 'h3'], ['bulletList', 'ul'], ['orderedList', 'ol'], ['listItem', 'li'], ['blockquote', 'blockquote'], ['table', 'table'], ['tableRow', 'tr'], ['tableCell', 'td'], ['tableHeader', 'th']]);
         let target = parent;
         if (tags.has(node.type)) {
             const tag = node.type === 'heading' && Number.isInteger(node.attrs?.level) && node.attrs.level >= 1 && node.attrs.level <= 6
@@ -46,7 +46,13 @@ export function createPreview(workspace) {
     function region(id, source) {
         const target = find(id); target.replaceChildren(); target.dir = 'auto';
         if (!source.trim()) return;
-        remaining = 20000; render(JSON.parse(source), target);
+        const root = JSON.parse(source);
+        if (id === 'preview-body' && !isRichDocument(root)) {
+            unsupported = true;
+            target.append(document.createTextNode('[ساختار بدنه برای پیش‌نمایش پشتیبانی نمی‌شود؛ JSON اصلی حفظ شده است.]'));
+            return;
+        }
+        remaining = 20000; render(root, target);
     }
     return function update() {
         unsupported = false;
