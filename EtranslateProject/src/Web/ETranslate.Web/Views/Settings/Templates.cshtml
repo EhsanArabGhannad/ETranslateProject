@@ -5,21 +5,58 @@
 @if (Model.Tenants.Count > 0) {
     <nav class="tenant-tabs" aria-label="فضاهای کاری">@foreach (var tenant in Model.Tenants) { <a class="@(tenant.Id == Model.Tenant?.Id ? "selected" : "")" asp-action="Templates" asp-route-tenantId="@tenant.Id">@tenant.Name</a> }</nav>
 }
-@if (Model.Tenant is not null) {
+@if (Model.Tenant is null) { <section class="card empty"><h2>هنوز فضای کاری ندارید</h2><a asp-controller="Workspace" asp-action="Index">ساخت فضای کاری</a></section> }
+else {
     <partial name="_SubscriptionWriteNotice" model="new SubscriptionWriteNotice(Model.Tenant.Id, Model.WriteStatus)" />
-    @if (Model.Tenant.Role == "Reviewer") { <p class="notice">قالب‌ها برای شما فقط خواندنی‌اند؛ تغییر آن‌ها به نقش مجاز نیاز دارد.</p> }
-}
-else { <section class="card empty"><h2>هنوز فضای کاری ندارید</h2><a asp-controller="Workspace" asp-action="Index">ساخت فضای کاری</a></section> }
-@if (Model.Tenant is not null) {
-<section class="card templates-section"><div class="section-heading"><div><span class="eyebrow">DOCUMENT IDENTITY</span><h2>قالب‌های اختصاصی</h2></div><span class="muted">سربرگ، لوگو، پابرگ و واترمارک</span></div>
-<fieldset class="subscription-lock" disabled="@(!Model.CanWrite)"><div class="workspace-grid"><div>
-@foreach (var template in Model.Templates) {
-    <article class="template-row"><h3>@template.Name <span class="badge">نسخه @template.CurrentRevision · @(template.IsActive ? "فعال" : "بایگانی")</span></h3>
-        @if (template.IsActive) { <form asp-controller="Workspace" asp-action="AddLogo" method="post" enctype="multipart/form-data" class="logo-form"><input type="hidden" name="tenantId" value="@Model.Tenant.Id" /><input type="hidden" name="templateId" value="@template.Id" /><label for="logo-@template.Id">افزودن لوگو به سربرگ</label><input id="logo-@template.Id" name="file" type="file" accept="image/png,image/jpeg" required /><button class="secondary" type="submit">ثبت نسخه‌ی جدید با لوگو</button></form> }
-    </article>
-}
-@if (Model.Templates.Count == 0) { <p class="empty">قالبی ندارید؛ اولین سربرگ را بسازید.</p> }
-<p class="muted">تغییر قالب، نسخه‌ی تثبیت‌شده در اسناد قبلی را تغییر نمی‌دهد. لوگوی جدید به سربرگ اضافه می‌شود.</p></div>
-<form asp-controller="Workspace" asp-action="CreateTemplate" method="post"><input type="hidden" name="tenantId" value="@Model.Tenant.Id" /><h3>قالب جدید</h3><label for="template-name">نام قالب</label><input id="template-name" name="name" maxlength="200" required /><label for="header-text">متن سربرگ</label><textarea id="header-text" name="header" rows="2" maxlength="10000"></textarea><label for="starter">متن اولیه‌ی ترجمه</label><textarea id="starter" name="starterText" rows="3" maxlength="50000"></textarea><label for="footer-text">متن پابرگ</label><input id="footer-text" name="footer" maxlength="2000" /><label for="watermark">واترمارک (اختیاری)</label><input id="watermark" name="watermark" maxlength="100" /><details class="page-layout-fields"><summary>تنظیمات صفحه</summary><div class="two-fields"><div><label for="page-size">اندازه‌ی کاغذ</label><select id="page-size" name="pageSize"><option>A4</option><option>A5</option><option>Letter</option><option>Legal</option></select></div><div><label for="page-orientation">جهت صفحه</label><select id="page-orientation" name="orientation"><option value="Portrait">عمودی</option><option value="Landscape">افقی</option></select></div></div><div class="two-fields"><div><label for="margin-top">حاشیه‌ی بالا (میلی‌متر)</label><input id="margin-top" name="marginTop" type="number" min="5" max="50" step="0.5" value="25" required /></div><div><label for="margin-right">حاشیه‌ی راست (میلی‌متر)</label><input id="margin-right" name="marginRight" type="number" min="5" max="50" step="0.5" value="20" required /></div><div><label for="margin-bottom">حاشیه‌ی پایین (میلی‌متر)</label><input id="margin-bottom" name="marginBottom" type="number" min="5" max="50" step="0.5" value="20" required /></div><div><label for="margin-left">حاشیه‌ی چپ (میلی‌متر)</label><input id="margin-left" name="marginLeft" type="number" min="5" max="50" step="0.5" value="20" required /></div></div><p class="muted">فضای سربرگ، پابرگ و شماره‌ی صفحه جداگانه رزرو می‌شود. تنظیمات همراه نسخه‌ی قالب تثبیت می‌شوند.</p></details><button type="submit">ساخت قالب</button></form>
-</div></fieldset></section>
+    @if (Model.Message is not null) { <div class="alert" role="alert">@Model.Message</div> }
+    @if (Model.Tenant.Role == "Reviewer") { <p class="notice">قالب‌ها برای شما فقط خواندنی‌اند.</p> }
+    <section class="card">
+        <form asp-action="Templates" method="get" id="template-picker-form">
+            <input type="hidden" name="tenantId" value="@Model.Tenant.Id" />
+            <label for="template-picker">انتخاب قالب برای ویرایش</label>
+            <select id="template-picker" name="templateId"><option value="" selected="@(Model.Selected is null)">قالب جدید</option>
+                @foreach (var template in Model.Templates) { <option value="@template.Id" selected="@(Model.Selected?.Id == template.Id)">@template.Name · نسخه @template.CurrentRevision @(template.IsActive ? "" : "· بایگانی")</option> }
+            </select><button class="secondary" type="submit">نمایش قالب</button>
+        </form>
+    </section>
+    <section class="card">
+        <h2 class="template-heading">@(Model.Selected is null ? "ساخت قالب جدید" : $"ویرایش قالب: {Model.Selected.Name} · نسخه {Model.Selected.CurrentRevision}")</h2>
+        @if (Model.Selected?.IsActive == false) { <p class="notice">قالب بایگانی‌شده فقط خواندنی است.</p> }
+        @if (Model.Selected is not null) { <p><a asp-action="Templates" asp-route-tenantId="@Model.Tenant.Id" asp-route-templateId="@Model.Selected.Id" asp-route-pendingAssetId="@Model.Form.PendingAssetId" target="_blank" rel="noopener">بررسی آخرین نسخه در تب جدا ←</a></p> }
+        <form asp-action="SaveTemplate" method="post" enctype="multipart/form-data" id="template-edit-form">
+            <div asp-validation-summary="All" class="alert"></div>
+            <input asp-for="Form.TenantId" type="hidden" /><input asp-for="Form.TemplateId" type="hidden" /><input asp-for="Form.ExpectedRevision" type="hidden" /><input asp-for="Form.PendingAssetId" type="hidden" />
+            <fieldset disabled="@(!Model.CanSave)" class="subscription-lock">
+                <label for="template-name">نام قالب</label><input asp-for="Form.Name" id="template-name" maxlength="200" required readonly="@(Model.Selected is not null)" />
+                @if (Model.Selected is not null) { <p class="muted">نام این قالب ثابت است؛ برای نام متفاوت، قالب جدید بسازید.</p> }
+                <label for="header-text">متن سربرگ</label><textarea asp-for="Form.Header" id="header-text" rows="3" maxlength="10000" readonly="@(!Model.Projection.HeaderEditable)"></textarea>
+                @if (!Model.Projection.HeaderEditable) { <p class="notice">سربرگ ساختار پیچیده دارد؛ متن آن در این فرم ساده تغییر نمی‌کند و عیناً حفظ می‌شود.</p> }
+                <label for="starter">متن اولیهٔ ترجمه</label><textarea asp-for="Form.StarterText" id="starter" rows="5" maxlength="50000" readonly="@(!Model.Projection.BodyEditable)"></textarea>
+                @if (!Model.Projection.BodyEditable) { <p class="notice">متن اولیه قالب‌بندی یا ساختار غنی دارد؛ این فرم آن را ساده نمی‌کند و بدون تغییر حفظ می‌کند.</p> }
+                <label for="footer-text">متن پابرگ</label><textarea asp-for="Form.Footer" id="footer-text" rows="2" maxlength="2000" readonly="@(!Model.Projection.FooterEditable)"></textarea>
+                @if (!Model.Projection.FooterEditable) { <p class="notice">پابرگ ساختار پیچیده دارد؛ نسخهٔ اصلی آن حفظ می‌شود.</p> }
+                <label for="watermark">واترمارک</label><input asp-for="Form.Watermark" id="watermark" maxlength="100" readonly="@(!Model.Projection.WatermarkEditable)" />
+                @if (!Model.Projection.WatermarkEditable) { <p class="notice">تنظیمات ناشناختهٔ واترمارک بدون تغییر حفظ می‌شود.</p> }
+                <details class="page-layout-fields"><summary>تنظیمات صفحه</summary>
+                <fieldset disabled="@(!Model.Projection.LayoutEditable)">
+                    <div class="two-fields"><div><label asp-for="Form.PageSize">اندازهٔ کاغذ</label><select asp-for="Form.PageSize"><option>A4</option><option>A5</option><option>Letter</option><option>Legal</option></select></div>
+                    <div><label asp-for="Form.Orientation">جهت صفحه</label><select asp-for="Form.Orientation"><option value="Portrait">عمودی</option><option value="Landscape">افقی</option></select></div></div>
+                    <div class="two-fields"><div><label asp-for="Form.MarginTop">حاشیهٔ بالا (میلی‌متر)</label><input asp-for="Form.MarginTop" type="number" min="5" max="50" step="0.5" /></div><div><label asp-for="Form.MarginRight">حاشیهٔ راست</label><input asp-for="Form.MarginRight" type="number" min="5" max="50" step="0.5" /></div>
+                    <div><label asp-for="Form.MarginBottom">حاشیهٔ پایین</label><input asp-for="Form.MarginBottom" type="number" min="5" max="50" step="0.5" /></div><div><label asp-for="Form.MarginLeft">حاشیهٔ چپ</label><input asp-for="Form.MarginLeft" type="number" min="5" max="50" step="0.5" /></div></div>
+                </fieldset>
+                @if (!Model.Projection.LayoutEditable) { <p class="notice">چیدمان ناشناختهٔ صفحه عیناً حفظ می‌شود.</p> }
+                </details>
+                <h3>تصویر سربرگ</h3>
+                <div class="template-images">@foreach (var imageId in Model.Projection.Images.Take(10)) { <img src="@Url.Action("Asset", "Workspace", new { tenantId = Model.Tenant.Id, templateId = Model.Selected!.Id, assetId = imageId })" alt="تصویر فعلی سربرگ" /> }</div>
+                @if (Model.Form.PendingAssetId is { } pending) { <p class="notice">تصویر زیر بارگذاری شده ولی ثبت کامل آن تأیید نشده است؛ می‌توانید همان تصویر را دوباره استفاده کنید. انتخاب فایل جدید، تصویر قبلی را از آرشیو حذف نمی‌کند.</p><img class="template-logo-preview" src="@Url.Action("Asset", "Workspace", new { tenantId = Model.Tenant.Id, templateId = Model.Form.TemplateId, assetId = pending })" alt="تصویر در انتظار ثبت" /> }
+                <label for="template-logo">انتخاب تصویر PNG/JPEG، حداکثر ۵ مگابایت</label><input id="template-logo" name="logo" type="file" accept="image/png,image/jpeg" disabled="@(!Model.Projection.CanAppendLogo)" />
+                <img id="template-logo-preview" class="template-logo-preview" alt="پیش‌نمایش تصویر انتخاب‌شده؛ هنوز ذخیره نشده" hidden />
+                <label asp-for="Form.LogoMode">روش افزودن تصویر انتخاب‌شده</label><select asp-for="Form.LogoMode"><option value="Add">افزودن، با حفظ تصاویر فعلی</option>@if (Model.Projection.HeaderEditable) { <option value="Replace">جایگزینی تمام تصاویر فعلی سربرگ</option> }</select>
+                <p class="muted">بدون انتخاب فایل، تصاویر فعلی حفظ می‌شوند؛ مگر تصویر بارگذاری‌شدهٔ در انتظار ثبت داشته باشید. جایگزینی فقط با تصویر جدید یا بازیابی‌شده انجام می‌شود.</p>
+                <button type="submit" id="template-save">@(Model.Selected is null ? "ساخت قالب" : "ذخیرهٔ نسخهٔ جدید")</button>
+            </fieldset>
+        </form>
+        <p class="muted">نسخه‌های قبلی و قالبِ تثبیت‌شدهٔ اسناد تغییر نمی‌کنند. بارگذاری تصویر و ذخیره چند مرحله دارند؛ در صورت خطا پیام وضعیت را بررسی کنید.</p>
+        @if (Model.Selected is not null) { <details><summary>ساختار اصلی نسخهٔ انتخاب‌شده — فقط خواندن</summary><pre class="template-json" dir="ltr">@Model.Selected.Revision.EditorContentJson</pre><pre class="template-json" dir="ltr">@Model.Selected.Revision.HeaderContentJson</pre><pre class="template-json" dir="ltr">@Model.Selected.Revision.FooterContentJson</pre></details> }
+    </section>
 }

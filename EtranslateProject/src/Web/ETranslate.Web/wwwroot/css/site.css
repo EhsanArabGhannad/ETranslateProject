@@ -31,6 +31,10 @@ h2 { font-size: 20px; margin-bottom: 12px; } h3 { font-size: 15px; margin-bottom
 .navigation-tenant { margin-inline-start: auto; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .settings-card { max-width: 760px; }
 .settings-link { display: inline-block; margin-bottom: 12px; font-weight: bold; }
+.template-images { display: flex; flex-wrap: wrap; gap: 12px; }
+.template-heading { overflow-wrap: anywhere; }
+.template-images img, .template-logo-preview { display: block; max-width: 220px; max-height: 120px; object-fit: contain; margin-block: 12px; }
+.template-json { max-height: 220px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px; border: 1px solid var(--border); }
 .shell { max-width: 1440px; margin: auto; padding: 40px max(4vw, 20px); min-height: 75vh; }
 .page-heading, .section-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .page-heading { margin-bottom: 25px; }

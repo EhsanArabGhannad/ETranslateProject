@@ -26,7 +26,7 @@ try {
     $settings=Web GET "/Settings?tenantId=$tenantId" 200
     Assert-Check ($settings.Body -match "/Settings/Templates\?tenantId=$tenantId") 'Settings opens tenant-scoped template management'
     $page=Web GET "/Settings/Templates?tenantId=$tenantId" 200
-    Assert-Check ($page.Body -match 'id="template-name"' -and $page.Body -match 'class="logo-form"') 'Original template/create/logo forms are available on their own page'
+    Assert-Check ($page.Body -match 'id="template-name"' -and $page.Body -match 'id="template-edit-form"' -and $page.Body -match 'id="template-logo"') 'Unified template form remains on its own settings page'
     Assert-Check ($page.Body -notmatch 'access_token|Bearer |localStorage') 'Settings never exposes server tokens'
     Web GET "/Settings/Templates?tenantId=$([Guid]::NewGuid())" 404 | Out-Null
     Web GET '/Settings/Templates?tenantId=invalid' 400 | Out-Null
