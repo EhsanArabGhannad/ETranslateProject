@@ -38,7 +38,7 @@ public static class DocumentContentJson
             if (field.Name is "type") continue;
             if (field.Name == "text" && type == "text" && field.Value.ValueKind == JsonValueKind.String) continue;
             if (field.Name == "marks" && type == "text" && MarksValid(field.Value)) continue;
-            if (field.Name == "attrs" && type != "text" && AttributesValid(type, field.Value)) continue;
+            if (field.Name == "attrs" && type != "text" && AttributesValid(type, field.Value, rootType != "doc")) continue;
             if (field.Name == "content" && type is not ("text" or "image" or "hardBreak") &&
                 field.Value.ValueKind == JsonValueKind.Array) continue;
             return false;
@@ -75,13 +75,18 @@ public static class DocumentContentJson
         "doc" or "header" or "footer" or "listItem" or "blockquote" => child is "paragraph" or "heading" or "bulletList" or "orderedList" or "image" or "blockquote",
         _ => false
     };
-    private static bool AttributesValid(string type, JsonElement attrs)
+    private static bool AttributesValid(string type, JsonElement attrs, bool letterhead)
     {
         if (attrs.ValueKind != JsonValueKind.Object) return false;
         var seen = new HashSet<string>();
         foreach (var field in attrs.EnumerateObject())
         {
             if (!seen.Add(field.Name)) return false;
+            if (letterhead && type is "paragraph" or "heading" && field.Name == "textAlign" &&
+                field.Value.ValueKind == JsonValueKind.String && field.Value.GetString() is "left" or "center" or "right") continue;
+            if (letterhead && type == "image" && field.Value.ValueKind == JsonValueKind.String &&
+                (field.Name == "align" && field.Value.GetString() is "left" or "center" or "right" ||
+                 field.Name == "layout" && field.Value.GetString() is "logo" or "banner")) continue;
             if (field.Name == "dir" && field.Value.ValueKind == JsonValueKind.String && field.Value.GetString() is "auto" or "rtl" or "ltr") continue;
             if (type == "heading" && field.Name == "level" && field.Value.ValueKind == JsonValueKind.Number && field.Value.TryGetInt32(out var level) && level is >= 1 and <= 6) continue;
             if (type == "orderedList" && field.Name == "start" && field.Value.ValueKind == JsonValueKind.Number && field.Value.TryGetInt32(out var start) && start is >= 1 and <= 10_000) continue;

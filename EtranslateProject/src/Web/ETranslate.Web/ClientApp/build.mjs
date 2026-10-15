@@ -2,7 +2,7 @@ import { build } from 'esbuild';
 import { cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 
 await build({
-    entryPoints: { workspace: 'ClientApp/workspace.js', 'pdf.worker': 'node_modules/pdfjs-dist/build/pdf.worker.mjs' },
+    entryPoints: { workspace: 'ClientApp/workspace.js', 'template-preview': 'ClientApp/template-preview.js', 'pdf.worker': 'node_modules/pdfjs-dist/build/pdf.worker.mjs' },
     outdir: 'wwwroot/js/generated', bundle: true, minify: true, format: 'esm',
     target: ['es2022'], legalComments: 'linked', logLevel: 'info'
 });

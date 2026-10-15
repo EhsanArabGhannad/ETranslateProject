@@ -78,6 +78,34 @@ try {
     Save-Template $form $page 302 | Out-Null
     $preserved=Api GET "$DocumentsUrl/api/v1/tenants/$tenantId/document-templates/$($complex.id)" $null 200
     Assert-Check ($preserved.revision.editorContentJson -eq $rich -and $preserved.revision.headerContentJson -eq '[]' -and $preserved.revision.pageLayoutJson -eq '{"custom":true}') 'Unsupported parts survive even forged plain-text inputs'
+    # Presentation settings persist in immutable, explicitly typed header/footer regions.
+    $page=Web GET "/Settings/Templates?tenantId=$tenantId&templateId=$id" 200
+    $presentation=Template-Fields $id 5 $name
+    $presentation['Form.Header']="Office`nنشانی آزمایشی"; $presentation['Form.HeaderLineAlignmentsJson']='["center","right"]'
+    $presentation['Form.FooterLineAlignmentsJson']='["left"]'; $presentation['Form.ImageLayout']='banner'; $presentation['Form.ImageAlignment']='right'
+    $presentation['Form.LogoMode']='Replace'
+    Save-Template $presentation $page 302 $logo | Out-Null
+    $formatted=Api GET $path $null 200
+    $formattedHeader=ConvertFrom-Json $formatted.revision.headerContentJson
+    Assert-Check ($formatted.currentRevision -eq 6 -and $formattedHeader.type -eq 'header' -and $formattedHeader.content[0].attrs.textAlign -eq 'center' -and $formattedHeader.content[1].attrs.textAlign -eq 'right') 'Independent line alignment is persisted without changing the body schema'
+    Assert-Check (@($formattedHeader.content | Where-Object { $_.type -eq 'image' -and $_.attrs.layout -eq 'banner' -and $_.attrs.align -eq 'right' }).Count -eq 1) 'Banner layout and image alignment apply to the new revision only'
+    $page=Web GET "/Settings/Templates?tenantId=$tenantId&templateId=$id" 200
+    Assert-Check ($page.Body -match 'value="banner" selected="selected"' -or $page.Body -match 'selected="selected" value="banner"') 'Existing image presentation fills its selector on reload'
+    $invalid=Template-Fields '' 0 "Invalid-alignment-$runId"; $invalid['Form.HeaderLineAlignmentsJson']='["right; color:red"]'
+    Save-Template $invalid $page 400 $logo | Out-Null
+    # Image-only full-width header with the native square baseline fixture stays below the height limit.
+    $presentation['Form.ExpectedRevision']=6; $presentation['Form.Header']=''; $presentation['Form.HeaderLineAlignmentsJson']='[]'
+    Save-Template $presentation $page 302 | Out-Null
+    $imageOnly=Api GET $path $null 200
+    Assert-Check ((ConvertFrom-Json $imageOnly.revision.headerContentJson).content.Count -eq 1) 'Image-only banner does not insert a blank text paragraph'
+    $pdfJob=Api POST "$WorkflowUrl/api/v1/tenants/$tenantId/translation-jobs" @{title='Presentation PDF';sourceLanguageCode='tr';targetLanguageCode='fa';notaryRequirement='NotRequired'} 201
+    $pdfCollection="$DocumentsUrl/api/v1/tenants/$tenantId/translation-jobs/$($pdfJob.id)/documents"
+    $pdfDocument=Api POST $pdfCollection $null 201; $pdfDocumentPath="$pdfCollection/$($pdfDocument.id)"
+    Api POST "$pdfDocumentPath/template" @{templateId=$id;revisionNumber=7} 200 | Out-Null
+    $pdfVersion=Api POST "$pdfDocumentPath/draft-revisions/1/pdfs" $null 201
+    Assert-Check ($pdfVersion.templateRevisionId -eq $imageOnly.revision.id -and $pdfVersion.rendererVersion -match '^draft-html-v9-letterhead') 'Authorized PDF pipeline resolves the exact formatted template and new renderer version'
+    $cached=Api POST "$pdfDocumentPath/draft-revisions/1/pdfs" $null 200
+    Assert-Check ($cached.id -eq $pdfVersion.id -and $cached.sha256 -eq $pdfVersion.sha256) 'New renderer cache preserves the archived PDF identity'
     Web GET "/Settings/Templates?tenantId=$($solo.id)&templateId=$id" 404 | Out-Null
     Web POST '/Account/Logout' 302 (Fields @{__RequestVerificationToken=(Csrf $page.Body)}) | Out-Null
     Login-Navigation $observer.Email $observer.Password

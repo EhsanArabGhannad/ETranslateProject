@@ -117,6 +117,20 @@ summary { cursor: pointer; font-weight: 600; }
 .paper-footer { border-top: 1px solid #d8dfd9; padding-top: 15px; margin-top: 30px; font-size: 11px; }
 .paper p { white-space: pre-wrap; min-height: 1.9em; margin-bottom: 10px; }
 .paper img { max-width: 180px; max-height: 110px; object-fit: contain; }
+.paper img.template-banner { display:block; width:100%; max-width:100%; max-height:113px; object-fit:contain; }
+.paper img.image-left { display:block; margin-left:0; margin-right:auto; }
+.paper img.image-center { display:block; margin-left:auto; margin-right:auto; }
+.paper img.image-right { display:block; margin-left:auto; margin-right:0; }
+.template-line-controls label { display:grid; grid-template-columns:minmax(0,1fr) 120px; gap:12px; align-items:center; }
+.template-line-controls span { overflow-wrap:anywhere; }
+.template-preview-viewport { max-width:800px; margin:auto; container-type:inline-size; }
+.template-preview-paper { --preview-mm:.47619; min-height:0; height:auto; width:100%; font-size:calc(var(--preview-mm) * 3.88cqw); line-height:1.65; }
+.template-preview-paper img { display:block; max-width:calc(var(--preview-mm) * 40cqw); max-height:calc(var(--preview-mm) * 20cqw); height:auto; object-fit:contain; }
+.template-preview-paper .paper-header, .template-preview-paper .paper-footer { font-size:calc(var(--preview-mm) * 3.175cqw); line-height:1.5; }
+.template-preview-paper .paper-header { padding-bottom:calc(var(--preview-mm) * 3cqw); margin-bottom:calc(var(--preview-mm) * 4cqw); }
+.template-preview-paper .paper-footer { padding-top:calc(var(--preview-mm) * 3cqw); margin-top:calc(var(--preview-mm) * 4cqw); }
+.template-preview-paper p { margin-bottom:calc(var(--preview-mm) * 1cqw); min-height:1.65em; }
+.template-preview-paper img.template-banner { max-width:100%; max-height:calc(var(--preview-mm) * 30cqw); }
 .paper header, .paper footer, .paper-body { z-index: 1; position: relative; }
 .watermark { position: absolute; inset: 35% 10%; display: grid; place-items: center; font-size: 48px; opacity: .12; transform: rotate(-35deg); pointer-events: none; text-align: center; overflow-wrap: anywhere; }
 .site-footer { padding: 24px max(4vw, 20px); display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid var(--border); font-size: 10px; color: var(--muted); }

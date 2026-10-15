@@ -5,7 +5,7 @@ export function assetUrl(workspace, assetId) {
     if (![assetId, tenantId, templateId].every(value => typeof value === 'string' && guid.test(value))) return null;
     return `/Workspace/Asset?tenantId=${tenantId}&templateId=${templateId}&assetId=${assetId}`;
 }
-export function createPreview(workspace) {
+export function createPreview(workspace, resolveImage = id => assetUrl(workspace, id)) {
     const find = id => document.getElementById(id);
     let remaining, unsupported;
     function render(node, parent, depth = 0) {
@@ -22,9 +22,11 @@ export function createPreview(workspace) {
             parent.append(leaf); return;
         }
         if (node.type === 'image') {
-            const url = assetUrl(workspace, node.attrs?.assetId);
+            const url = resolveImage(node.attrs?.assetId);
             if (!url) { unsupported = true; parent.append(document.createTextNode('[تصویر در دسترس نیست]')); return; }
             const image = document.createElement('img'); image.alt = 'تصویر قالب'; image.src = url;
+            if (node.attrs?.layout === 'banner') image.classList.add('template-banner');
+            if (['left', 'center', 'right'].includes(node.attrs?.align)) image.classList.add(`image-${node.attrs.align}`);
             image.addEventListener('error', () => image.replaceWith(document.createTextNode('[تصویر در دسترس نیست]')));
             parent.append(image); return;
         }
@@ -37,6 +39,7 @@ export function createPreview(workspace) {
             target = document.createElement(tag); parent.append(target);
         } else if (!['doc', 'header', 'footer'].includes(node.type)) unsupported = true;
         if (['auto', 'rtl', 'ltr'].includes(node.attrs?.dir)) target.dir = node.attrs.dir;
+        if (['paragraph', 'heading'].includes(node.type) && ['left', 'center', 'right'].includes(node.attrs?.textAlign)) target.style.textAlign = node.attrs.textAlign;
         if (node.type === 'orderedList') {
             if (Number.isInteger(node.attrs?.start) && node.attrs.start >= 1 && node.attrs.start <= 10000) target.start = node.attrs.start;
             if (['1', 'a', 'A', 'i', 'I'].includes(node.attrs?.type)) target.type = node.attrs.type;

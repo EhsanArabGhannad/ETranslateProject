@@ -74,6 +74,13 @@ public sealed class TemplateSaveTests
         var f = new Fixture(); var form = Form(false); form.MarginTop = 1;
         Assert.IsType<ViewResult>(await f.Controller.SaveTemplate(form, File())); Assert.Empty(f.Writes);
     }
+    [Theory] [InlineData("[\"justify\"]", null, null)] [InlineData("[]", "url(unsafe)", null)]
+    [InlineData("[]", null, "full-bleed")]
+    public async Task Unsupported_presentation_options_fail_before_upload(string lines, string? align, string? layout)
+    {
+        var f = new Fixture(); var form = Form(false); form.HeaderLineAlignmentsJson = lines; form.ImageAlignment = align; form.ImageLayout = layout;
+        Assert.IsType<ViewResult>(await f.Controller.SaveTemplate(form, File())); Assert.Equal(400, f.Context.Response.StatusCode); Assert.Empty(f.Writes);
+    }
 
     private static IFormFile File() => new FormFile(new MemoryStream([137,80,78,71]), 0, 4, "logo", "logo.png") { Headers = new HeaderDictionary(), ContentType = "image/png" };
     private sealed class Fixture

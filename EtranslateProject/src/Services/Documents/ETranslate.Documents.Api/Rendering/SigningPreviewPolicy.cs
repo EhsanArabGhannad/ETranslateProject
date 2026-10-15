@@ -5,7 +5,7 @@ namespace ETranslate.Documents.Api.Rendering;
 public static class SigningPreviewPolicy
 {
     public const string Kind = "SigningPreviewUnsigned";
-    public const string RendererVersion = "signing-preview-v1";
+    public const string RendererVersion = "signing-preview-v2-letterhead";
     public static bool ValidSnapshot(SigningPreviewSnapshotV1? plan, Guid tenant, Guid job, Guid document, Guid preparation)
     {
         if (plan is null || plan.Id != preparation || plan.TenantId != tenant || plan.TranslationJobId != job || plan.DocumentId != document ||

@@ -46,6 +46,8 @@ public static class DraftPdfHtml
             tr {break-inside:avoid;} th,td {border:.25mm solid #87969c; padding:2mm; vertical-align:top; text-align:start; overflow-wrap:anywhere;}
             th {background:#edf1f3; font-weight:700;} th p,td p {margin-bottom:1mm;}
             img {display:block; max-width:40mm; max-height:20mm; width:auto; height:auto; object-fit:contain; break-inside:avoid;}
+            img.template-banner {width:100%; max-width:100%; max-height:30mm;}
+            img.image-left {margin-left:0; margin-right:auto;} img.image-center {margin-left:auto; margin-right:auto;} img.image-right {margin-left:auto; margin-right:0;}
             .letterhead,.letterfoot {width:{{Number(width)}}mm; font-size:9pt; line-height:1.5;}
             .letterhead {position:fixed; top:0; padding-bottom:3mm; border-bottom:.2mm solid #bcc6ca;}
             .letterfoot {position:fixed; bottom:0; padding-top:3mm; border-top:.2mm solid #bcc6ca;}
@@ -116,7 +118,11 @@ public static class DraftPdfHtml
             if (!images.TryGetValue(id, out var image) || image.ContentType is not ("image/png" or "image/jpeg") ||
                 image.Bytes.LongLength is <= 0 or > 5 * 1024 * 1024)
                 throw new PdfRenderValidationException("A managed template image is unavailable.");
-            html.Append($"<img alt=\"Template image\" src=\"data:{image.ContentType};base64,{Convert.ToBase64String(image.Bytes)}\">"); return;
+            var classes = new List<string>();
+            if (attrs.TryGetProperty("layout", out var imageLayout) && imageLayout.GetString() == "banner") classes.Add("template-banner");
+            if (attrs.TryGetProperty("align", out var imageAlign)) classes.Add($"image-{imageAlign.GetString()}");
+            var imageClass = classes.Count == 0 ? "" : $" class=\"{string.Join(' ', classes)}\"";
+            html.Append($"<img{imageClass} alt=\"Template image\" src=\"data:{image.ContentType};base64,{Convert.ToBase64String(image.Bytes)}\">"); return;
         }
         var tagName = type switch
         {
@@ -125,6 +131,8 @@ public static class DraftPdfHtml
             "tableRow" => "tr", "tableCell" => "td", "tableHeader" => "th", _ => "div"
         };
         html.Append($"<{tagName} dir=\"{direction}\"");
+        if (attrs.ValueKind == JsonValueKind.Object && attrs.TryGetProperty("textAlign", out var textAlign))
+            html.Append($" style=\"text-align:{textAlign.GetString()}\"");
         if (type == "orderedList" && attrs.ValueKind == JsonValueKind.Object)
         {
             if (attrs.TryGetProperty("start", out var start)) html.Append($" start=\"{start.GetInt32()}\"");

@@ -41,6 +41,9 @@ public sealed partial class SettingsController
         if (!form.TemplateId.HasValue && (form.ExpectedRevision != 0 || form.PendingAssetId.HasValue)) return BadRequest();
         if (page.Projection.LayoutEditable && !form.Layout.IsValid) ModelState.AddModelError("Form.PageSize", "تنظیمات صفحه معتبر نیست؛ حاشیه‌ها باید بین ۵ و ۵۰ میلی‌متر باشند.");
         if (form.LogoMode is not ("Add" or "Replace")) ModelState.AddModelError("Form.LogoMode", "روش تصویر معتبر نیست.");
+        if (page.Projection.HeaderEditable && (!TemplateRegion.AlignmentsValid(form.HeaderLineAlignmentsJson) || form.ImageAlignment is not (null or "left" or "center" or "right") || form.ImageLayout is not (null or "logo" or "banner")))
+            ModelState.AddModelError("Form.Header", "تراز متن یا حالت تصویر سربرگ معتبر نیست.");
+        if (page.Projection.FooterEditable && !TemplateRegion.AlignmentsValid(form.FooterLineAlignmentsJson)) ModelState.AddModelError("Form.Footer", "تراز پابرگ معتبر نیست.");
         var hasLogo = logo is { Length: > 0 };
         var mime = logo?.ContentType.Split(';', 2)[0].Trim().ToLowerInvariant();
         if (logo is not null && (!hasLogo || logo.Length > 5 * 1024 * 1024 || mime is not ("image/png" or "image/jpeg")))
