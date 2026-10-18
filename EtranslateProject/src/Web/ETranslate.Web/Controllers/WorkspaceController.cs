@@ -91,8 +91,6 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
             model.History = await api.ReadAsync<List<DraftSummary>>("documents", $"{path}/draft-revisions");
             model.PdfVersions = await api.ReadAsync<List<PdfVersionView>>("documents", $"{path}/pdfs");
             model.Review = await api.ReadAsync<ReviewStateView>("documents", $"{path}/reviews");
-            if (document.TemplateRevisionId is not null)
-                model.Template = await api.ReadAsync<TemplateRevision>("documents", $"{path}/template");
             if (revisionNumber.HasValue || document.CurrentDraftRevision > 0)
             {
                 var number = revisionNumber ?? document.CurrentDraftRevision;
@@ -100,6 +98,11 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
                 var draft = await api.ReadAsync<DraftView>("documents", $"{path}/draft-revisions/{number}");
                 model.EditorContentJson = draft.EditorContentJson;
                 model.Historical = number != document.CurrentDraftRevision;
+                if (draft.TemplateRevisionId is not null)
+                {
+                    model.Template = await api.ReadAsync<TemplateRevision>("documents", $"{path}/template?draftRevisionNumber={number}");
+                    if (model.Template.Id != draft.TemplateRevisionId) throw new BackendException(HttpStatusCode.BadGateway);
+                }
             }
         }
         return model;

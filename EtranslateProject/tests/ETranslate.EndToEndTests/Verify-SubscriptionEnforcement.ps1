@@ -86,6 +86,7 @@ try {
         @{ Method='PUT'; Url="$templatesPath/$templateId/status"; Body=@{ isActive=$false } },
         @{ Method='POST'; Url="$DocumentsUrl/api/v1/tenants/$tenantId/translation-jobs/$jobId/documents"; Body=$null },
         @{ Method='POST'; Url="$reviewApi/template"; Body=@{ templateId=$templateId; revisionNumber=1 } },
+        @{ Method='POST'; Url="$reviewApi/template-change"; Body=@{ templateId=$templateId; revisionNumber=1; expectedCurrentRevision=5 } },
         @{ Method='POST'; Url="$reviewApi/draft-revisions"; Body=@{ expectedCurrentRevision=5; editorContentJson='{"type":"doc","content":[]}' } },
         @{ Method='POST'; Url="$reviewApi/draft-revisions/5/pdfs"; Body=$null },
         @{ Method='POST'; Url="$reviewApi/reviews"; Body=@{ expectedRevision=5; expectedRound=3; pdfVersionId=$sampleSource.id } },

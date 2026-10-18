@@ -68,7 +68,7 @@ public sealed class TranslationDocument
         if (TemplateRevisionId is not null || CurrentDraftRevision != 0)
             throw new InvalidOperationException("A template can only be applied once, before the first draft revision.");
 
-        var draft = AddDraftRevision(0, revision.EditorContentJson, null, userId, now);
+        var draft = AddDraftRevisionCore(0, revision.EditorContentJson, null, userId, now, revision.Id);
         TemplateRevisionId = revision.Id;
         return draft;
     }
@@ -79,6 +79,25 @@ public sealed class TranslationDocument
         string? plainText,
         Guid createdByUserId,
         DateTimeOffset createdAtUtc)
+        => AddDraftRevisionCore(expectedCurrentRevision, editorContentJson, plainText, createdByUserId, createdAtUtc, TemplateRevisionId);
+
+    public DocumentDraftRevision ChangeTemplate(int expectedRevision, DocumentTemplate template, DocumentTemplateRevision revision,
+        DocumentDraftRevision current, Guid actor, DateTimeOffset now)
+    {
+        EnsureReviewEditable();
+        if (expectedRevision != CurrentDraftRevision) throw new DocumentRevisionConflictException(expectedRevision, CurrentDraftRevision);
+        if (CurrentDraftRevision < 1 || current.DocumentId != Id || current.RevisionNumber != CurrentDraftRevision || current.TemplateRevisionId != TemplateRevisionId)
+            throw new InvalidOperationException("Template changes require the exact current saved draft.");
+        if (template.TenantId != TenantId || revision.TemplateId != template.Id || !template.IsActive)
+            throw new InvalidOperationException("Template revision is unavailable for this document.");
+        if (revision.Id == TemplateRevisionId) throw new InvalidOperationException("This template revision is already pinned.");
+        var draft = AddDraftRevisionCore(expectedRevision, current.EditorContentJson, current.PlainText, actor, now, revision.Id);
+        TemplateRevisionId = revision.Id;
+        return draft;
+    }
+
+    private DocumentDraftRevision AddDraftRevisionCore(int expectedCurrentRevision, string editorContentJson, string? plainText,
+        Guid createdByUserId, DateTimeOffset createdAtUtc, Guid? templateRevisionId)
     {
         ArgumentOutOfRangeException.ThrowIfEqual(createdByUserId, Guid.Empty);
         EnsureReviewEditable();
@@ -100,7 +119,7 @@ public sealed class TranslationDocument
             editorContentJson,
             string.IsNullOrWhiteSpace(plainText) ? null : plainText,
             createdByUserId,
-            createdAtUtc);
+            createdAtUtc, templateRevisionId);
 
         _draftRevisions.Add(revision);
         CurrentDraftRevision = revision.RevisionNumber;

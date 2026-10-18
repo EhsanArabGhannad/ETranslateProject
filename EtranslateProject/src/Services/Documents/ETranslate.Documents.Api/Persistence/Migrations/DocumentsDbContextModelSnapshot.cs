@@ -48,7 +48,12 @@ namespace ETranslate.Documents.Api.Persistence.Migrations
                     b.Property<int>("RevisionNumber")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("TemplateRevisionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TemplateRevisionId");
 
                     b.HasIndex("DocumentId", "RevisionNumber")
                         .IsUnique();
@@ -661,6 +666,11 @@ namespace ETranslate.Documents.Api.Persistence.Migrations
                         .HasForeignKey("DocumentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("ETranslate.Documents.Api.Documents.DocumentTemplateRevision", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateRevisionId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("ETranslate.Documents.Api.Documents.DocumentPdfVersion", b =>

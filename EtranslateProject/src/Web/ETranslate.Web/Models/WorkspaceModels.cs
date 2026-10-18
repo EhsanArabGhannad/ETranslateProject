@@ -20,7 +20,7 @@ public sealed record TemplateRevision(Guid Id, Guid TemplateId, int RevisionNumb
 public sealed record DocumentView(Guid Id, int CurrentDraftRevision, Guid? TemplateRevisionId,
     IReadOnlyList<SourceFileView>? SourceFiles = null, string ReviewStatus = "Draft", int ReviewRound = 0);
 public sealed record SourceFileView(Guid Id, string OriginalFileName, string ContentType, long SizeBytes, string Sha256);
-public sealed record DraftView(int RevisionNumber, string EditorContentJson, string? PlainText);
+public sealed record DraftView(int RevisionNumber, string EditorContentJson, string? PlainText, Guid? TemplateRevisionId = null);
 public sealed record DraftSummary(int RevisionNumber, DateTimeOffset CreatedAtUtc);
 public sealed record AssetView(Guid Id);
 public sealed record PdfVersionView(Guid Id, int RevisionNumber, Guid? TemplateRevisionId,

@@ -3,7 +3,7 @@
    var compatible = RichDocument.TryGetPlainText(Model.EditorContentJson, out _);
    var sources = Model.Document?.SourceFiles ?? Array.Empty<SourceFileView>(); }
 <a class="back-link" asp-action="Index" asp-route-tenantId="@Model.TenantId">→ بازگشت به پرونده‌ها</a>
-<div class="page-heading"><div><span class="eyebrow">TRANSLATION STUDIO</span><h1>@Model.Job.Title</h1><p class="muted" dir="auto">@Model.Job.SourceLanguageCode → @Model.Job.TargetLanguageCode · @(Model.Job.NotaryRequirement == "Required" ? "نیازمند نوتر" : "بدون نیاز به نوتر")</p></div><span class="badge">@ReviewStateView.Label(Model.Review?.Status ?? "Draft")</span></div>
+<div class="page-heading"><div><span class="eyebrow">TRANSLATION STUDIO</span><h1>@Model.Job.Title</h1><p class="muted" dir="auto">@Model.Job.SourceLanguageCode → @Model.Job.TargetLanguageCode · @(Model.Job.NotaryRequirement == "Required" ? "نیازمند نوتر" : "بدون نیاز به نوتر")</p></div><span class="badge">@(Model.Historical ? "وضعیت فعلی پرونده (نه تأیید این نسخه): " : "")@ReviewStateView.Label(Model.Review?.Status ?? "Draft")</span></div>
 @if (Model.Message is not null) { <div class="alert" role="alert">@Model.Message</div> }
 <partial name="_SubscriptionWriteNotice" model="new SubscriptionWriteNotice(Model.TenantId, Model.WriteStatus)" />
 <fieldset class="subscription-lock">
@@ -17,8 +17,12 @@
 @if (Model.Template is not null) { <span>قالب تثبیت‌شده: نسخه @Model.Template.RevisionNumber</span> }
 else if (Model.Document.CurrentDraftRevision == 0) {
     <form asp-action="ApplyTemplate" method="post" id="template-form"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><label for="template-select">قالب (قبل از اولین ذخیره)</label><select id="template-select" name="templateId" required><option value="">انتخاب قالب</option>@foreach (var template in Model.Templates.Where(t => t.IsActive)) { <option value="@template.Id" data-revision="@template.CurrentRevision">@template.Name · نسخه @template.CurrentRevision</option> }</select><input type="hidden" id="template-revision" name="revisionNumber" /><button class="secondary" type="submit" disabled="@(!Model.CanWrite)">تثبیت قالب</button></form>
-    <p class="muted">می‌توانید بدون قالب بنویسید؛ بعد از اولین ذخیره دیگر قالب قابل اتصال نیست.</p>
-} else { <span class="muted">بدون قالب؛ اتصال بعد از شروع ویرایش امکان‌پذیر نیست.</span> }
+    <p class="muted">قبل از اولین ذخیره، متن اولیهٔ قالب وارد ترجمه می‌شود. بعد از ذخیره نیز می‌توانید قالب را از صفحهٔ جدا وصل کنید؛ متن ذخیره‌شده جایگزین نمی‌شود.</p>
+} else { <span class="muted">این نسخه بدون قالب است.</span> }
+@if (Model.Document.CurrentDraftRevision > 0 && !Model.Historical && !Model.Conflict) {
+    <p><a asp-action="DocumentTemplate" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener" id="change-template-link">اتصال یا تغییر قالب در تب جدا ←</a></p>
+    <p class="muted">ابتدا تغییرات متن را ذخیره کنید. تغییر قالب یک نسخهٔ جدید از متن ذخیره‌شده می‌سازد و به بازبینی مجاز نیاز دارد.</p>
+}
 </section>
 @if (Model.Historical || Model.Conflict) { <div class="notice">@(Model.Historical ? "این نسخه‌ی تاریخی فقط خواندنی است." : "برای جلوگیری از بازنویسی، ذخیره در این صفحه متوقف شده است.") <a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">باز کردن آخرین نسخه در تب جدید</a></div> }
 @if (Model.Review?.Locked == true) { <div class="notice">متن و مدارک مبدأ در این وضعیت قفل‌اند. برگشت برای اصلاح، پس‌گرفتن ارسال یا بازگشایی توسط مسئول مجاز، ویرایش را دوباره فعال می‌کند.</div> }

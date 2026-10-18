@@ -26,12 +26,12 @@ public static partial class DocumentEndpoints
         var existing = await database.PdfVersions.AsNoTracking().SingleOrDefaultAsync(item => item.DraftRevisionId == draft.Id &&
             item.RendererVersion == DraftPdfPolicy.RendererVersion, cancellationToken);
         if (existing is not null) return Results.Ok(ToPdfResponse(existing));
-        var template = document.TemplateRevisionId is null ? null : await (
+        var template = draft.TemplateRevisionId is null ? null : await (
             from revision in database.TemplateRevisions.AsNoTracking()
             join parent in database.DocumentTemplates.AsNoTracking() on revision.TemplateId equals parent.Id
-            where revision.Id == document.TemplateRevisionId && parent.TenantId == tenantId
+            where revision.Id == draft.TemplateRevisionId && parent.TenantId == tenantId
             select revision).SingleOrDefaultAsync(cancellationToken);
-        if (document.TemplateRevisionId is not null && template is null) return Results.Conflict(new { error = "pinned_template_unavailable" });
+        if (draft.TemplateRevisionId is not null && template is null) return Results.Conflict(new { error = "pinned_template_unavailable" });
         byte[] bytes;
         try
         {
@@ -54,7 +54,7 @@ public static partial class DocumentEndpoints
                     throw new PdfRenderValidationException("Template image integrity could not be verified.");
                 images.Add(asset.Id, new PdfImage(asset.ContentType, image));
             }
-            bytes = await renderer.RenderAsync(new DraftPdfInput(document.Id, draft.RevisionNumber, document.TemplateRevisionId,
+            bytes = await renderer.RenderAsync(new DraftPdfInput(document.Id, draft.RevisionNumber, draft.TemplateRevisionId,
                 draft.EditorContentJson, template?.HeaderContentJson, template?.FooterContentJson, template?.PageLayoutJson, template?.WatermarkJson, images), cancellationToken);
         }
         catch (PdfRenderValidationException error) { return Results.Problem(statusCode: 422, title: "draft_pdf_not_supported", detail: error.Message); }
@@ -67,7 +67,7 @@ public static partial class DocumentEndpoints
         var key = $"{tenantId:N}/{documentId:N}/draft-pdfs/{Guid.NewGuid():N}.pdf";
         await using var source = new MemoryStream(bytes, writable: false);
         var stored = await blobStore.SaveAsync(key, source, "application/pdf", DraftPdfPolicy.MaximumBytes, cancellationToken);
-        var version = new DocumentPdfVersion(document.Id, draft.Id, draft.RevisionNumber, document.TemplateRevisionId,
+        var version = new DocumentPdfVersion(document.Id, draft.Id, draft.RevisionNumber, draft.TemplateRevisionId,
             DraftPdfPolicy.RendererVersion, key, stored.SizeBytes, stored.Sha256, access.Actor!.UserId, timeProvider.GetUtcNow());
         try
         {

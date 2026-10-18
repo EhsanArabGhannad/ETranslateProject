@@ -64,15 +64,23 @@ public static partial class DocumentEndpoints
 
     private static async Task<IResult> GetAppliedTemplateAsync(
         Guid tenantId, Guid translationJobId, Guid documentId, HttpContext httpContext,
-        TenantAccessClient tenantAccessClient, DocumentsDbContext database, CancellationToken cancellationToken)
+        TenantAccessClient tenantAccessClient, DocumentsDbContext database, CancellationToken cancellationToken, int? draftRevisionNumber = null)
     {
         var access = await AuthorizeAsync(tenantId, httpContext, tenantAccessClient, false, cancellationToken);
         if (access.Error is not null) return access.Error;
-        var revision = await (
-            from document in database.TranslationDocuments.AsNoTracking()
-            join candidate in database.TemplateRevisions.AsNoTracking() on document.TemplateRevisionId equals candidate.Id
-            where document.Id == documentId && document.TenantId == tenantId && document.TranslationJobId == translationJobId
-            select candidate).SingleOrDefaultAsync(cancellationToken);
+        if (draftRevisionNumber is <= 0) return Results.BadRequest();
+        var document = await database.TranslationDocuments.AsNoTracking().SingleOrDefaultAsync(d => d.Id == documentId && d.TenantId == tenantId && d.TranslationJobId == translationJobId, cancellationToken);
+        if (document is null) return Results.NotFound();
+        Guid? templateRevisionId = document.TemplateRevisionId;
+        if (draftRevisionNumber.HasValue)
+        {
+            var draft = await database.DraftRevisions.AsNoTracking().SingleOrDefaultAsync(d => d.DocumentId == documentId && d.RevisionNumber == draftRevisionNumber, cancellationToken);
+            if (draft is null) return Results.NotFound();
+            templateRevisionId = draft.TemplateRevisionId;
+        }
+        var revision = await (from candidate in database.TemplateRevisions.AsNoTracking()
+            join parent in database.DocumentTemplates.AsNoTracking() on candidate.TemplateId equals parent.Id
+            where candidate.Id == templateRevisionId && parent.TenantId == tenantId select candidate).SingleOrDefaultAsync(cancellationToken);
         return revision is null ? Results.NotFound() : Results.Ok(new DocumentTemplateRevisionResponse(
             revision.Id, revision.TemplateId, revision.RevisionNumber, revision.EditorContentJson,
             revision.HeaderContentJson, revision.FooterContentJson, revision.PageLayoutJson,

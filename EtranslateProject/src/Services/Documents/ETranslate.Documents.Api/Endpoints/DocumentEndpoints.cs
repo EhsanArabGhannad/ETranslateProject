@@ -22,6 +22,7 @@ public static partial class DocumentEndpoints
         group.MapPost("/", CreateDocumentAsync);
         group.MapGet("/", GetDocumentAsync);
         group.MapPost("/{documentId:guid}/template", ApplyTemplateAsync);
+        group.MapPost("/{documentId:guid}/template-change", ChangeTemplateAsync);
         group.MapGet("/{documentId:guid}/template", GetAppliedTemplateAsync);
         group.MapPost("/{documentId:guid}/draft-revisions", CreateDraftRevisionAsync);
         group.MapGet("/{documentId:guid}/draft-revisions", GetDraftRevisionsAsync);
@@ -611,7 +612,7 @@ public static partial class DocumentEndpoints
             revision.EditorContentJson,
             revision.PlainText,
             revision.CreatedByUserId,
-            revision.CreatedAtUtc);
+            revision.CreatedAtUtc, revision.TemplateRevisionId);
 
     private static SourceFileResponse ToResponse(SourceFile file) =>
         new(
@@ -657,7 +658,7 @@ public sealed record DocumentDraftRevisionResponse(
     string EditorContentJson,
     string? PlainText,
     Guid CreatedByUserId,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc, Guid? TemplateRevisionId = null);
 
 public sealed record SourceFileResponse(
     Guid Id,

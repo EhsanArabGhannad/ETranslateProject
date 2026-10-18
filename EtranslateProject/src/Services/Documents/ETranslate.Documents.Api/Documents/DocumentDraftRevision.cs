@@ -12,7 +12,7 @@ public sealed class DocumentDraftRevision
         string editorContentJson,
         string? plainText,
         Guid createdByUserId,
-        DateTimeOffset createdAtUtc)
+        DateTimeOffset createdAtUtc, Guid? templateRevisionId = null)
     {
         Id = Guid.NewGuid();
         DocumentId = documentId;
@@ -21,11 +21,13 @@ public sealed class DocumentDraftRevision
         PlainText = plainText;
         CreatedByUserId = createdByUserId;
         CreatedAtUtc = createdAtUtc;
+        TemplateRevisionId = templateRevisionId;
     }
 
     public Guid Id { get; private init; }
     public Guid DocumentId { get; private init; }
     public int RevisionNumber { get; private init; }
+    public Guid? TemplateRevisionId { get; private init; }
     public string EditorContentJson { get; private init; } = string.Empty;
     public string? PlainText { get; private init; }
     public Guid CreatedByUserId { get; private init; }

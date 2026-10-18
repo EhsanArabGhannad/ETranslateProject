@@ -56,6 +56,7 @@ public sealed class DocumentsDbContext(
             entity.Property(revision => revision.EditorContentJson).HasColumnType("nvarchar(max)").IsRequired();
             entity.Property(revision => revision.PlainText).HasColumnType("nvarchar(max)");
             entity.HasIndex(revision => new { revision.DocumentId, revision.RevisionNumber }).IsUnique();
+            entity.HasOne<DocumentTemplateRevision>().WithMany().HasForeignKey(revision => revision.TemplateRevisionId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<SourceFile>(entity =>
