@@ -40,6 +40,7 @@ if (form && workspace) {
                 const mark = original.watermark ? JSON.parse(original.watermark) : {};
                 mark.text = find('watermark').value; find('template-watermark').value = JSON.stringify(mark);
             }
+            if (editable('layout')) find('template-layout').value = JSON.stringify({ footerPlacement: find('footer-placement').value });
             render();
             const page = find('template-preview-paper');
             const sizes = { A4: [210, 297], A5: [148, 210], Letter: [215.9, 279.4], Legal: [215.9, 355.6] };

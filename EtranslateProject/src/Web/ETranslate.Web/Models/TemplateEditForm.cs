@@ -17,6 +17,7 @@ public sealed class TemplateEditForm
     [StringLength(100)] public string? Watermark { get; set; }
     public string PageSize { get; set; } = "A4";
     public string Orientation { get; set; } = "Portrait";
+    public string FooterPlacement { get; set; } = "AllPages";
     public decimal MarginTop { get; set; } = 25;
     public decimal MarginRight { get; set; } = 20;
     public decimal MarginBottom { get; set; } = 20;
@@ -27,7 +28,7 @@ public sealed class TemplateEditForm
     [StringLength(30000)] public string? FooterLineAlignmentsJson { get; set; }
     public string? ImageAlignment { get; set; }
     public string? ImageLayout { get; set; }
-    public DocumentPageLayout Layout => new(PageSize, Orientation, MarginTop, MarginRight, MarginBottom, MarginLeft);
+    public DocumentPageLayout Layout => new(PageSize, Orientation, MarginTop, MarginRight, MarginBottom, MarginLeft) { FooterPlacement = FooterPlacement };
 }
 
 // Only project truly plain parts. Never turn rich/unknown content into editable plain text.
@@ -64,7 +65,7 @@ public sealed class TemplateProjection
             if (aligns.Length == 1) form.ImageAlignment = aligns[0];
         }
         var layoutValid = DocumentPageLayout.TryParse(revision?.PageLayoutJson, out var layout);
-        if (layoutValid) { form.PageSize = layout!.PageSize; form.Orientation = layout.Orientation; form.MarginTop = layout.Top; form.MarginRight = layout.Right; form.MarginBottom = layout.Bottom; form.MarginLeft = layout.Left; }
+        if (layoutValid) { form.PageSize = layout!.PageSize; form.Orientation = layout.Orientation; form.FooterPlacement = layout.FooterPlacement; form.MarginTop = layout.Top; form.MarginRight = layout.Right; form.MarginBottom = layout.Bottom; form.MarginLeft = layout.Left; }
         var watermarkValid = TryWatermark(revision?.WatermarkJson, out var watermark);
         form.Watermark = watermark;
         return new() { HeaderEditable = headerPlain is not null, FooterEditable = footerPlain is not null, BodyEditable = bodyPlain is not null,

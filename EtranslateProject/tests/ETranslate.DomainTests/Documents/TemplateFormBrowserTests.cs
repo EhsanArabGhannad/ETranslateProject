@@ -32,6 +32,10 @@ public sealed class TemplateFormBrowserTests
         const string initialHeader = "Örnek Translation Office\nنمونهٔ سربرگ فارسی";
         await page.Locator("#template-name").FillAsync(name); await page.Locator("#header-text").FillAsync(initialHeader);
         await page.Locator("#footer-text").FillAsync("Browser footer"); await page.Locator("#starter").FillAsync("Browser starter");
+        await page.Locator("#footer-placement").SelectOptionAsync("LastPage");
+        await page.Locator("#preview-page-role").SelectOptionAsync("Earlier");
+        Assert.True(await page.Locator("#preview-footer").IsHiddenAsync());
+        await page.Locator("#preview-page-role").SelectOptionAsync("Last"); Assert.True(await page.Locator("#preview-footer").IsVisibleAsync());
         var pngData = await page.EvaluateAsync<string>("""
             () => { const c = document.createElement('canvas'); c.width = 900; c.height = 100; const g=c.getContext('2d');
                 g.fillStyle='#167064'; g.fillRect(0,0,900,100); g.fillStyle='#fff'; g.font='bold 36px sans-serif';
@@ -59,13 +63,14 @@ public sealed class TemplateFormBrowserTests
         await page.Locator("#image-layout").SelectOptionAsync("banner");
         await page.WaitForFunctionAsync("document.querySelector('#preview-header img').getBoundingClientRect().width > document.querySelector('#preview-header').getBoundingClientRect().width * .98");
         await page.Locator("#template-save").ClickAsync();
-        try { await page.WaitForURLAsync(url => url.Contains("templateId="), new() { Timeout = 10000, WaitUntil = WaitUntilState.DOMContentLoaded }); }
+        try { await page.WaitForFunctionAsync("document.querySelector('input[name=\"Form.TemplateId\"]')?.value && document.querySelector('input[name=\"Form.ExpectedRevision\"]')?.value === '2'", null, new() { Timeout = 15000 }); }
         catch (TimeoutException) { Assert.Fail($"Save did not redirect. URL: {page.Url}; page: {await page.Locator("body").InnerTextAsync()}"); }
         var id = await page.Locator("input[name='Form.TemplateId']").InputValueAsync(); Assert.True(Guid.TryParse(id, out _));
         Assert.Equal("2", await page.Locator("input[name='Form.ExpectedRevision']").InputValueAsync());
         Assert.Equal(name, await page.Locator("#template-name").InputValueAsync());
         Assert.True(await page.Locator("#template-name").EvaluateAsync<bool>("element => element.readOnly"));
         Assert.Equal(initialHeader, await page.Locator("#header-text").InputValueAsync());
+        Assert.Equal("LastPage", await page.Locator("#footer-placement").InputValueAsync());
         Assert.Equal("[\"center\",\"right\"]", await page.Locator("#header-alignments").InputValueAsync());
         Assert.Single(await page.Locator(".template-images img").AllAsync());
         const string unsavedHeader = "Unsaved text must survive cancelled selection\nنمونهٔ سربرگ فارسی";
@@ -77,6 +82,7 @@ public sealed class TemplateFormBrowserTests
         await page.Locator("#header-text").FillAsync(updatedHeader); await page.Locator("#template-save").ClickAsync();
         await page.WaitForFunctionAsync("document.querySelector('input[name=\"Form.ExpectedRevision\"]').value === '3'");
         await page.ReloadAsync(); Assert.Equal(updatedHeader, await page.Locator("#header-text").InputValueAsync());
+        Assert.Equal("LastPage", await page.Locator("#footer-placement").InputValueAsync());
         await page.Locator("#template-picker").SelectOptionAsync("");
         await page.WaitForFunctionAsync("document.querySelector('input[name=\"Form.TemplateId\"]').value === ''");
         await page.Locator("#template-picker").SelectOptionAsync(id);
@@ -94,6 +100,18 @@ public sealed class TemplateFormBrowserTests
             new Dictionary<Guid, PdfImage> { [assetId] = new("image/png", imageBytes) }), CancellationToken.None);
         using (var stream = new MemoryStream(pdf)) using (var doc = PdfReader.Open(stream, PdfDocumentOpenMode.Import)) Assert.True(doc.PageCount >= 2);
         await File.WriteAllBytesAsync(Path.Combine(output, "template-presentation-qa.pdf"), pdf);
+        var lastInput = new DraftPdfInput(Guid.NewGuid(), 1, Guid.NewGuid(), body, headerJson, footerJson,
+            (DocumentPageLayout.Default with { FooterPlacement = "LastPage" }).ToJson(), null, new Dictionary<Guid, PdfImage> { [assetId] = new("image/png", imageBytes) });
+        var lastPdf = await renderer.RenderAsync(lastInput, CancellationToken.None);
+        using (var allStream = new MemoryStream(pdf)) using (var lastStream = new MemoryStream(lastPdf))
+        using (var allDoc = PdfReader.Open(allStream, PdfDocumentOpenMode.Import)) using (var lastDoc = PdfReader.Open(lastStream, PdfDocumentOpenMode.Import))
+            Assert.Equal(allDoc.PageCount, lastDoc.PageCount);
+        await File.WriteAllBytesAsync(Path.Combine(output, "template-footer-last-qa.pdf"), lastPdf);
+        var single = await renderer.RenderAsync(lastInput with { BodyJson = DocumentText.FromPlainText("Single page unsigned sample") }, CancellationToken.None);
+        using (var singleStream = new MemoryStream(single)) using (var singleDoc = PdfReader.Open(singleStream, PdfDocumentOpenMode.Import)) Assert.Equal(1, singleDoc.PageCount);
+        await File.WriteAllBytesAsync(Path.Combine(output, "template-footer-single-qa.pdf"), single);
+        await File.WriteAllBytesAsync(Path.Combine(output, "template-footer-only-qa.pdf"), await renderer.RenderAsync(lastInput with { HeaderJson = null }, CancellationToken.None));
+        await File.WriteAllBytesAsync(Path.Combine(output, "template-footer-empty-qa.pdf"), await renderer.RenderAsync(lastInput with { FooterJson = null }, CancellationToken.None));
         await page.ScreenshotAsync(new() { Path = Path.Combine(output, "template-edit-desktop.png"), FullPage = true });
         await page.SetViewportSizeAsync(390, 844);
         await page.ScreenshotAsync(new() { Path = Path.Combine(output, "template-edit-mobile.png"), FullPage = true });

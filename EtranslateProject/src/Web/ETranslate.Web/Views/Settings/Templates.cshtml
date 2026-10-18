@@ -38,6 +38,10 @@ else {
                 <label for="footer-text">متن پابرگ</label><textarea asp-for="Form.Footer" id="footer-text" rows="2" maxlength="2000" readonly="@(!Model.Projection.FooterEditable)"></textarea>
                 <details><summary>تراز مستقل خط‌های پابرگ</summary><div id="footer-line-controls" class="template-line-controls"></div></details>
                 @if (!Model.Projection.FooterEditable) { <p class="notice">پابرگ ساختار پیچیده دارد؛ نسخهٔ اصلی آن حفظ می‌شود.</p> }
+                <fieldset disabled="@(!Model.Projection.LayoutEditable)" class="subscription-lock">
+                    <label for="footer-placement">نمایش پابرگ در PDF</label><select asp-for="Form.FooterPlacement" id="footer-placement"><option value="AllPages">همهٔ صفحات</option><option value="LastPage">فقط صفحهٔ آخر</option></select>
+                </fieldset>
+                <p class="muted">در حالت صفحهٔ آخر هم فضای پابرگ در تمام صفحات محفوظ است. شمارهٔ صفحه و هشدار پیش‌نویس جدا هستند و در همهٔ صفحات می‌مانند. تغییر تنظیمات فقط در نسخهٔ جدید قالب ثبت می‌شود.</p>
                 <label for="watermark">واترمارک</label><input asp-for="Form.Watermark" id="watermark" maxlength="100" readonly="@(!Model.Projection.WatermarkEditable)" />
                 @if (!Model.Projection.WatermarkEditable) { <p class="notice">تنظیمات ناشناختهٔ واترمارک بدون تغییر حفظ می‌شود.</p> }
                 <details class="page-layout-fields"><summary>تنظیمات صفحه</summary>
@@ -72,11 +76,13 @@ else {
         data-body-editable="@Model.Projection.BodyEditable.ToString().ToLowerInvariant()" data-watermark-editable="@Model.Projection.WatermarkEditable.ToString().ToLowerInvariant()"
         data-layout-editable="@Model.Projection.LayoutEditable.ToString().ToLowerInvariant()" data-can-save="@Model.CanSave.ToString().ToLowerInvariant()">
         <h2>پیش‌نمایش زندهٔ قالب</h2><p id="template-preview-size" class="muted"></p>
-        <p class="notice">این نمایش ذخیره نمی‌کند و جای PDF آزمایشی را نمی‌گیرد. فونت، ارتفاع متن، شکست صفحه و محدودیت ارتفاع سربرگ/پابرگ در خروجی واقعی بررسی می‌شوند. پابرگ فعلاً در همهٔ صفحات است.</p>
+        <p class="notice">این نمایش ذخیره نمی‌کند و جای PDF آزمایشی را نمی‌گیرد. فونت، ارتفاع متن، شکست صفحه و محدودیت ارتفاع سربرگ/پابرگ در خروجی واقعی بررسی می‌شوند.</p>
+        <label for="preview-page-role">نمونهٔ فرضی پیش‌نمایش</label><select id="preview-page-role"><option value="Last">صفحهٔ آخر (یا سند تک‌صفحه‌ای)</option><option value="Earlier">یکی از صفحات قبل از آخر</option></select>
         <p id="preview-notice" role="status"></p>
         <div class="template-preview-viewport"><div class="paper template-preview-paper" id="template-preview-paper" dir="ltr"><header class="paper-header" id="preview-header"></header><div class="paper-body" id="preview-body"></div><footer class="paper-footer" id="preview-footer"></footer><div class="watermark" id="preview-watermark"></div></div></div>
         <textarea id="template-header" hidden>@Model.Selected?.Revision.HeaderContentJson</textarea><textarea id="template-footer" hidden>@Model.Selected?.Revision.FooterContentJson</textarea>
         <textarea id="document-json" hidden>@(Model.Selected?.Revision.EditorContentJson ?? ETranslate.Web.Models.DocumentText.Empty)</textarea><textarea id="template-watermark" hidden>@Model.Selected?.Revision.WatermarkJson</textarea>
+        <textarea id="template-layout" hidden>@Model.Selected?.Revision.PageLayoutJson</textarea>
     </section>
 }
 @section Scripts { <script type="module" src="~/js/generated/template-preview.js" asp-append-version="true"></script> }

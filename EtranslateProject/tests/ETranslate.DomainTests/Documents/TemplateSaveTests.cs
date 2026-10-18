@@ -81,6 +81,12 @@ public sealed class TemplateSaveTests
         var f = new Fixture(); var form = Form(false); form.HeaderLineAlignmentsJson = lines; form.ImageAlignment = align; form.ImageLayout = layout;
         Assert.IsType<ViewResult>(await f.Controller.SaveTemplate(form, File())); Assert.Equal(400, f.Context.Response.StatusCode); Assert.Empty(f.Writes);
     }
+    [Theory] [InlineData("OddPages")] [InlineData("")]
+    public async Task Invalid_footer_policy_never_creates_or_uploads(string policy)
+    {
+        var f = new Fixture(); var form = Form(false); form.FooterPlacement = policy;
+        Assert.IsType<ViewResult>(await f.Controller.SaveTemplate(form, File())); Assert.Equal(400, f.Context.Response.StatusCode); Assert.Empty(f.Writes);
+    }
 
     private static IFormFile File() => new FormFile(new MemoryStream([137,80,78,71]), 0, 4, "logo", "logo.png") { Headers = new HeaderDictionary(), ContentType = "image/png" };
     private sealed class Fixture

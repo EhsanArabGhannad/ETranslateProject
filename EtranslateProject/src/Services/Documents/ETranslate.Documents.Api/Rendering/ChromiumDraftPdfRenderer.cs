@@ -107,7 +107,19 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
                     Margin = new() { Top = "0", Right = "0", Bottom = "0", Left = "0" },
                     PrintBackground = true, DisplayHeaderFooter = false, Tagged = false
                 }).WaitAsync(token);
-                bytes = ApplyLetterhead(bytes, letterhead, token);
+                byte[]? earlierLetterhead = null;
+                if (layout.FooterPlacement == "LastPage" && metrics.FooterMm > 0 && metrics.HeaderMm > 0)
+                {
+                    // Same measured geometry and reserved space, but no custom footer on earlier pages.
+                    await page.EvaluateAsync<bool>("() => { document.querySelector('.letterfoot').style.display = 'none'; return true; }").WaitAsync(token);
+                    earlierLetterhead = await page.PdfAsync(new()
+                    {
+                        Width = $"{DraftPdfHtml.Number(layout.DimensionsMm.Width)}mm", Height = $"{DraftPdfHtml.Number(layout.DimensionsMm.Height)}mm",
+                        Margin = new() { Top = "0", Right = "0", Bottom = "0", Left = "0" },
+                        PrintBackground = true, DisplayHeaderFooter = false, Tagged = false
+                    }).WaitAsync(token);
+                }
+                bytes = ApplyLetterhead(bytes, letterhead, earlierLetterhead, layout.FooterPlacement == "LastPage" && metrics.FooterMm > 0, token);
             }
             else ValidatePageCount(bytes);
             if (bytes.LongLength > DraftPdfPolicy.MaximumBytes) throw new PdfRenderValidationException("Final PDF exceeds the size limit.");
@@ -119,7 +131,7 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
         finally { _slot.Release(); }
     }
     private sealed record PrintMetrics(decimal HeaderMm, decimal FooterMm, decimal BodyMm, decimal MaximumTableRowMm, bool OversizedImage);
-    private static byte[] ApplyLetterhead(byte[] body, byte[] letterhead, CancellationToken token)
+    private static byte[] ApplyLetterhead(byte[] body, byte[] letterhead, byte[]? earlierLetterhead, bool lastOnly, CancellationToken token)
     {
         using var bodyStream = new MemoryStream(body, writable:false);
         using var source = PdfReader.Open(bodyStream, PdfDocumentOpenMode.Import);
@@ -132,6 +144,9 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
         using var letterheadStream = new MemoryStream(letterhead, writable:false);
         using var form = XPdfForm.FromStream(letterheadStream);
         if (form.PageCount != 1) throw new PdfRenderValidationException("Letterhead must fit one page.");
+        using var earlierStream = earlierLetterhead is null ? null : new MemoryStream(earlierLetterhead, writable:false);
+        using var earlierForm = earlierStream is null ? null : XPdfForm.FromStream(earlierStream);
+        if (earlierForm is not null && earlierForm.PageCount != 1) throw new PdfRenderValidationException("Letterhead must fit one page.");
         for (var index = 0; index < source.PageCount; index++)
         {
             token.ThrowIfCancellationRequested();
@@ -142,7 +157,8 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
             // Each form has its own graphics state: body clipping/background cannot affect the letterhead.
             using var graphics = XGraphics.FromPdfPage(pdfPage);
             graphics.DrawImage(bodyForm, 0, 0, pdfPage.Width.Point, pdfPage.Height.Point);
-            graphics.DrawImage(form, 0, 0, pdfPage.Width.Point, pdfPage.Height.Point);
+            if (!lastOnly || index == source.PageCount - 1) graphics.DrawImage(form, 0, 0, pdfPage.Width.Point, pdfPage.Height.Point);
+            else if (earlierForm is not null) graphics.DrawImage(earlierForm, 0, 0, pdfPage.Width.Point, pdfPage.Height.Point);
         }
         using var output = new MemoryStream(); document.Save(output, closeStream:false); return output.ToArray();
     }

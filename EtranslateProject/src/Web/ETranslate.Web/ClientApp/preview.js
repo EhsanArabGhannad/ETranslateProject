@@ -1,4 +1,5 @@
 import { guid, isRichDocument } from './document-schema.js';
+import { footerPolicy, showFooter } from './footer-policy.js';
 
 export function assetUrl(workspace, assetId) {
     const { tenantId, templateId } = workspace.dataset;
@@ -57,7 +58,7 @@ export function createPreview(workspace, resolveImage = id => assetUrl(workspace
         }
         remaining = 20000; render(root, target);
     }
-    return function update() {
+    function update() {
         unsupported = false;
         try {
             region('preview-header', find('template-header').value);
@@ -66,6 +67,12 @@ export function createPreview(workspace, resolveImage = id => assetUrl(workspace
             const watermark = find('template-watermark').value;
             find('preview-watermark').textContent = watermark ? String(JSON.parse(watermark).text ?? '') : '';
             find('preview-notice').textContent = unsupported ? 'بعضی عناصر در پیش‌نمایش پشتیبانی نمی‌شوند؛ ساختار اصلی حفظ شده است.' : '';
+            const policy = footerPolicy(find('template-layout')?.value);
+            find('preview-footer').hidden = !showFooter(policy, find('preview-page-role')?.value);
+            if (policy === 'LastPage') find('preview-notice').textContent += ' پابرگ فقط در آخرین صفحهٔ ترجمه است؛ این نمایش یک نمونهٔ فرضی است، نه صفحه‌بندی واقعی. فضای پابرگ در صفحات قبلی نیز محفوظ می‌ماند.';
+            if (policy === null) find('preview-notice').textContent += ' تنظیمات پابرگ ناشناخته است؛ محل نمایش را از این پیش‌نمایش نتیجه نگیرید.';
         } catch { find('preview-notice').textContent = 'ساختار JSON معتبر نیست؛ پیش‌نمایش کامل نمی‌شود.'; }
-    };
+    }
+    find('preview-page-role')?.addEventListener('change', update);
+    return update;
 }
