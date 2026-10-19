@@ -1,11 +1,11 @@
 @model AppNavigation
-<nav class="app-navigation" aria-label="منوی اصلی">
-    <a asp-controller="Workspace" asp-action="Index" asp-route-tenantId="@Model.TenantId" class="@(Model.Section == "jobs" ? "current" : "")" aria-current="@(Model.Section == "jobs" ? "page" : null)">پرونده‌ها</a>
-    <a asp-controller="Workspace" asp-action="Index" asp-route-tenantId="@Model.TenantId" asp-route-assignedToMe="true" class="@(Model.Section == "tasks" ? "current" : "")" aria-current="@(Model.Section == "tasks" ? "page" : null)">کارهای من</a>
+<nav class="app-navigation" aria-label="@UiText.Get("AnaMenu")">
+    <a asp-controller="Workspace" asp-action="Index" asp-route-tenantId="@Model.TenantId" class="@(Model.Section == "jobs" ? "current" : "")" aria-current="@(Model.Section == "jobs" ? "page" : null)">@UiText.Get("Dosyalar")</a>
+    <a asp-controller="Workspace" asp-action="Index" asp-route-tenantId="@Model.TenantId" asp-route-assignedToMe="true" class="@(Model.Section == "tasks" ? "current" : "")" aria-current="@(Model.Section == "tasks" ? "page" : null)">@UiText.Get("Islerim")</a>
     @if (Model.TenantId.HasValue) {
-        @if (Model.CanManageTeam) { <a asp-controller="Team" asp-action="Index" asp-route-tenantId="@Model.TenantId" class="@(Model.Section == "team" ? "current" : "")" aria-current="@(Model.Section == "team" ? "page" : null)">اعضای تیم</a> }
-        <a asp-controller="Subscription" asp-action="Index" asp-route-tenantId="@Model.TenantId" class="@(Model.Section == "subscription" ? "current" : "")" aria-current="@(Model.Section == "subscription" ? "page" : null)">اشتراک</a>
+        @if (Model.CanManageTeam) { <a asp-controller="Team" asp-action="Index" asp-route-tenantId="@Model.TenantId" class="@(Model.Section == "team" ? "current" : "")" aria-current="@(Model.Section == "team" ? "page" : null)">@UiText.Get("EkipUyeleri")</a> }
+        <a asp-controller="Subscription" asp-action="Index" asp-route-tenantId="@Model.TenantId" class="@(Model.Section == "subscription" ? "current" : "")" aria-current="@(Model.Section == "subscription" ? "page" : null)">@UiText.Get("Abonelik")</a>
     }
-    <a asp-controller="Settings" asp-action="Index" asp-route-tenantId="@Model.TenantId" class="@(Model.Section == "settings" ? "current" : "")" aria-current="@(Model.Section == "settings" ? "page" : null)">تنظیمات</a>
-    @if (!string.IsNullOrWhiteSpace(Model.TenantName)) { <span class="navigation-tenant">فضای کاری: @Model.TenantName</span> }
+    <a asp-controller="Settings" asp-action="Index" asp-route-tenantId="@Model.TenantId" class="@(Model.Section == "settings" ? "current" : "")" aria-current="@(Model.Section == "settings" ? "page" : null)">@UiText.Get("Ayarlar")</a>
+    @if (!string.IsNullOrWhiteSpace(Model.TenantName)) { <span class="navigation-tenant">Çalışma alanı: @Model.TenantName</span> }
 </nav>

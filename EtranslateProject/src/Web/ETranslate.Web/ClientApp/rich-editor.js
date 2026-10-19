@@ -1,3 +1,4 @@
+import ui from '../Resources/interface.tr.json' with { type: 'json' };
 import { Editor, Extension, Node } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { TableKit } from '@tiptap/extension-table';
@@ -9,7 +10,7 @@ export function startRichEditor(workspace, onChanged, preview) {
     const json = document.getElementById('document-json');
     const status = document.getElementById('editor-format-status');
     if (workspace.dataset.richCompatible !== 'true') {
-        status.textContent = 'این ساختار خارج از امکانات ویرایشگر است؛ JSON اصلی بدون تبدیل حفظ شده است.';
+        status.textContent = ui.BuYapiDuzenleyicininKapsamiDisindadirOzgunJSON;
         return null;
     }
     let editor = null, initializing = true;
@@ -25,8 +26,8 @@ export function startRichEditor(workspace, onChanged, preview) {
             parseHTML() { return [{ tag: 'img[data-asset-id]', getAttrs: element => guid.test(element.getAttribute('data-asset-id') ?? '') ? {} : false }]; },
             renderHTML({ node }) {
                 const url = assetUrl(workspace, node.attrs.assetId);
-                return url ? ['img', { src: url, alt: 'تصویر قالب', 'data-asset-id': node.attrs.assetId }]
-                    : ['span', { class: 'missing-asset' }, '[تصویر قالب در دسترس نیست]'];
+                return url ? ['img', { src: url, alt: ui.SablonGorseli, 'data-asset-id': node.attrs.assetId }]
+                    : ['span', { class: 'missing-asset' }, ui.SablonGorseliKullanilamiyor];
             }
         });
         const editable = workspace.dataset.editable === 'true';
@@ -35,7 +36,7 @@ export function startRichEditor(workspace, onChanged, preview) {
             addProseMirrorPlugins() {
                 return [new Plugin({ filterTransaction: transaction => {
                     if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON())) return true;
-                    status.textContent = 'این تغییر خارج از ساختار مجاز است. جدول باید ساده، بدون ادغام و حداکثر ۵۰ سطر و ۱۲ ستون باشد؛ متن قبلی حفظ شد.';
+                    status.textContent = ui.BuDegisiklikIzinVerilenYapininDisindadirTablo;
                     return false;
                 } })];
             }
@@ -46,7 +47,7 @@ export function startRichEditor(workspace, onChanged, preview) {
                 dropcursor: false, trailingNode: false }), ManagedImage,
                 TableKit.configure({ table: { resizable: false, View: null } }), PreservationPolicy],
             content: { type: 'doc', content: [{ type: 'paragraph' }] },
-            editorProps: { attributes: { role: 'textbox', 'aria-label': 'متن ترجمه', 'aria-multiline': 'true', spellcheck: 'false' } },
+            editorProps: { attributes: { role: 'textbox', 'aria-label': ui.CeviriMetni, 'aria-multiline': 'true', spellcheck: 'false' } },
             onUpdate: ({ editor }) => {
                 if (initializing) return;
                 json.value = JSON.stringify(editor.getJSON());
@@ -108,11 +109,11 @@ export function startRichEditor(workspace, onChanged, preview) {
         json.hidden = true;
         document.querySelector('#draft-form input[name=mode]').value = 'rich';
         document.getElementById('rich-region').hidden = false;
-        status.textContent = editable ? 'قالب‌بندی متن همراه هر نسخه ذخیره می‌شود.' : 'نسخه‌ی خواندنی؛ ویرایش غیرفعال است.';
+        status.textContent = editable ? ui.MetinBicimlendirmesiHerSurumleBirlikteKaydedilir : ui.SaltOkunurSurumDuzenlemeKapalidir;
         return editor;
     } catch {
         editor?.destroy();
-        status.textContent = 'ساختار اصلی حفظ شده است؛ ویرایشگر نتوانست آن را باز کند. از فیلد متنی یا JSON موجود استفاده کنید.';
+        status.textContent = ui.OzgunYapiKorunduDuzenleyiciAcamadiMetinAlanini;
         return null;
     }
 }

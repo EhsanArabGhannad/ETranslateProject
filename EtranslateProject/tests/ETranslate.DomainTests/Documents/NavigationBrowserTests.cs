@@ -33,12 +33,12 @@ public sealed class NavigationBrowserTests
         Assert.Equal(5, await menu.Locator("a").CountAsync());
         foreach (var anchor in await menu.Locator("a").AllAsync()) Assert.Contains(tenant.ToString(), await anchor.GetAttributeAsync("href"));
         Assert.Equal(0, await page.Locator("#template-name, form.logo-form").CountAsync());
-        await menu.GetByRole(AriaRole.Link, new() { Name = "تنظیمات", Exact = true }).ClickAsync();
+        await menu.GetByRole(AriaRole.Link, new() { Name = "Ayarlar", Exact = true }).ClickAsync();
         Assert.Contains($"tenantId={tenant}", page.Url);
-        await page.GetByRole(AriaRole.Link, new() { Name = "باز کردن مدیریت قالب‌ها ←", Exact = true }).ClickAsync();
+        await page.GetByRole(AriaRole.Link, new() { Name = "Şablon yönetimini aç →", Exact = true }).ClickAsync();
         Assert.True(await page.Locator("#template-name").IsVisibleAsync());
         Assert.Contains($"tenantId={tenant}", page.Url);
-        Assert.Equal("page", await menu.GetByRole(AriaRole.Link, new() { Name = "تنظیمات", Exact = true }).GetAttributeAsync("aria-current"));
+        Assert.Equal("page", await menu.GetByRole(AriaRole.Link, new() { Name = "Ayarlar", Exact = true }).GetAttributeAsync("aria-current"));
         // Visual/overflow QA uses this disposable local browser, never the user's browser/profile.
         var output = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../..", "tmp", "navigation-qa"));
         // Caller supplies a workspace path for both normal and isolated build layouts.
@@ -48,7 +48,7 @@ public sealed class NavigationBrowserTests
         await page.SetViewportSizeAsync(390, 844);
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= window.innerWidth + 1"));
         await page.ScreenshotAsync(new() { Path = Path.Combine(output, "templates-mobile.png"), FullPage = true });
-        await menu.GetByRole(AriaRole.Link, new() { Name = "کارهای من", Exact = true }).ClickAsync();
+        await menu.GetByRole(AriaRole.Link, new() { Name = "İşlerim", Exact = true }).ClickAsync();
         Assert.Contains("assignedToMe=true", page.Url); Assert.Contains(tenant.ToString(), page.Url);
         await page.GotoAsync(new Uri(origin, $"/Settings/Templates?tenantId={other}").ToString());
         foreach (var anchor in await menu.Locator("a").AllAsync()) Assert.Contains(other.ToString(), await anchor.GetAttributeAsync("href"));

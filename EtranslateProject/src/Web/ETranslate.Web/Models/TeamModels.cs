@@ -16,9 +16,9 @@ public sealed class TeamPageView
     public string Email { get; set; } = "";
     public string Role { get; set; } = "Translator";
     public static string RoleLabel(string? role) => role switch
-    { "Owner" => "مالک", "Administrator" => "مدیر", "Translator" => "مترجم", "Reviewer" => "ناظر · فقط خواندن", _ => "—" };
+    { "Owner" => UiText.Get("AlanSahibi"), "Administrator" => UiText.Get("Yonetici"), "Translator" => UiText.Get("Cevirmen"), "Reviewer" => UiText.Get("GozlemciSaltOkunur"), _ => "—" };
     public static string ActionLabel(string action) => action switch
-    { "Invited" => "صدور دعوت", "InvitationAccepted" => "پذیرش دعوت", "InvitationCancelled" => "لغو دعوت", "RoleChanged" => "تغییر نقش", "MemberActivated" => "فعال‌سازی عضو", "MemberDeactivated" => "غیرفعال‌سازی عضو", _ => action };
+    { "Invited" => UiText.Get("DavetOlusturma"), "InvitationAccepted" => UiText.Get("DavetiKabulEt"), "InvitationCancelled" => UiText.Get("DavetiIptalEt"), "RoleChanged" => UiText.Get("RolDegisikligi"), "MemberActivated" => UiText.Get("UyeyiEtkinlestirme"), "MemberDeactivated" => UiText.Get("UyeyiDevreDisiBirakma"), _ => action };
 }
 public sealed record RecipientInvitationView(Guid Id, Guid TenantId, string TenantName, string Role, string Status, DateTimeOffset ExpiresAtUtc, bool CanAccept);
 public sealed class AcceptInvitationView

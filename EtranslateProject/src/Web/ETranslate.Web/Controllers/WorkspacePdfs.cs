@@ -19,15 +19,15 @@ public sealed partial class WorkspaceController
             var pdf = await api.PostAsync<PdfVersionView>("documents-pdf",
                 $"{DocumentsPath(tenantId, jobId)}/{document.Id}/draft-revisions/{revisionNumber}/pdfs");
             if (json) return Ok(new { pdf });
-            TempData["Notice"] = $"PDF پیش‌نویس نسخه‌ی {pdf.RevisionNumber} آماده شد؛ این فایل امضای معتبر ندارد.";
+            TempData["Notice"] = UiText.Format("DraftReady", pdf.RevisionNumber);
         }
         catch (BackendException error)
         {
             var message = error.IsSubscriptionError ? error.UserMessage : error.Status switch
             {
-                HttpStatusCode.UnprocessableEntity => "ساختار، چیدمان یا اندازه‌ی سند برای PDF پشتیبانی نمی‌شود؛ هیچ بخشی حذف یا ساده نشده است.",
-                HttpStatusCode.TooManyRequests => "موتور PDF در حال کار است؛ کمی بعد دوباره امتحان کنید.",
-                HttpStatusCode.ServiceUnavailable => "موتور PDF موقتاً در دسترس نیست؛ نصب موتور چاپ و وضعیت سرویس Documents را بررسی کنید.",
+                HttpStatusCode.UnprocessableEntity => UiText.Get("BelgeYapisiDuzeniVeyaBoyutuPDFIcin"),
+                HttpStatusCode.TooManyRequests => UiText.Get("PDFMotoruMesgulBirazSonraTekrarDeneyin"),
+                HttpStatusCode.ServiceUnavailable => UiText.Get("PDFMotoruGeciciOlarakKullanilamiyorYazdirmaMotorunun"),
                 _ => error.UserMessage
             };
             if (json) return StatusCode((int)error.Status, new { message });

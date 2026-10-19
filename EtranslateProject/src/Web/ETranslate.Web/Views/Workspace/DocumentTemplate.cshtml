@@ -1,17 +1,17 @@
 @model EditorView
-@{ ViewData["Title"] = "قالب پرونده"; var canChange = Model.CanWrite && Model.Review is { Locked: false, CanManage: true }; }
-<a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">باز کردن آخرین نسخه در تب جدا ←</a>
-<div class="page-heading"><div><h1>قالب پرونده</h1><p>@Model.Job.Title · نسخهٔ ذخیره‌شدهٔ @Model.ExpectedRevision</p></div></div>
+@{ ViewData["Title"] = UiText.Get("DosyaSablonu"); var canChange = Model.CanWrite && Model.Review is { Locked: false, CanManage: true }; }
+<a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">@UiText.Get("SonSurumuAyriSekmedeAc")</a>
+<div class="page-heading"><div><h1>@UiText.Get("DosyaSablonu")</h1><p>@Model.Job.Title · Kaydedilen sürüm: @Model.ExpectedRevision</p></div></div>
 <partial name="_SubscriptionWriteNotice" model="new SubscriptionWriteNotice(Model.TenantId, Model.WriteStatus)" />
-<section class="card"><h2>اتصال یا تغییر قالب با حفظ متن</h2>
-    <p>قالب فعلی: @(Model.Template is null ? "بدون قالب" : $"{Model.Templates.FirstOrDefault(t => t.Id == Model.Template.TemplateId)?.Name ?? "قالب انتخاب‌شده"} · نسخهٔ {Model.Template.RevisionNumber}")</p>
-    <p class="notice">ابتدا هر متن ذخیره‌نشده در ویرایشگر را ذخیره کنید، سپس این صفحه را تازه کنید. این عملیات فقط متنِ ذخیره‌شده را عیناً در نسخهٔ جدید نگه می‌دارد؛ متن اولیهٔ قالب جای ترجمه را نمی‌گیرد. تب قبلی بسته یا بازآوری نمی‌شود و پس از تغییر، نسخهٔ آن قدیمی خواهد بود.</p>
-    <p class="muted">PDFها، تاریخچه و نسخه‌های قبلی تغییر نمی‌کنند. تصاویر داخل متن باید به قالب مقصد تعلق داشته باشند؛ انتقال نامعتبر مسدود می‌شود، نه اینکه تصویر حذف شود. سربرگ، پابرگ و حاشیه‌ها از نسخهٔ انتخاب‌شدهٔ قالب می‌آیند. حذف کامل قالب در این مرحله ارائه نشده است.</p>
-    @if (!canChange) { <p class="notice">تغییر قالب در این وضعیت مجاز نیست؛ دسترسی نوشتن و اشتراک معتبر لازم است. برای پروندهٔ در انتظار بازبینی یا تأییدشده، ابتدا از مسیر موجود اصلاح/بازگشایی اقدام کنید.</p> }
+<section class="card"><h2>@UiText.Get("MetniKoruyarakSablonBaglaVeyaDegistir")</h2>
+    <p>Mevcut şablon: @(Model.Template is null ? UiText.Get("Sablonsuz") : $"{Model.Templates.FirstOrDefault(t => t.Id == Model.Template.TemplateId)?.Name ?? UiText.Get("SecilenSablon")} · Sürüm {Model.Template.RevisionNumber}")</p>
+    <p class="notice">@UiText.Get("OnceDuzenleyicidekiDegisiklikleriKaydedipBuSayfayiYenileyin")</p>
+    <p class="muted">@UiText.Get("OncekiPDFDosyalariGecmisVeSurumlerDegismez")</p>
+    @if (!canChange) { <p class="notice">@UiText.Get("BuDurumdaSablonDegistirilemezYazmaYetkisiVe")</p> }
     <form asp-action="ChangeDocumentTemplate" method="post" id="document-template-change-form">
         <input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="expectedRevision" value="@Model.ExpectedRevision" />
-        <fieldset disabled="@(!canChange)" class="subscription-lock"><label for="template-select">قالب مقصد (نسخهٔ فعلی هر قالب)</label>
-        <select id="template-select" name="templateId" required><option value="">انتخاب کنید</option>@foreach (var template in Model.Templates.Where(t => t.IsActive)) { <option value="@template.Id" data-revision="@template.CurrentRevision">@template.Name · نسخه @template.CurrentRevision</option> }</select>
-        <input type="hidden" id="template-revision" name="revisionNumber" /><button type="submit">ثبت قالب با ساخت نسخهٔ جدید</button></fieldset>
+        <fieldset disabled="@(!canChange)" class="subscription-lock"><label for="template-select">@UiText.Get("HedefSablonHerSablonunGuncelSurumu")</label>
+        <select id="template-select" name="templateId" required><option value="">@UiText.Get("Secin")</option>@foreach (var template in Model.Templates.Where(t => t.IsActive)) { <option value="@template.Id" data-revision="@template.CurrentRevision">@template.Name · Sürüm @template.CurrentRevision</option> }</select>
+        <input type="hidden" id="template-revision" name="revisionNumber" /><button type="submit">@UiText.Get("YeniSurumOlusturarakSablonuKaydet")</button></fieldset>
     </form>
 </section>

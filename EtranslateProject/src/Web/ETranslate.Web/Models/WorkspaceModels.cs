@@ -5,8 +5,11 @@ namespace ETranslate.Web.Models;
 
 public sealed class LoginInput
 {
-    [Required, EmailAddress] public string Email { get; set; } = "";
-    [Required, DataType(DataType.Password), StringLength(256, MinimumLength = 6)] public string Password { get; set; } = "";
+    [Required(ErrorMessageResourceType = typeof(UiValidation), ErrorMessageResourceName = nameof(UiValidation.EPostaZorunludur)), EmailAddress(ErrorMessageResourceType = typeof(UiValidation), ErrorMessageResourceName = nameof(UiValidation.GecerliBirEPostaAdresiGirin))]
+    public string Email { get; set; } = "";
+    [Required(ErrorMessageResourceType = typeof(UiValidation), ErrorMessageResourceName = nameof(UiValidation.SifreZorunludur)), DataType(DataType.Password),
+     StringLength(256, MinimumLength = 6, ErrorMessageResourceType = typeof(UiValidation), ErrorMessageResourceName = nameof(UiValidation.Sifre6256KarakterOlmalidir))]
+    public string Password { get; set; } = "";
 }
 public sealed record TokenResponse(string AccessToken, int ExpiresIn);
 public sealed record TenantView(Guid Id, string Name, string Type, string Role);
@@ -35,8 +38,8 @@ public sealed record ReviewStateView(string Status, int Round, Guid UserId, bool
     public bool Locked => Status is "AwaitingReview" or "Approved";
     public static string Label(string status) => status switch
     {
-        "AwaitingReview" => "در انتظار بازبینی", "Approved" => "تأیید داخلی · بدون امضا",
-        "ChangesRequested" => "نیازمند اصلاح", "Withdrawn" => "پس‌گرفته‌شده", "Reopened" => "بازگشایی برای اصلاح", _ => "پیش‌نویس"
+        "AwaitingReview" => UiText.Get("IncelemeBekliyor"), "Approved" => UiText.Get("IcOnayImzasiz"),
+        "ChangesRequested" => UiText.Get("DuzeltmeGerekli"), "Withdrawn" => UiText.Get("GeriCekildi"), "Reopened" => UiText.Get("DuzeltmeIcinYenidenAc"), _ => UiText.Get("Taslak")
     };
 }
 public sealed class WorkspaceView

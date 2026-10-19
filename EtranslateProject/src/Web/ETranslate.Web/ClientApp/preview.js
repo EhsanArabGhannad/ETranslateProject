@@ -1,3 +1,4 @@
+import ui from '../Resources/interface.tr.json' with { type: 'json' };
 import { guid, isRichDocument } from './document-schema.js';
 import { footerPolicy, showFooter } from './footer-policy.js';
 
@@ -24,11 +25,11 @@ export function createPreview(workspace, resolveImage = id => assetUrl(workspace
         }
         if (node.type === 'image') {
             const url = resolveImage(node.attrs?.assetId);
-            if (!url) { unsupported = true; parent.append(document.createTextNode('[تصویر در دسترس نیست]')); return; }
-            const image = document.createElement('img'); image.alt = 'تصویر قالب'; image.src = url;
+            if (!url) { unsupported = true; parent.append(document.createTextNode(ui.GorselKullanilamiyor)); return; }
+            const image = document.createElement('img'); image.alt = ui.SablonGorseli; image.src = url;
             if (node.attrs?.layout === 'banner') image.classList.add('template-banner');
             if (['left', 'center', 'right'].includes(node.attrs?.align)) image.classList.add(`image-${node.attrs.align}`);
-            image.addEventListener('error', () => image.replaceWith(document.createTextNode('[تصویر در دسترس نیست]')));
+            image.addEventListener('error', () => image.replaceWith(document.createTextNode(ui.GorselKullanilamiyor)));
             parent.append(image); return;
         }
         if (node.type === 'hardBreak') { parent.append(document.createElement('br')); return; }
@@ -53,7 +54,7 @@ export function createPreview(workspace, resolveImage = id => assetUrl(workspace
         const root = JSON.parse(source);
         if (id === 'preview-body' && !isRichDocument(root)) {
             unsupported = true;
-            target.append(document.createTextNode('[ساختار بدنه برای پیش‌نمایش پشتیبانی نمی‌شود؛ JSON اصلی حفظ شده است.]'));
+            target.append(document.createTextNode(ui.GovdeYapisiOnizlemeIcinDesteklenmiyorOzgunJSON));
             return;
         }
         remaining = 20000; render(root, target);
@@ -66,12 +67,12 @@ export function createPreview(workspace, resolveImage = id => assetUrl(workspace
             region('preview-footer', find('template-footer').value);
             const watermark = find('template-watermark').value;
             find('preview-watermark').textContent = watermark ? String(JSON.parse(watermark).text ?? '') : '';
-            find('preview-notice').textContent = unsupported ? 'بعضی عناصر در پیش‌نمایش پشتیبانی نمی‌شوند؛ ساختار اصلی حفظ شده است.' : '';
+            find('preview-notice').textContent = unsupported ? ui.BaziOgelerOnizlemedeDesteklenmiyorOzgunYapiKorundu : '';
             const policy = footerPolicy(find('template-layout')?.value);
             find('preview-footer').hidden = !showFooter(policy, find('preview-page-role')?.value);
-            if (policy === 'LastPage') find('preview-notice').textContent += ' پابرگ فقط در آخرین صفحهٔ ترجمه است؛ این نمایش یک نمونهٔ فرضی است، نه صفحه‌بندی واقعی. فضای پابرگ در صفحات قبلی نیز محفوظ می‌ماند.';
-            if (policy === null) find('preview-notice').textContent += ' تنظیمات پابرگ ناشناخته است؛ محل نمایش را از این پیش‌نمایش نتیجه نگیرید.';
-        } catch { find('preview-notice').textContent = 'ساختار JSON معتبر نیست؛ پیش‌نمایش کامل نمی‌شود.'; }
+            if (policy === 'LastPage') find('preview-notice').textContent += ui.AltbilgiYalnizcaCevirininSonSayfasindadirBuGorunum;
+            if (policy === null) find('preview-notice').textContent += ui.AltbilgiAyarlariBilinmiyorKonumunuBuOnizlemedenCikarmayin;
+        } catch { find('preview-notice').textContent = ui.JSONYapisiGecersizOnizlemeTamamlanamiyor; }
     }
     find('preview-page-role')?.addEventListener('change', update);
     return update;

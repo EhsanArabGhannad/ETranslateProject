@@ -30,8 +30,8 @@ public sealed record SubscriptionView(Guid TenantId, string? PlanCode, string St
     }
     public string StatusLabel => Status switch
     {
-        "Pending" => "در انتظار ایجاد اشتراک", "Trialing" => "دورهٔ آزمایشی فعال", "Active" => "فعال",
-        "PastDue" => "سررسید گذشته", "Canceled" => "لغوشده", "Expired" => "منقضی‌شده", _ => "نامشخص"
+        "Pending" => UiText.Get("AbonelikOlusturulmasiBekleniyor"), "Trialing" => UiText.Get("DenemeDonemiEtkin"), "Active" => UiText.Get("Etkin"),
+        "PastDue" => UiText.Get("OdemeGecikmis"), "Canceled" => UiText.Get("IptalEdildi"), "Expired" => UiText.Get("SuresiDoldu"), _ => UiText.Get("Bilinmiyor")
     };
     public static string IstanbulTime(DateTimeOffset value) => value.ToOffset(TimeSpan.FromHours(3)).ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
 }

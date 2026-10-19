@@ -57,7 +57,7 @@ public sealed class PurchaseOrderWebTests
             Assert.Equal("office-monthly", data.RootElement.GetProperty("planCode").GetString());
         });
         Assert.IsType<RedirectToActionResult>(await controller.Create(Tenant, "office-monthly", nonce)); Assert.True(seen);
-        Assert.Contains("هیچ پرداختی", (string)controller.TempData["Notice"]!);
+        Assert.Contains("ödeme yapılmadı", (string)controller.TempData["Notice"]!);
     }
 
     [Fact] public async Task Cancellation_checks_returned_scope_and_terminal_state()

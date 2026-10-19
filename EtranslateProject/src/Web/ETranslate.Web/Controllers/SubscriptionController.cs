@@ -37,12 +37,12 @@ public sealed class SubscriptionController(BackendApi api) : Controller
         catch (BackendException error) when (error.Status is HttpStatusCode.ServiceUnavailable or HttpStatusCode.BadGateway)
         {
             Response.StatusCode = (int)error.Status;
-            page.Error = "وضعیت اشتراک فعلاً قابل بررسی نیست. این خطا به‌معنای انقضا یا فعال بودن اشتراک نیست؛ کمی بعد دوباره بررسی کنید.";
+            page.Error = UiText.Get("AbonelikDurumuSuAnKontrolEdilemiyorBu");
         }
         catch (JsonException)
         {
             Response.StatusCode = 502;
-            page.Error = "پاسخ وضعیت اشتراک قابل تأیید نیست؛ کمی بعد دوباره بررسی کنید.";
+            page.Error = UiText.Get("AbonelikDurumuYanitiDogrulanamiyorBirazSonraYeniden");
         }
         return View(page);
     }

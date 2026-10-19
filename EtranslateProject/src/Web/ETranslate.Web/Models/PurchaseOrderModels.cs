@@ -26,7 +26,7 @@ public sealed record PurchaseOrderView(Guid Id, Guid TenantId, string PlanCode, 
         (Status != "Draft" || ObservedAtUtc < ExpiresAtUtc && Version == 0 && CanceledAtUtc is null) &&
         (Status != "Expired" || ObservedAtUtc >= ExpiresAtUtc && CanceledAtUtc is null) &&
         (Status != "Canceled" || Version > 0 && CanceledAtUtc >= CreatedAtUtc && CanceledAtUtc < ExpiresAtUtc);
-    public string StatusLabel => Status switch { "Draft" => "پیش‌سفارش · بدون پرداخت", "Canceled" => "لغوشده", _ => "منقضی‌شده" };
+    public string StatusLabel => Status switch { "Draft" => UiText.Get("OnSiparisOdemeYok"), "Canceled" => UiText.Get("IptalEdildi"), _ => UiText.Get("SuresiDoldu") };
 }
 public sealed class PurchaseOrdersPageView
 {

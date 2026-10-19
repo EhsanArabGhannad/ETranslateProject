@@ -29,14 +29,14 @@ public sealed partial class WorkspaceController
             using var response = await api.SendAsync("translation-workflow", HttpMethod.Put, $"{JobsPath(tenantId)}/{jobId}/assignment",
                 JsonContent.Create(new { translatorUserId, expectedAssignmentVersion, note }));
             BackendApi.EnsureSuccess(response);
-            TempData["Notice"] = "تخصیص مترجم ثبت شد؛ نسخه‌های ترجمه و سابقه‌ی بازبینی تغییر نکردند.";
+            TempData["Notice"] = UiText.Get("CevirmenAtamasiKaydedildiCeviriSurumleriVeInceleme");
         }
         catch (BackendException error) when (error.Status != HttpStatusCode.Unauthorized)
         {
             TempData["Notice"] = error.Status switch
             {
-                HttpStatusCode.Conflict => "تخصیص تغییر کرده یا انتخاب شما تکراری است؛ آخرین وضعیت را بررسی کنید و دوباره تصمیم بگیرید.",
-                HttpStatusCode.BadRequest => "عضو باید فعال، دارای دسترسی نوشتن و متعلق به همین فضای کاری باشد؛ توضیح حداکثر ۵۰۰ نویسه است.",
+                HttpStatusCode.Conflict => UiText.Get("AtamaDegistiVeyaSeciminizZatenKayitliGuncel"),
+                HttpStatusCode.BadRequest => UiText.Get("UyeEtkinOlmaliYazmaYetkisiBulunmaliVe"),
                 _ => error.UserMessage
             };
         }

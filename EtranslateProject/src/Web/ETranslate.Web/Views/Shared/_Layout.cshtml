@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 @{ var navigation = AppNavigation.From(ViewData.Model, ViewContext.RouteData.Values["controller"]?.ToString()); }
-<html lang="fa" dir="rtl">
+<html lang="tr" dir="ltr">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,15 +8,15 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
-    <header class="topbar"><a class="brand" asp-controller="Workspace" asp-action="Index" asp-route-tenantId="@navigation.TenantId"><span class="brand-icon">E</span><span dir="ltr">ETranslate<span class="brand-sub">TRANSLATION WORKSPACE</span></span></a>
-        <nav aria-label="ناوبری اصلی">@if (User.Identity?.IsAuthenticated == true) {
+    <header class="topbar"><a class="brand" asp-controller="Workspace" asp-action="Index" asp-route-tenantId="@navigation.TenantId"><span class="brand-icon">E</span><span dir="ltr">@UiText.Get("ETranslate")<span class="brand-sub">@UiText.Get("CEVIRICALISMAALANI")</span></span></a>
+        <nav aria-label="@UiText.Get("AnaGezinme")">@if (User.Identity?.IsAuthenticated == true) {
             <span class="account" dir="ltr">@User.Identity.Name</span>
-            <form asp-controller="Account" asp-action="Logout" method="post"><button class="quiet" type="submit">خروج</button></form>
-        } else { <a asp-controller="Account" asp-action="Login">ورود</a><a asp-controller="Account" asp-action="Register">ساخت حساب</a> }</nav>
+            <form asp-controller="Account" asp-action="Logout" method="post"><button class="quiet" type="submit">@UiText.Get("Cikis")</button></form>
+        } else { <a asp-controller="Account" asp-action="Login">@UiText.Get("Giris")</a><a asp-controller="Account" asp-action="Register">@UiText.Get("HesapOlustur")</a> }</nav>
     </header>
     @if (User.Identity?.IsAuthenticated == true) { <partial name="_AppNavigation" model="navigation" /> }
     <main class="shell">@if (TempData["Notice"] is string notice) { <div class="notice" role="status">@notice</div> } @RenderBody()</main>
-    <footer class="site-footer"><span dir="ltr">ETranslate © 2026</span><span>نسخه‌ی توسعه · متن پیش‌نویس، بدون امضای الکترونیکی</span></footer>
+    <footer class="site-footer"><span dir="ltr">@UiText.Get("ETranslate2026")</span><span>@UiText.Get("GelistirmeSurumuTaslakMetinElektronikImzasiz")</span></footer>
     <script src="~/js/site.js" asp-append-version="true" defer></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

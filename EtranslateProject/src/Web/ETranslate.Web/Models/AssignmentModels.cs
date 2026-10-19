@@ -16,5 +16,5 @@ public sealed class AssignmentPageView
     public List<AssigneeView> Candidates { get; set; } = [];
     public string? MemberLabel(Guid? userId) => userId.HasValue
         ? Candidates.Find(item => item.UserId == userId)?.Email ?? userId.Value.ToString()
-        : "بدون تخصیص";
+        : UiText.Get("Atanmadi");
 }

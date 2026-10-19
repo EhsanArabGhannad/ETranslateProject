@@ -46,7 +46,7 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
         try
         {
             var tenant = await api.PostAsync<TenantView>("identity-access", "/api/v1/tenants", new { name, slug, type });
-            TempData["Notice"] = "فضای کاری ساخته شد؛ اشتراک آزمایشی توسط سرویس اشتراک فعال می‌شود.";
+            TempData["Notice"] = UiText.Get("CalismaAlaniOlusturulduDenemeAboneligiAbonelikHizmeti");
             return RedirectToAction(nameof(Index), new { tenantId = tenant.Id });
         }
         catch (BackendException error) when (error.Status is HttpStatusCode.BadRequest or HttpStatusCode.Conflict)
@@ -114,7 +114,7 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
     {
         try { await api.PostAsync<DocumentView>("documents", DocumentsPath(tenantId, jobId)); }
         catch (BackendException error) when (error.Status == HttpStatusCode.Conflict)
-        { TempData["Notice"] = "سند قبلاً ایجاد شده است."; }
+        { TempData["Notice"] = UiText.Get("BelgeZatenOlusturulmus"); }
         return RedirectToAction(nameof(Editor), new { tenantId, jobId });
     }
 
@@ -163,14 +163,14 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
             await api.PostAsync<DraftView>("documents", $"{DocumentsPath(tenantId, jobId)}/{document.Id}/draft-revisions", new
             { expectedCurrentRevision = expectedRevision, editorContentJson = json,
                 plainText = RichDocument.TryGetPlainText(json, out var extracted) ? extracted : DocumentText.TryPlainText(json) });
-            TempData["Notice"] = "نسخه‌ی جدید ذخیره شد. نسخه‌های قبلی بدون تغییر باقی می‌مانند.";
+            TempData["Notice"] = UiText.Get("YeniSurumKaydedildiOncekiSurumlerDegistirilmedenKorunur");
             return RedirectToAction(nameof(Editor), new { tenantId, jobId });
         }
         catch (BackendException error) when (error.Status != HttpStatusCode.Unauthorized)
         {
             conflict = error.Status == HttpStatusCode.Conflict;
             failureStatus = (int)error.Status;
-            message = conflict ? "نسخه یا وضعیت بازبینی سند تغییر کرده است. متن شما حفظ شده؛ آن را کپی کنید و آخرین وضعیت را در تب دیگری بررسی کنید." : error.UserMessage;
+            message = conflict ? UiText.Get("BelgeninSurumuVeyaIncelemeDurumuDegistiMetniniz") : error.UserMessage;
             if (mode == "text") json = DocumentText.FromPlainText(plainText ?? "");
         }
         var model = await LoadEditor(tenantId, jobId);
@@ -189,7 +189,7 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
     {
         var layout = new DocumentPageLayout(pageSize, orientation, marginTop, marginRight, marginBottom, marginLeft);
         if (!ModelState.IsValid || !layout.IsValid)
-        { TempData["Notice"] = "اندازه، جهت یا حاشیه‌های صفحه معتبر نیست؛ حاشیه‌ها باید بین ۵ و ۵۰ میلی‌متر باشند."; return TemplateSettings(tenantId); }
+        { TempData["Notice"] = UiText.Get("SayfaBoyutuYonuVeyaKenarBosluklariGecersiz"); return TemplateSettings(tenantId); }
         try
         {
             await api.PostAsync<TemplateDetail>("documents", TemplatesPath(tenantId), new
@@ -201,7 +201,7 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
                 pageLayoutJson = layout.ToJson(),
                 watermarkJson = string.IsNullOrWhiteSpace(watermark) ? null : JsonSerializer.Serialize(new { text = watermark, opacity = 0.12, rotation = -35 })
             });
-            TempData["Notice"] = "قالب ساخته شد؛ اکنون می‌توانید لوگو را به یک نسخه‌ی جدید اضافه کنید.";
+            TempData["Notice"] = UiText.Get("SablonOlusturulduSimdiYeniBirSurumeLogo");
         }
         catch (BackendException error) when (error.Status is HttpStatusCode.BadRequest or HttpStatusCode.Conflict)
         { TempData["Notice"] = error.UserMessage; }
@@ -213,12 +213,12 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
     {
         if (file is null || file.Length is <= 0 or > 5 * 1024 * 1024 ||
             file.ContentType is not ("image/png" or "image/jpeg"))
-        { TempData["Notice"] = "لوگو باید PNG یا JPEG و حداکثر ۵ مگابایت باشد."; return TemplateSettings(tenantId); }
+        { TempData["Notice"] = UiText.Get("LogoPNGVeyaJPEGBicimindeVeEn"); return TemplateSettings(tenantId); }
         var path = $"{TemplatesPath(tenantId)}/{templateId}";
         var template = await api.ReadAsync<TemplateDetail>("documents", path);
         var header = JsonNode.Parse(template.Revision.HeaderContentJson ?? DocumentText.Empty) as JsonObject;
         if (header?["content"] is not JsonArray)
-        { TempData["Notice"] = "ساختار سربرگ این قالب در رابط ساده پشتیبانی نمی‌شود؛ از API استفاده کنید."; return TemplateSettings(tenantId); }
+        { TempData["Notice"] = UiText.Get("BuSablonunUstbilgiYapisiBasitArayuzdeDesteklenmiyor"); return TemplateSettings(tenantId); }
         try
         {
             using var form = new MultipartFormDataContent();
@@ -236,10 +236,10 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
                 headerContentJson = header.ToJsonString(), template.Revision.FooterContentJson,
                 template.Revision.PageLayoutJson, template.Revision.WatermarkJson
             });
-            TempData["Notice"] = "نسخه‌ی جدید قالب با لوگو ساخته شد. اسناد قبلی تغییر نمی‌کنند.";
+            TempData["Notice"] = UiText.Get("LogoluYeniSablonSurumuOlusturulduOncekiBelgeler");
         }
         catch (BackendException error) when (error.Status is HttpStatusCode.BadRequest or HttpStatusCode.Conflict)
-        { TempData["Notice"] = $"{error.UserMessage} اگر تصویر بارگذاری شده باشد، در دارایی‌های قالب باقی می‌ماند."; }
+        { TempData["Notice"] = $"{error.UserMessage} Görsel yüklenmişse şablon varlıklarında kalır."; }
         return TemplateSettings(tenantId);
     }
 

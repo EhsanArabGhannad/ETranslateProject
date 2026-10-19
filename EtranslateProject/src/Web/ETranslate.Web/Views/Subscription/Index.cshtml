@@ -1,35 +1,35 @@
 @model SubscriptionPageView
-@{ ViewData["Title"] = "وضعیت اشتراک"; }
-<a class="back-link" asp-controller="Workspace" asp-action="Index" asp-route-tenantId="@Model.Tenant.Id">→ بازگشت به فضای کاری</a>
-<div class="page-heading"><div><span class="eyebrow">SUBSCRIPTION · READ ONLY</span><h1>وضعیت اشتراک</h1><p>@Model.Tenant.Name</p></div><span class="badge">@(Model.Tenant.Type == "TranslationOffice" ? "دارالترجمه" : "مترجم مستقل")</span></div>
-<section class="card" aria-label="اطلاعات اشتراک">
-@if (Model.Tenant.Role is "Owner" or "Administrator") { <p><a asp-controller="PurchaseOrders" asp-action="Index" asp-route-tenantId="@Model.Tenant.Id">پیش‌سفارش خرید یا تمدید — بدون پرداخت ←</a></p> }
+@{ ViewData["Title"] = UiText.Get("AbonelikDurumu"); }
+<a class="back-link" asp-controller="Workspace" asp-action="Index" asp-route-tenantId="@Model.Tenant.Id">@UiText.Get("CalismaAlaninaDon2")</a>
+<div class="page-heading"><div><span class="eyebrow">@UiText.Get("ABONELIKSALTOKUNUR")</span><h1>@UiText.Get("AbonelikDurumu")</h1><p>@Model.Tenant.Name</p></div><span class="badge">@(Model.Tenant.Type == "TranslationOffice" ? UiText.Get("TercumeBurosu") : UiText.Get("BagimsizCevirmen"))</span></div>
+<section class="card" aria-label="@UiText.Get("AbonelikBilgileri")">
+@if (Model.Tenant.Role is "Owner" or "Administrator") { <p><a asp-controller="PurchaseOrders" asp-action="Index" asp-route-tenantId="@Model.Tenant.Id">@UiText.Get("SatinAlmaVeyaYenilemeOnSiparisiOdeme")</a></p> }
 @if (Model.Error is not null) {
     <p class="notice" role="alert">@Model.Error</p>
 } else if (Model.Subscription is { } subscription) {
     <h2>@subscription.StatusLabel</h2>
     @if (subscription.Status == "Pending") {
-        <p class="notice">فضای کاری ایجاد شده، اما ثبت خودکار اشتراک هنوز تکمیل نشده است. این صفحه اشتراک جدید یا دورهٔ آزمایشی تازه ایجاد نمی‌کند؛ کمی بعد دوباره بررسی کنید.</p>
+        <p class="notice">@UiText.Get("CalismaAlaniOlusturulduAncakOtomatikAbonelikKaydi")</p>
     } else {
-        <p>طرح: @(subscription.PlanCode == "trial" ? "آزمایشی رایگان · ۳۰ روز" : subscription.PlanCode)</p>
+        <p>Plan: @(subscription.PlanCode == "trial" ? UiText.Get("UcretsizDeneme30Gun") : subscription.PlanCode)</p>
         @if (subscription.PaidStartsAtUtc is { } paidStart && subscription.PaidEndsAtUtc is { } paidEnd) {
-            <h3>@(paidStart > subscription.ObservedAtUtc ? "دورهٔ پولی پس از پایان آزمایشی شروع می‌شود" : "بازهٔ دسترسی پولی")</h3>
-            <p>@subscription.PaidPlanName · @subscription.PaidMonths ماه تقویمی ثبت‌شده</p>
-            <p>شروع دسترسی پولی: <time datetime="@paidStart.ToString("O")" dir="ltr">@SubscriptionView.IstanbulTime(paidStart)</time></p>
-            <p>پایان دسترسی پولی: <time datetime="@paidEnd.ToString("O")" dir="ltr">@SubscriptionView.IstanbulTime(paidEnd)</time></p>
-            <p>روزهای باقی‌ماندهٔ دسترسی پولی: @subscription.RemainingPaidDays روز</p>
-            <p class="muted">این اطلاعات وضعیت ثبت‌شدهٔ Billing است، نه رسید پرداخت یا امکان خرید. محاسبهٔ ماه تقویمی در UTC انجام می‌شود؛ خرید و تمدید آنلاین هنوز فعال نیستند.</p>
+            <h3>@(paidStart > subscription.ObservedAtUtc ? UiText.Get("UcretliDonemDenemedenSonraBaslar") : UiText.Get("UcretliErisimDonemi"))</h3>
+            <p>@subscription.PaidPlanName · @subscription.PaidMonths kayıtlı takvim ayı</p>
+            <p>@UiText.Get("UcretliErisimBaslangici") <time datetime="@paidStart.ToString("O")" dir="ltr">@SubscriptionView.IstanbulTime(paidStart)</time></p>
+            <p>@UiText.Get("UcretliErisimSonu") <time datetime="@paidEnd.ToString("O")" dir="ltr">@SubscriptionView.IstanbulTime(paidEnd)</time></p>
+            <p>Ücretli erişimde kalan gün: @subscription.RemainingPaidDays gün</p>
+            <p class="muted">@UiText.Get("BuBilgilerBillingHizmetindekiKayitliDurumdurOdeme")</p>
         }
         @if (subscription.RemainingTrialDays is { } days) {
-            <p>زمان باقی‌مانده: <strong>@days روز</strong></p>
-            @if (subscription.Status == "Trialing") { <p class="muted">روز باقی‌مانده به بالا گرد می‌شود؛ کمتر از ۲۴ ساعت، ۱ روز نمایش داده می‌شود. زمان دقیق پایان را در ادامه ببینید.</p> }
+            <p>@UiText.Get("KalanSure") <strong>@days gün</strong></p>
+            @if (subscription.Status == "Trialing") { <p class="muted">@UiText.Get("KalanGunYukariYuvarlanir24SaattenAz")</p> }
         }
-        @if (subscription.TrialStartedAtUtc is { } start) { <p>شروع دورهٔ آزمایشی: <time datetime="@start.ToString("O")" dir="ltr">@SubscriptionView.IstanbulTime(start)</time></p> }
-        @if (subscription.TrialEndsAtUtc is { } end) { <p>پایان دورهٔ آزمایشی: <time datetime="@end.ToString("O")" dir="ltr">@SubscriptionView.IstanbulTime(end)</time></p> }
-        @if (subscription.Status is "Expired" or "Canceled" or "PastDue") { <p class="notice">اشتراک معتبر لازم است؛ فضای کاری فقط‌خواندنی است. ساخت یا تغییر ترجمه و تولید فایل جدید متوقف است؛ مشاهده و دانلود اسناد قبلی و مدیریت اعضا همچنان در دسترس است و اسناد قبلی حذف نمی‌شوند.</p> }
+        @if (subscription.TrialStartedAtUtc is { } start) { <p>@UiText.Get("DenemeBaslangici") <time datetime="@start.ToString("O")" dir="ltr">@SubscriptionView.IstanbulTime(start)</time></p> }
+        @if (subscription.TrialEndsAtUtc is { } end) { <p>@UiText.Get("DenemeSonu") <time datetime="@end.ToString("O")" dir="ltr">@SubscriptionView.IstanbulTime(end)</time></p> }
+        @if (subscription.Status is "Expired" or "Canceled" or "PastDue") { <p class="notice">@UiText.Get("GecerliAbonelikGerekirCalismaAlaniSaltOkunurdur2")</p> }
     }
-    <p class="muted">زمان بررسی: <time datetime="@subscription.ObservedAtUtc.ToString("O")" dir="ltr">@SubscriptionView.IstanbulTime(subscription.ObservedAtUtc)</time> · همهٔ زمان‌ها به وقت استانبول، UTC+03:00، با تاریخ میلادی نمایش داده می‌شوند.</p>
+    <p class="muted">@UiText.Get("KontrolZamani") <time datetime="@subscription.ObservedAtUtc.ToString("O")" dir="ltr">@SubscriptionView.IstanbulTime(subscription.ObservedAtUtc)</time> @UiText.Get("TumSaatlerIstanbulSaatineUTC03002")</p>
 }
-<p><a class="back-link" asp-action="Index" asp-route-tenantId="@Model.Tenant.Id">بررسی دوبارهٔ وضعیت اشتراک</a></p>
+<p><a class="back-link" asp-action="Index" asp-route-tenantId="@Model.Tenant.Id">@UiText.Get("AbonelikDurumunuYenidenKontrolEt")</a></p>
 </section>
-<section class="card"><h2>قواعد اشتراک</h2><p>اشتراک به فضای کاری تعلق دارد؛ اعضای فعال همان فضا وضعیت مشترک آن را می‌بینند. دورهٔ فعلی دقیقاً ۳۰ روز است، نه یک ماه تقویمی، و با باز کردن این صفحه تمدید نمی‌شود.</p><p class="muted">عملیات تغییر به اشتراک معتبر و نقش مجاز نیاز دارد؛ هنگام انتظار ثبت اشتراک یا خطای بررسی، عملیات جدید موقتاً متوقف است. خرید، تمدید، قیمت‌گذاری و درگاه پرداخت هنوز فعال نیستند. هیچ پرداخت یا اشتراک پولی از این صفحه ثبت نمی‌شود.</p></section>
+<section class="card"><h2>@UiText.Get("AbonelikKurallari")</h2><p>@UiText.Get("AbonelikCalismaAlaninaAittirEtkinUyelerAyni")</p><p class="muted">@UiText.Get("DegisiklikIslemleriIcinGecerliAbonelikVeYetkili")</p></section>

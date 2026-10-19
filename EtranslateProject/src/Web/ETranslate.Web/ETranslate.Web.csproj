@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources/interface.tr.json" LogicalName="ETranslate.Web.Resources.interface.tr.json" WithCulture="false" />
     <ProjectReference Include="../../BuildingBlocks/ETranslate.SubscriptionAccess/ETranslate.SubscriptionAccess.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\ETranslate.Contracts\ETranslate.Contracts.csproj" />
     <ProjectReference Include="..\..\Orchestration\ETranslate.ServiceDefaults\ETranslate.ServiceDefaults.csproj" />

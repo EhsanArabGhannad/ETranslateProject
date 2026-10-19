@@ -50,8 +50,8 @@ public sealed class AccountController(BackendApi api) : Controller
         catch (BackendException error)
         {
             ModelState.AddModelError("", error.Status is System.Net.HttpStatusCode.BadRequest or System.Net.HttpStatusCode.Unauthorized
-                ? register ? "ثبت‌نام انجام نشد. ایمیل معتبر و رمز شامل حرف بزرگ، کوچک، عدد و نشانه وارد کنید؛ ایمیل ممکن است قبلاً ثبت شده باشد."
-                    : "ایمیل یا رمز نادرست است؛ دوباره بررسی کنید." : error.UserMessage);
+                ? register ? UiText.Get("KayitYapilamadiGecerliEPostaVeBuyuk")
+                    : UiText.Get("EPostaVeyaSifreHataliYenidenKontrol") : error.UserMessage);
             input.Password = "";
             ModelState.Remove(nameof(input.Password));
             return View("Login", input);

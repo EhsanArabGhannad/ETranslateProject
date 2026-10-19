@@ -15,7 +15,7 @@ public sealed partial class WorkspaceController
         string? message = null;
         var status = 400;
         if (!ModelState.IsValid || file is null || !SourceFileRules.IsAllowed(file.ContentType, file.Length))
-            message = "فایل باید PDF، PNG، JPEG یا TIFF و حداکثر ۲۵ مگابایت باشد.";
+            message = UiText.Get("DosyaPDFPNGJPEGVeyaTIFFBiciminde");
         else
         {
             try
@@ -31,13 +31,13 @@ public sealed partial class WorkspaceController
                 BackendApi.EnsureSuccess(response);
                 var source = (await response.Content.ReadFromJsonAsync<SourceFileView>(HttpContext.RequestAborted))!;
                 if (wantsJson) return Ok(new { sourceFile = source });
-                TempData["Notice"] = "مدرک مبدأ بارگذاری شد؛ متن ترجمه تغییر نکرده است.";
+                TempData["Notice"] = UiText.Get("KaynakBelgeYuklendiCeviriMetniDegismedi");
                 return RedirectToAction(nameof(Editor), new { tenantId, jobId });
             }
             catch (BackendException error)
             {
                 message = error.Status == HttpStatusCode.BadRequest
-                    ? "فایل پذیرفته نشد؛ نوع واقعی فایل، اندازه و فرمت آن را بررسی کنید." : error.UserMessage;
+                    ? UiText.Get("DosyaKabulEdilmediGercekDosyaTurunuBoyutunu") : error.UserMessage;
                 status = (int)error.Status;
             }
         }

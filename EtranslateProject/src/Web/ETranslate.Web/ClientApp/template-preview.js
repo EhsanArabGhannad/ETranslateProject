@@ -1,3 +1,5 @@
+import ui from '../Resources/interface.tr.json' with { type: 'json' };
+import { formatUi } from './ui-format.js';
 import { createPreview, assetUrl } from './preview.js';
 import { alignments, plainRegion, previewHeader } from './template-presentation.js';
 
@@ -17,9 +19,9 @@ if (form && workspace) {
         input.value = JSON.stringify(values);
         for (let index = 0; index < lines.length; index++) {
             const label = document.createElement('label'), text = document.createElement('span'), select = document.createElement('select');
-            text.textContent = `خط ${index + 1}: ${lines[index].slice(0, 60) || '(خالی)'}`;
-            select.setAttribute('aria-label', `تراز ${part === 'header' ? 'سربرگ' : 'پابرگ'} خط ${index + 1}`);
-            for (const [value, caption] of [['auto', 'خودکار'], ['left', 'چپ'], ['center', 'وسط'], ['right', 'راست']]) {
+            text.textContent = formatUi(ui.LinePreview, index + 1, lines[index].slice(0, 60) || ui.Bos);
+            select.setAttribute('aria-label', formatUi(ui.LineAlignment, part === 'header' ? ui.Ustbilgi : ui.Altbilgi, index + 1));
+            for (const [value, caption] of [['auto', ui.Otomatik], ['left', ui.Sol], ['center', ui.Orta], ['right', ui.Sag]]) {
                 const option = document.createElement('option'); option.value = value; option.textContent = caption; select.append(option);
             }
             select.value = values[index]; select.disabled = !workspace.dataset.canSave || workspace.dataset.canSave !== 'true';
@@ -53,10 +55,10 @@ if (form && workspace) {
                 const margin = Number(find(`Form_Margin${side}`).value);
                 if (Number.isFinite(margin) && margin >= 5 && margin <= 50) page.style[`padding${side}`] = `${margin / width * 100}%`;
             }
-            find('template-preview-size').textContent = `${width} × ${height} mm — پیش‌نمایش تقریبی، بدون صفحه‌بندی`;
+            find('template-preview-size').textContent = formatUi(ui.PreviewSize, width, height);
             const warning = ['header', 'footer', 'body', 'watermark', 'layout'].some(p => !editable(p));
-            if (warning) find('preview-notice').textContent += ' بعضی بخش‌ها پیچیده یا ناشناخته‌اند؛ نمایش آن‌ها ممکن است کامل نباشد و اصل آن‌ها بدون تغییر حفظ می‌شود.';
-        } catch { find('preview-notice').textContent = 'پیش‌نمایش کامل نیست؛ ورودی‌ها را بررسی کنید.'; }
+            if (warning) find('preview-notice').textContent += ui.BaziBolumlerKarmasikVeyaBilinmeyenYapidadirTam;
+        } catch { find('preview-notice').textContent = ui.OnizlemeTamamlanamadiGirdileriKontrolEdin; }
     }
     for (const part of ['header', 'footer']) { lineControls(part); find(`${part}-text`).addEventListener('input', () => lineControls(part)); }
     form.addEventListener('input', update); form.addEventListener('change', update);

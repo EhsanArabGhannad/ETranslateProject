@@ -22,12 +22,12 @@ public sealed partial class WorkspaceController
         {
             await api.PostAsync<DocumentView>("documents", $"{DocumentsPath(tenantId, jobId)}/{document.Id}/template-change",
                 new { templateId, revisionNumber, expectedCurrentRevision = expectedRevision });
-            TempData["Notice"] = "قالب روی یک نسخهٔ جدید از متن ذخیره‌شده ثبت شد. نسخه‌ها و PDFهای قبلی تغییر نکردند. ویرایشگر قبلی را پس از حفظ متن ذخیره‌نشده بازآوری کنید؛ نسخهٔ بازِ قبلی دیگر جاری نیست.";
+            TempData["Notice"] = UiText.Get("SablonKayitliMetninYeniBirSurumuneBaglandi");
         }
         catch (BackendException error) when (error.Status is HttpStatusCode.BadRequest or HttpStatusCode.Conflict)
         {
-            TempData["Notice"] = error.Status == HttpStatusCode.Conflict ? "تغییر قالب تأیید نشد؛ نسخه یا وضعیت بازبینی تغییر کرده، قالب بایگانی است یا همین نسخهٔ قالب از قبل تثبیت شده است. آخرین وضعیت را بررسی کنید." :
-                "تغییر قالب انجام نشد؛ اطلاعات معتبر نیست یا تصاویر داخل متن به قالب مقصد تعلق ندارند. هیچ متن یا تصویری حذف نشده است.";
+            TempData["Notice"] = error.Status == HttpStatusCode.Conflict ? UiText.Get("SablonDegisikligiDogrulanamadiSurumVeyaIncelemeDurumu") :
+                UiText.Get("SablonDegistirilmediBilgilerGecersizVeyaMetindekiGorseller");
         }
         return RedirectToAction(nameof(DocumentTemplate), new { tenantId, jobId });
     }

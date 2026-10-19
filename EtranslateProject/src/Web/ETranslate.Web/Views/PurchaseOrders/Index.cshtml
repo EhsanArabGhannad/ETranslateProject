@@ -1,28 +1,28 @@
 @model PurchaseOrdersPageView
-@{ ViewData["Title"] = "پیش‌سفارش اشتراک"; }
-<a class="back-link" asp-controller="Subscription" asp-action="Index" asp-route-tenantId="@Model.Tenant.Id">→ بازگشت به وضعیت اشتراک</a>
-<div class="page-heading"><div><span class="eyebrow">SUBSCRIPTION ORDER · NO PAYMENT</span><h1>پیش‌سفارش خرید یا تمدید</h1><p>@Model.Tenant.Name</p></div><span class="badge">ارز: لیر ترکیه · TRY</span></div>
-<div class="notice" role="status">درگاه هنوز انتخاب و متصل نشده است. این صفحه فقط پیش‌سفارش ثبت می‌کند؛ هیچ پولی دریافت نمی‌شود و ثبت یا لغو پیش‌سفارش اشتراک را فعال، تمدید یا لغو نمی‌کند. پیش‌سفارش رسید یا فاکتور نیست.</div>
-<section class="card"><h2>ثبت پیش‌سفارش</h2>
+@{ ViewData["Title"] = UiText.Get("AbonelikOnSiparisi"); }
+<a class="back-link" asp-controller="Subscription" asp-action="Index" asp-route-tenantId="@Model.Tenant.Id">@UiText.Get("AbonelikDurumunaDon")</a>
+<div class="page-heading"><div><span class="eyebrow">@UiText.Get("ABONELIKSIPARISIODEMEYOK")</span><h1>@UiText.Get("SatinAlmaVeyaYenilemeOnSiparisi")</h1><p>@Model.Tenant.Name</p></div><span class="badge">@UiText.Get("ParaBirimiTurkLirasiTRY")</span></div>
+<div class="notice" role="status">@UiText.Get("OdemeSaglayicisiHenuzSecilmediVeBaglanmadiBu")</div>
+<section class="card"><h2>@UiText.Get("OnSiparisKaydet")</h2>
 @if (Model.Catalog.Plans.Count > 0) {
     <form asp-action="Create" method="post">
         <input type="hidden" name="tenantId" value="@Model.Tenant.Id" /><input type="hidden" name="requestId" value="@Model.RequestId" />
-        <label for="plan">پلن</label><select id="plan" name="planCode" required>
-        @foreach (var plan in Model.Catalog.Plans) { <option value="@plan.Code">@plan.Name · @plan.Months ماه تقویمی · @(plan.PriceTry is { } price ? price.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " TRY" : "قیمت هنوز تعیین نشده")</option> }
-        </select><button type="submit">ثبت پیش‌سفارش بدون پرداخت</button>
+        <label for="plan">@UiText.Get("Plan")</label><select id="plan" name="planCode" required>
+        @foreach (var plan in Model.Catalog.Plans) { <option value="@plan.Code">@plan.Name · @plan.Months takvim ayı · @(plan.PriceTry is { } price ? UiText.MoneyTry(price) : UiText.Get("FiyatHenuzBelirlenmedi"))</option> }
+        </select><button type="submit">@UiText.Get("OdemeYapmadanOnSiparisKaydet")</button>
     </form>
-} else { <p class="muted">پلن فعالی برای این نوع فضای کاری تعریف نشده است.</p> }
-<p class="muted">قیمت و مدت از تنظیمات سرور خوانده می‌شوند. مبلغ تعیین‌نشده رایگان یا صفر محسوب نمی‌شود. پیش‌سفارش پس از ۳۰ دقیقه منقضی می‌شود و با بازآوری تمدید نمی‌شود.</p></section>
-<section class="card"><h2>۵۰ پیش‌سفارش اخیر</h2>
-@if (Model.Orders.Count == 0) { <p class="muted">هنوز پیش‌سفارشی ثبت نشده است.</p> }
+} else { <p class="muted">@UiText.Get("BuCalismaAlaniTuruIcinEtkinPlan")</p> }
+<p class="muted">@UiText.Get("FiyatVeSureSunucuAyarlarindanAlinirBelirlenmemis")</p></section>
+<section class="card"><h2>@UiText.Get("Son50OnSiparis")</h2>
+@if (Model.Orders.Count == 0) { <p class="muted">@UiText.Get("HenuzOnSiparisKaydedilmedi")</p> }
 @foreach (var order in Model.Orders) {
     <article class="team-member"><h3>@order.PlanName <span class="badge">@order.StatusLabel</span></h3>
-    <p>@(order.Intent == "Renewal" ? "پیش‌سفارش تمدید" : "پیش‌سفارش خرید") · @order.Months ماه تقویمی</p>
-    <p>مبلغ ثبت‌شده: @(order.AmountTry is { } amount ? amount.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " TRY" : "قیمت تعیین نشده؛ قابل پرداخت نیست")</p>
-    <p>ایجاد: <time dir="ltr" datetime="@order.CreatedAtUtc.ToString("O")">@SubscriptionView.IstanbulTime(order.CreatedAtUtc)</time> · پایان اعتبار: <time dir="ltr" datetime="@order.ExpiresAtUtc.ToString("O")">@SubscriptionView.IstanbulTime(order.ExpiresAtUtc)</time></p>
+    <p>@(order.Intent == "Renewal" ? UiText.Get("YenilemeOnSiparisi") : UiText.Get("SatinAlmaOnSiparisi")) · @order.Months takvim ayı</p>
+    <p>Kayıtlı tutar: @(order.AmountTry is { } amount ? UiText.MoneyTry(amount) : UiText.Get("FiyatBelirlenmediOdenemez"))</p>
+    <p>@UiText.Get("Olusturulma") <time dir="ltr" datetime="@order.CreatedAtUtc.ToString("O")">@SubscriptionView.IstanbulTime(order.CreatedAtUtc)</time> @UiText.Get("GecerlilikSonu") <time dir="ltr" datetime="@order.ExpiresAtUtc.ToString("O")">@SubscriptionView.IstanbulTime(order.ExpiresAtUtc)</time></p>
     <small dir="ltr">@order.Id</small>
-    @if (order.Status == "Draft") { <form asp-action="Cancel" method="post"><input type="hidden" name="tenantId" value="@Model.Tenant.Id" /><input type="hidden" name="orderId" value="@order.Id" /><input type="hidden" name="expectedVersion" value="@order.Version" /><button class="secondary" type="submit">لغو پیش‌سفارش</button></form> }
+    @if (order.Status == "Draft") { <form asp-action="Cancel" method="post"><input type="hidden" name="tenantId" value="@Model.Tenant.Id" /><input type="hidden" name="orderId" value="@order.Id" /><input type="hidden" name="expectedVersion" value="@order.Version" /><button class="secondary" type="submit">@UiText.Get("OnSiparisiIptalEt")</button></form> }
     </article>
 }
-<p class="muted">همهٔ زمان‌های نمایشی به ساعت استانبول، UTC+03:00 هستند. مبنای ماه تقویمی UTC است. هیچ دکمهٔ پرداخت فعالی وجود ندارد.</p>
+<p class="muted">@UiText.Get("TumSaatlerIstanbulSaatineUTC0300")</p>
 </section>

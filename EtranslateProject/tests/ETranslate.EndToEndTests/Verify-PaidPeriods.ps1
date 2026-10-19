@@ -40,7 +40,7 @@ try {
     Web POST '/Account/Login' 302 (Fields @{ email=$email; password=$password; __RequestVerificationToken=(Csrf $login.Body) }) | Out-Null
     $page=Web GET "/Subscription?tenantId=$tenantId" 200
     $text=[Net.WebUtility]::HtmlDecode($page.Body)
-    Assert-Check ($text -match 'بازهٔ دسترسی پولی' -and $text -match 'ماه تقویمی' -and $text -match 'شروع دسترسی پولی' -and $text -match 'پایان دسترسی پولی') 'BFF shows paid access dates and calendar policy without offering checkout'
+    Assert-Check ($text -match 'Ücretli erişim dönemi' -and $text -match 'takvim ayı' -and $text -match 'Ücretli erişim başlangıcı' -and $text -match 'Ücretli erişim sonu') 'BFF shows paid access dates and calendar policy without offering checkout'
     Assert-Check ($page.Body -notmatch 'PaymentReference|paymentReference|Bearer ') 'Private payment identities must never be displayed'
     $refresh=Api GET "$paidBillingUrl/api/v1/tenants/$tenantId/subscription" $null 200
     Assert-Check ($refresh.paidStartsAtUtc -eq $snapshot.paidStartsAtUtc -and $refresh.paidEndsAtUtc -eq $snapshot.paidEndsAtUtc) 'GET does not extend paid dates'
@@ -53,7 +53,7 @@ try {
     Assert-Check ($expired.status -eq 'Expired' -and $expired.remainingPaidDays -eq 0) 'Paid expiry is observed without waiting for the worker'
     Api POST $jobsPath @{ title='Must remain blocked'; sourceLanguageCode='fa'; targetLanguageCode='tr'; notaryRequirement='NotRequired' } 402 | Out-Null
     $page=Web GET "/Subscription?tenantId=$tenantId" 200
-    Assert-Check ([Net.WebUtility]::HtmlDecode($page.Body) -match 'فقط‌خواندنی') 'Expired paid page remains available and explains readonly status'
+    Assert-Check ([Net.WebUtility]::HtmlDecode($page.Body) -match 'salt okunur') 'Expired paid page remains available and explains readonly status'
     Web GET "/Workspace?tenantId=$tenantId" 200 | Out-Null
     Web GET "/Workspace/Editor?tenantId=$tenantId&jobId=$jobId" 200 | Out-Null
     Write-Output "PASS: $($checks-$paidPriorChecks) paid-period HTTP checks plus $paidPriorChecks baseline checks. Retained expired synthetic paid tenant: $tenantId"

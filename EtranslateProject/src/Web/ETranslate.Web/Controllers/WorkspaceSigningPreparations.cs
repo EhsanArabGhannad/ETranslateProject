@@ -40,15 +40,15 @@ public sealed partial class WorkspaceController
             if (!ModelState.IsValid) throw new BackendException(HttpStatusCode.BadRequest);
             using var response = await api.SendAsync("trust", HttpMethod.Post, path, JsonContent.Create(form));
             BackendApi.EnsureSuccess(response);
-            TempData["Notice"] = "برنامه‌ی درخواست ثبت شد؛ هیچ امضا یا رضایت امضاکننده‌ای ثبت نشده است.";
+            TempData["Notice"] = UiText.Get("TalepPlaniKaydedildiImzaVeyaImzalayaninOnayi");
             return RedirectToAction(nameof(SigningPreparation), new { tenantId, jobId });
         }
         catch (BackendException error) when (error.Status is HttpStatusCode.BadRequest or HttpStatusCode.Conflict or HttpStatusCode.PaymentRequired || error.IsSubscriptionError)
         {
             page.Form = form;
             page.Error = error.IsSubscriptionError ? error.UserMessage : error.Status == HttpStatusCode.Conflict
-                ? "نسخه‌ی تأییدشده یا درخواست فعال تغییر کرده است. متن واردشده حفظ شده؛ صفحه را تازه کنید و قبل از ثبت مجدد، نسخه‌ها را بررسی کنید."
-                : "امضاکننده باید عضو فعال و مجاز همین فضای کاری باشد؛ بیانیه و روش پیشنهادی هر مرحله را بررسی کنید (حداکثر ۴۰۰۰ نویسه).";
+                ? UiText.Get("OnayliSurumVeyaEtkinTalepDegistiGirilen")
+                : UiText.Get("ImzalayanBuCalismaAlanininEtkinVeYetkili");
             Response.StatusCode = (int)error.Status;
             return View(nameof(SigningPreparation), page);
         }
@@ -62,10 +62,10 @@ public sealed partial class WorkspaceController
             if (!ModelState.IsValid) throw new BackendException(HttpStatusCode.BadRequest);
             using var response = await api.SendAsync("trust", HttpMethod.Post, $"{path}/{preparationId}/cancel", JsonContent.Create(new { expectedVersion, reason }));
             BackendApi.EnsureSuccess(response);
-            TempData["Notice"] = "آماده‌سازی لغو شد؛ PDF و سابقه‌ی بیانیه‌های پیشنهادی حفظ شدند.";
+            TempData["Notice"] = UiText.Get("HazirlikIptalEdildiPDFVeOnerilenBeyanlarin");
         }
         catch (BackendException error) when (error.Status is HttpStatusCode.BadRequest or HttpStatusCode.Conflict)
-        { TempData["Notice"] = error.Status == HttpStatusCode.Conflict ? "درخواست قبلاً تغییر کرده است؛ آخرین وضعیت را بررسی کنید." : "دلیل لغو الزامی است و حداکثر ۲۰۰۰ نویسه دارد."; }
+        { TempData["Notice"] = error.Status == HttpStatusCode.Conflict ? UiText.Get("TalepDahaOnceDegistiGuncelDurumuKontrol") : UiText.Get("IptalGerekcesiZorunludurVeEnFazla2000"); }
         return RedirectToAction(nameof(SigningPreparation), new { tenantId, jobId });
     }
 }

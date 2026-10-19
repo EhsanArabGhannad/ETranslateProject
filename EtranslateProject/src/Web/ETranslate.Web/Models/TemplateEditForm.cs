@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ETranslate.Contracts.Documents;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ETranslate.Web.Models;
 
@@ -10,22 +11,23 @@ public sealed class TemplateEditForm
     public Guid TenantId { get; set; }
     public Guid? TemplateId { get; set; }
     public int ExpectedRevision { get; set; }
-    [Required, StringLength(200)] public string Name { get; set; } = "";
-    [StringLength(10000)] public string? Header { get; set; }
-    [StringLength(2000)] public string? Footer { get; set; }
-    [StringLength(50000)] public string? StarterText { get; set; }
-    [StringLength(100)] public string? Watermark { get; set; }
+    [Required(ErrorMessageResourceType = typeof(UiValidation), ErrorMessageResourceName = nameof(UiValidation.SablonAdiZorunludur)), StringLength(200, ErrorMessageResourceType = typeof(UiValidation), ErrorMessageResourceName = nameof(UiValidation.SablonAdiEnFazla200KarakterOlabilir))]
+    public string Name { get; set; } = "";
+    [StringLength(10000, ErrorMessageResourceType = typeof(UiValidation), ErrorMessageResourceName = nameof(UiValidation.UstbilgiEnFazla10000KarakterOlabilir))] public string? Header { get; set; }
+    [StringLength(2000, ErrorMessageResourceType = typeof(UiValidation), ErrorMessageResourceName = nameof(UiValidation.AltbilgiEnFazla2000KarakterOlabilir))] public string? Footer { get; set; }
+    [StringLength(50000, ErrorMessageResourceType = typeof(UiValidation), ErrorMessageResourceName = nameof(UiValidation.BaslangicMetniEnFazla50000KarakterOlabilir))] public string? StarterText { get; set; }
+    [StringLength(100, ErrorMessageResourceType = typeof(UiValidation), ErrorMessageResourceName = nameof(UiValidation.FiligranEnFazla100KarakterOlabilir))] public string? Watermark { get; set; }
     public string PageSize { get; set; } = "A4";
     public string Orientation { get; set; } = "Portrait";
     public string FooterPlacement { get; set; } = "AllPages";
-    public decimal MarginTop { get; set; } = 25;
-    public decimal MarginRight { get; set; } = 20;
-    public decimal MarginBottom { get; set; } = 20;
-    public decimal MarginLeft { get; set; } = 20;
+    [ModelBinder(BinderType = typeof(InvariantDecimalModelBinder))] public decimal MarginTop { get; set; } = 25;
+    [ModelBinder(BinderType = typeof(InvariantDecimalModelBinder))] public decimal MarginRight { get; set; } = 20;
+    [ModelBinder(BinderType = typeof(InvariantDecimalModelBinder))] public decimal MarginBottom { get; set; } = 20;
+    [ModelBinder(BinderType = typeof(InvariantDecimalModelBinder))] public decimal MarginLeft { get; set; } = 20;
     public string LogoMode { get; set; } = "Add";
     public Guid? PendingAssetId { get; set; }
-    [StringLength(100000)] public string? HeaderLineAlignmentsJson { get; set; }
-    [StringLength(30000)] public string? FooterLineAlignmentsJson { get; set; }
+    [StringLength(100000, ErrorMessageResourceType = typeof(UiValidation), ErrorMessageResourceName = nameof(UiValidation.UstbilgiHizalamaVerisiCokUzun))] public string? HeaderLineAlignmentsJson { get; set; }
+    [StringLength(30000, ErrorMessageResourceType = typeof(UiValidation), ErrorMessageResourceName = nameof(UiValidation.AltbilgiHizalamaVerisiCokUzun))] public string? FooterLineAlignmentsJson { get; set; }
     public string? ImageAlignment { get; set; }
     public string? ImageLayout { get; set; }
     public DocumentPageLayout Layout => new(PageSize, Orientation, MarginTop, MarginRight, MarginBottom, MarginLeft) { FooterPlacement = FooterPlacement };

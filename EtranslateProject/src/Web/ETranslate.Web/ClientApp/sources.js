@@ -1,3 +1,5 @@
+import ui from '../Resources/interface.tr.json' with { type: 'json' };
+import { formatUi } from './ui-format.js';
 import * as pdfjs from 'pdfjs-dist/build/pdf.mjs';
 import { guid } from './document-schema.js';
 
@@ -20,12 +22,12 @@ export function startSources(workspace) {
         previous.disabled = !pdf || rendering || pageNumber <= 1;
         next.disabled = !pdf || rendering || pageNumber >= pdf.numPages;
         zoom.disabled = !pdf || rendering;
-        find('pdf-page-label').textContent = pdf ? `صفحه ${pageNumber} از ${pdf.numPages}` : '';
+        find('pdf-page-label').textContent = pdf ? formatUi(ui.PageOf, pageNumber, pdf.numPages) : '';
     }
     async function renderPage(version) {
         if (!pdf) return;
         const currentPdf = pdf;
-        rendering = true; controls(); status.textContent = 'در حال نمایش صفحه…';
+        rendering = true; controls(); status.textContent = ui.SayfaGoruntuleniyor;
         try {
             const page = await currentPdf.getPage(pageNumber);
             if (version !== generation) return;
@@ -35,13 +37,13 @@ export function startSources(workspace) {
                 Math.sqrt(6000000 / (natural.width * natural.height)));
             const viewport = page.getViewport({ scale });
             const canvas = document.createElement('canvas'); canvas.width = Math.ceil(viewport.width); canvas.height = Math.ceil(viewport.height);
-            canvas.setAttribute('aria-label', `صفحه ${pageNumber} مدرک مبدأ`); canvas.setAttribute('role', 'img');
+            canvas.setAttribute('aria-label', formatUi(ui.SourcePage, pageNumber)); canvas.setAttribute('role', 'img');
             renderTask = page.render({ canvas, viewport });
             await renderTask.promise;
             if (version !== generation) return;
-            display.replaceChildren(canvas); status.textContent = 'مدرک مبدأ · پیش‌نمایش تصویری PDF';
+            display.replaceChildren(canvas); status.textContent = ui.KaynakBelgeGorselPDFOnizlemesi;
         } catch {
-            if (version === generation) status.textContent = 'نمایش این صفحه ممکن نشد؛ فایل اصلی را می‌توانید دانلود کنید.';
+            if (version === generation) status.textContent = ui.BuSayfaGoruntulenemediOzgunDosyayiIndirebilirsiniz;
         } finally { if (version === generation) { rendering = false; controls(); } }
     }
     async function openSelected() {
@@ -51,20 +53,20 @@ export function startSources(workspace) {
         pdf = null; rendering = false; pageNumber = 1; zoom.value = '1'; controls();
         display.replaceChildren(); find('pdf-controls').hidden = true;
         find('source-download').hidden = !select.value;
-        if (!select.value) { status.textContent = 'فایل مبدأ را انتخاب یا بارگذاری کنید.'; return; }
+        if (!select.value) { status.textContent = ui.KaynakDosyayiSecinVeyaYukleyin; return; }
         const option = select.selectedOptions[0], url = sourceUrl(select.value);
         find('source-download').href = sourceUrl(select.value, true);
         if (option.dataset.type === 'image/tiff') {
-            status.textContent = 'پیش‌نمایش TIFF پشتیبانی نمی‌شود؛ فایل اصلی قابل دانلود است.'; return;
+            status.textContent = ui.TIFFOnizlemesiDesteklenmiyorOzgunDosyaIndirilebilir; return;
         }
         if (['image/png', 'image/jpeg'].includes(option.dataset.type)) {
             const image = document.createElement('img'); image.src = url; image.alt = option.textContent;
-            image.addEventListener('load', () => { if (version === generation) status.textContent = 'تصویر مدرک مبدأ'; });
-            image.addEventListener('error', () => { if (version === generation) status.textContent = 'تصویر باز نشد؛ ورود و دسترسی پرونده را بررسی کنید.'; });
-            display.append(image); status.textContent = 'در حال دریافت تصویر…'; return;
+            image.addEventListener('load', () => { if (version === generation) status.textContent = ui.KaynakBelgeGorseli; });
+            image.addEventListener('error', () => { if (version === generation) status.textContent = ui.GorselAcilamadiOturumuVeDosyaErisiminiKontrol; });
+            display.append(image); status.textContent = ui.GorselYukleniyor; return;
         }
-        if (option.dataset.type !== 'application/pdf') { status.textContent = 'این نوع فایل قابل پیش‌نمایش نیست.'; return; }
-        status.textContent = 'در حال دریافت PDF…';
+        if (option.dataset.type !== 'application/pdf') { status.textContent = ui.BuDosyaTuruOnizlenemiyor; return; }
+        status.textContent = ui.PDFYukleniyor;
         try {
             const task = pdfjs.getDocument({ url, withCredentials: true, isEvalSupported: false, enableXfa: false,
                 disableFontFace: true, cMapUrl: '/vendor/pdfjs/cmaps/', cMapPacked: true,
@@ -76,13 +78,13 @@ export function startSources(workspace) {
             let loaded;
             try { loaded = await task.promise; }
             catch (error) {
-                if (version === generation && passwordRequired) { status.textContent = 'PDF رمزدار در این مرحله پیش‌نمایش ندارد؛ فایل اصلی را دانلود کنید.'; return; }
+                if (version === generation && passwordRequired) { status.textContent = ui.SifreliPDFBuAsamadaOnizlenemezOzgunDosyayi; return; }
                 throw error;
             }
             if (version !== generation) { await loaded.destroy(); return; }
             pdf = loaded;
             find('pdf-controls').hidden = false; controls(); await renderPage(version);
-        } catch { if (version === generation) status.textContent = 'PDF باز نشد؛ فایل ممکن است خراب باشد یا نشست شما پایان یافته باشد. نسخه‌ی اصلی قابل دانلود است.'; }
+        } catch { if (version === generation) status.textContent = ui.PDFAcilamadiDosyaBozukOlabilirVeyaOturumunuz; }
     }
     select.addEventListener('change', () => void openSelected());
     previous.addEventListener('click', () => { if (pdf && !rendering && pageNumber > 1) { pageNumber--; void renderPage(generation); } });
@@ -92,22 +94,22 @@ export function startSources(workspace) {
     upload?.addEventListener('submit', async event => {
         event.preventDefault();
         const input = find('source-file'), file = input.files[0], button = upload.querySelector('button');
-        if (!file || !file.size || file.size > 25 * 1024 * 1024) { status.textContent = 'فایل خالی یا بزرگ‌تر از ۲۵ مگابایت پذیرفته نمی‌شود.'; return; }
-        button.disabled = true; status.textContent = 'در حال بارگذاری فایل… متن ترجمه حفظ می‌شود.';
+        if (!file || !file.size || file.size > 25 * 1024 * 1024) { status.textContent = ui.BosVeya25MBUzerindekiDosyalarKabul; return; }
+        button.disabled = true; status.textContent = ui.DosyaYukleniyorCeviriMetniKorunur;
         try {
             const response = await fetch(upload.action, { method: 'POST', body: new FormData(upload), credentials: 'same-origin', headers: { Accept: 'application/json' } });
-            if (response.redirected && new URL(response.url).pathname === '/Account/Login') throw new Error('نشست پایان یافته؛ در تب جدید وارد شوید و دوباره بارگذاری کنید.');
-            if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('بارگذاری تأیید نشد؛ ورود، اندازه‌ی فایل و ارتباط را بررسی کنید.');
+            if (response.redirected && new URL(response.url).pathname === '/Account/Login') throw new Error(ui.OturumSonaErdiYeniSekmedeGirisYapip);
+            if (!response.headers.get('content-type')?.includes('application/json')) throw new Error(ui.YuklemeDogrulanamadiOturumuDosyaBoyutunuVeBaglantiyi);
             const result = await response.json();
-            if (!response.ok) throw new Error(typeof result.message === 'string' ? result.message : 'فایل پذیرفته نشد.');
+            if (!response.ok) throw new Error(typeof result.message === 'string' ? result.message : ui.DosyaKabulEdilmedi);
             const source = result.sourceFile;
-            if (!guid.test(source?.id ?? '')) throw new Error('پاسخ بارگذاری قابل تأیید نیست.');
+            if (!guid.test(source?.id ?? '')) throw new Error(ui.YuklemeYanitiDogrulanamiyor);
             const option = document.createElement('option'); option.value = source.id; option.textContent = source.originalFileName; option.dataset.type = source.contentType;
             select.append(option); select.value = source.id;
             const link = document.createElement('a'); link.href = sourceUrl(source.id, true); link.textContent = source.originalFileName;
-            find('source-file-list').append(link); find('source-count').textContent = `${select.options.length - 1} فایل`;
+            find('source-file-list').append(link); find('source-count').textContent = formatUi(ui.FileCount, select.options.length - 1);
             input.value = ''; await openSelected();
-        } catch (error) { status.textContent = error.message || 'ارتباط برقرار نشد؛ متن ترجمه در همین صفحه حفظ شده است.'; }
+        } catch (error) { status.textContent = error.message || ui.BaglantiKurulamadiCeviriMetniBuSayfadaKorunmustur; }
         finally { button.disabled = false; }
     });
     if (select.options.length > 1) { select.selectedIndex = 1; void openSelected(); }

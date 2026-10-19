@@ -36,7 +36,7 @@ public sealed class TeamController(BackendApi api) : Controller
         {
             if (!ModelState.IsValid) throw new BackendException(HttpStatusCode.BadRequest);
             await api.PostAsync<object>("identity-access", $"{TeamPath(tenantId)}/invitations/{invitationId}/cancel", new { expectedTeamVersion });
-            TempData["Notice"] = "دعوت لغو شد؛ لینک قبلی دیگر قابل پذیرش نیست.";
+            TempData["Notice"] = UiText.Get("DavetIptalEdildiOncekiBaglantiArtikKabul");
         }
         catch (BackendException error) when (error.Status != HttpStatusCode.Unauthorized) { TempData["Notice"] = TeamError(error); }
         return RedirectToAction(nameof(Index), new { tenantId });
@@ -54,7 +54,7 @@ public sealed class TeamController(BackendApi api) : Controller
             using var response = await api.SendAsync("identity-access", HttpMethod.Put,
                 $"{TeamPath(tenantId)}/members/{userId}/{(role is null ? "status" : "role")}",
                 role is null ? JsonContent.Create(new { isActive = active, expectedTeamVersion = version }) : JsonContent.Create(new { role, expectedTeamVersion = version }));
-            BackendApi.EnsureSuccess(response); TempData["Notice"] = "دسترسی عضو به‌روز شد؛ درخواست‌های بعدی با دسترسی جدید بررسی می‌شوند.";
+            BackendApi.EnsureSuccess(response); TempData["Notice"] = UiText.Get("UyeErisimiGuncellendiSonrakiIsteklerYeniYetkiye");
         }
         catch (BackendException error) when (error.Status != HttpStatusCode.Unauthorized) { TempData["Notice"] = TeamError(error); }
         return RedirectToAction(nameof(Index), new { tenantId });
@@ -71,7 +71,7 @@ public sealed class TeamController(BackendApi api) : Controller
         {
             if (!ModelState.IsValid || token?.Length != 43) throw new BackendException(HttpStatusCode.BadRequest);
             var accepted = await api.PostAsync<AcceptedInvitation>("identity-access", $"/api/v1/team-invitations/{invitationId}/accept", new { token });
-            TempData["Notice"] = "دعوت پذیرفته شد؛ به فضای کاری مشترک اضافه شدید.";
+            TempData["Notice"] = UiText.Get("DavetKabulEdildiOrtakCalismaAlaninaEklendiniz");
             return RedirectToAction("Index", "Workspace", new { tenantId = accepted.TenantId });
         }
         catch (BackendException error) when (error.Status != HttpStatusCode.Unauthorized)
@@ -85,9 +85,9 @@ public sealed class TeamController(BackendApi api) : Controller
     private sealed record AcceptedInvitation(Guid TenantId, string Role);
     private static string TeamError(BackendException error) => error.Status switch
     {
-        HttpStatusCode.BadRequest => "اطلاعات دعوت معتبر نیست؛ ابتدا حساب دعوت‌شونده ثبت شود و سپس ایمیل و نقش مجاز را وارد کنید.",
-        HttpStatusCode.Conflict => "تیم یا دعوت تغییر کرده، منقضی یا تکراری است. آخرین وضعیت را باز کنید؛ دعوت قبلیِ در انتظار را پیش از صدور لینک جدید لغو کنید.",
-        HttpStatusCode.Forbidden => "اجازه‌ی این تغییر را ندارید؛ مالک و نقش خودتان محافظت می‌شوند و مدیر نمی‌تواند مدیر دیگری را مدیریت کند.",
+        HttpStatusCode.BadRequest => UiText.Get("DavetBilgileriGecersizOnceDavetEdilecekKisi"),
+        HttpStatusCode.Conflict => UiText.Get("EkipVeyaDavetDegismisSuresiDolmusYa"),
+        HttpStatusCode.Forbidden => UiText.Get("BuDegisiklikIcinYetkinizYokAlanSahibi"),
         _ => error.UserMessage
     };
 }

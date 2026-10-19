@@ -45,7 +45,7 @@ public sealed class TemplateSaveTests
     {
         var f = new Fixture { FailUpload = true }; var view = Assert.IsType<ViewResult>(await f.Controller.SaveTemplate(Form(false), File()));
         var page = Assert.IsType<SettingsPageView>(view.Model); Assert.Equal(Template, page.Form.TemplateId); Assert.Equal(1, page.Form.ExpectedRevision);
-        Assert.Equal("Edited", page.Form.Header); Assert.Contains("قالب ساخته شده", page.Message); Assert.Equal(["create", "upload"], f.Writes);
+        Assert.Equal("Edited", page.Form.Header); Assert.Contains("Şablon oluşturuldu", page.Message); Assert.Equal(["create", "upload"], f.Writes);
     }
     [Fact] public async Task Failed_attach_preserves_uploaded_id_for_reuse_without_new_upload()
     {

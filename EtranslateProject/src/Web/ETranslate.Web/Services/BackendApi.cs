@@ -85,17 +85,17 @@ public sealed class BackendException(HttpStatusCode status, string? code = null)
     public bool IsSubscriptionError => Code is "subscription_required" or "subscription_pending" or "subscription_unavailable";
     public string UserMessage => Code switch
     {
-        "subscription_required" => "اشتراک معتبر لازم است؛ فضای کاری فقط‌خواندنی است. مشاهده و دانلود اسناد قبلی و مدیریت اعضا همچنان در دسترس است. پرداخت و تمدید آنلاین هنوز فعال نیست.",
-        "subscription_pending" => "ثبت اشتراک هنوز تکمیل نشده است؛ عملیات جدید موقتاً متوقف است. کمی بعد دوباره بررسی کنید.",
-        "subscription_unavailable" => "وضعیت اشتراک قابل بررسی نیست؛ این خطا به‌معنای انقضا نیست. عملیات جدید موقتاً متوقف است، اما اسناد قبلی قابل مشاهده‌اند.",
+        "subscription_required" => UiText.Get("GecerliAbonelikGerekirCalismaAlaniSaltOkunurdur"),
+        "subscription_pending" => UiText.Get("AbonelikKaydiHenuzTamamlanmadiYeniIslemlerGecici"),
+        "subscription_unavailable" => UiText.Get("AbonelikDurumuKontrolEdilemiyorBuHataSurenin"),
         _ => Status switch
     {
-        HttpStatusCode.BadRequest => "اطلاعات ارسال‌شده معتبر نیست. نام، زبان‌ها و فیلدهای ضروری را بررسی کنید.",
-        HttpStatusCode.Conflict => "اطلاعات تغییر کرده یا مورد تکراری است. صفحه را دوباره باز کنید و بررسی کنید.",
-        HttpStatusCode.Forbidden => "اجازه‌ی دسترسی یا تغییر این اطلاعات را ندارید.",
-        HttpStatusCode.NotFound => "مورد درخواستی در این فضای کاری پیدا نشد.",
-        HttpStatusCode.Unauthorized => "نشست ورود پایان یافته؛ دوباره وارد شوید.",
-        _ => "سرویس موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید."
+        HttpStatusCode.BadRequest => UiText.Get("GonderilenBilgilerGecersizAdiDilleriVeZorunlu"),
+        HttpStatusCode.Conflict => UiText.Get("BilgilerDegismisVeyaKayitYinelenmisOlabilirSayfayi"),
+        HttpStatusCode.Forbidden => UiText.Get("BuBilgilereErismeVeyaDegistirmeYetkinizYok"),
+        HttpStatusCode.NotFound => UiText.Get("IstenenKayitBuCalismaAlanindaBulunamadi"),
+        HttpStatusCode.Unauthorized => UiText.Get("OturumunuzSonaErdiYenidenGirisYapin"),
+        _ => UiText.Get("HizmetGeciciOlarakKullanilamiyorBirazSonraTekrar")
         }
     };
 }

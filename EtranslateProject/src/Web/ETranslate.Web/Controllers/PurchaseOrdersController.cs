@@ -36,7 +36,7 @@ public sealed class PurchaseOrdersController(BackendApi api) : Controller
         if (!ModelState.IsValid || requestId == Guid.Empty || string.IsNullOrWhiteSpace(planCode) || planCode.Length > 80) return BadRequest();
         var order = await api.PostAsync<PurchaseOrderView>("billing", Path(tenantId), new { planCode, requestId });
         if (order?.IsValidFor(tenantId) != true) throw new BackendException(HttpStatusCode.BadGateway);
-        TempData["Notice"] = "پیش‌سفارش ثبت یا بازیابی شد؛ هیچ پرداختی انجام نشد و اشتراک تغییر نکرد.";
+        TempData["Notice"] = UiText.Get("OnSiparisKaydedildiVeyaMevcutKayitGetirildi");
         return RedirectToAction(nameof(Index), new { tenantId });
     }
     [HttpPost] public async Task<IActionResult> Cancel(Guid tenantId, Guid orderId, long expectedVersion)
@@ -45,7 +45,7 @@ public sealed class PurchaseOrdersController(BackendApi api) : Controller
         if (!ModelState.IsValid || orderId == Guid.Empty || expectedVersion < 0) return BadRequest();
         var order = await api.PostAsync<PurchaseOrderView>("billing", $"{Path(tenantId)}/{orderId}/cancel", new { expectedVersion });
         if (order?.IsValidFor(tenantId) != true || order.Id != orderId || order.Status != "Canceled") throw new BackendException(HttpStatusCode.BadGateway);
-        TempData["Notice"] = "پیش‌سفارش لغو شد؛ اشتراک و اسناد تغییر نکردند.";
+        TempData["Notice"] = UiText.Get("OnSiparisIptalEdildiAbonelikVeBelgeler");
         return RedirectToAction(nameof(Index), new { tenantId });
     }
 }

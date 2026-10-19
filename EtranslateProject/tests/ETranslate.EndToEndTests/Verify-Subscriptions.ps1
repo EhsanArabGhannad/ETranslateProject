@@ -98,7 +98,7 @@ try {
     Assert-Check ($workspace.Body -match '/Subscription\?tenantId=') 'Workspace must link to the selected tenant subscription'
     $page = Web GET $subscriptionPage 200
     $decoded = [Net.WebUtility]::HtmlDecode($page.Body)
-    Assert-Check ($decoded -match 'دورهٔ آزمایشی فعال' -and $decoded -match 'UTC\+03:00' -and $decoded -match '۳۰ روز') 'UI clearly shows trial, Istanbul time and thirty-day policy'
+    Assert-Check ($decoded -match 'Deneme dönemi etkin' -and $decoded -match 'UTC\+03:00' -and $decoded -match '30 gün') 'UI clearly shows trial, Istanbul time and thirty-day policy'
     Assert-Check ($page.Headers.CacheControl.NoStore -and $page.Headers.CacheControl.Private) 'Web subscription page is private/no-store'
     Assert-Check ($page.Body -notmatch 'access_token|localStorage|Bearer ' -and $page.Body -notmatch '<form[^>]+action="/Subscription') 'UI must not expose bearer tokens or subscription mutation forms'
     Save-SubscriptionHtml $page 'subscription-trial.html'
@@ -132,7 +132,7 @@ try {
         Assert-Check ($expired.status -eq 'Expired' -and $expired.remainingTrialDays -eq 0) 'API must observe expiry even before worker persistence'
         $expiredPage = Web GET "/Subscription?tenantId=$fixtureGuid" 200
         $decoded = [Net.WebUtility]::HtmlDecode($expiredPage.Body)
-        Assert-Check ($decoded -match 'منقضی‌شده' -and $decoded -match 'فقط‌خواندنی') 'Expired UI must show enforcement without deleting documents'
+        Assert-Check ($decoded -match 'Süresi doldu' -and $decoded -match 'salt okunur') 'Expired UI must show enforcement without deleting documents'
         Save-SubscriptionHtml $expiredPage 'subscription-expired.html'
         Api POST "$WorkflowUrl/api/v1/tenants/$fixtureGuid/translation-jobs" @{ title = 'Expired trial read-only slice check'; sourceLanguageCode = 'fa'; targetLanguageCode = 'tr'; notaryRequirement = 'NotRequired' } 402 | Out-Null
     }

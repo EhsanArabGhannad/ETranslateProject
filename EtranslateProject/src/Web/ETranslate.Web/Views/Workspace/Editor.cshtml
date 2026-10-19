@@ -2,89 +2,89 @@
 @{ ViewData["Title"] = Model.Job.Title; var plain = DocumentText.TryPlainText(Model.EditorContentJson); var editable = Model.CanWrite && !Model.Historical && !Model.Conflict && Model.Review is { Locked: false, CanManage: true };
    var compatible = RichDocument.TryGetPlainText(Model.EditorContentJson, out _);
    var sources = Model.Document?.SourceFiles ?? Array.Empty<SourceFileView>(); }
-<a class="back-link" asp-action="Index" asp-route-tenantId="@Model.TenantId">→ بازگشت به پرونده‌ها</a>
-<div class="page-heading"><div><span class="eyebrow">TRANSLATION STUDIO</span><h1>@Model.Job.Title</h1><p class="muted" dir="auto">@Model.Job.SourceLanguageCode → @Model.Job.TargetLanguageCode · @(Model.Job.NotaryRequirement == "Required" ? "نیازمند نوتر" : "بدون نیاز به نوتر")</p></div><span class="badge">@(Model.Historical ? "وضعیت فعلی پرونده (نه تأیید این نسخه): " : "")@ReviewStateView.Label(Model.Review?.Status ?? "Draft")</span></div>
+<a class="back-link" asp-action="Index" asp-route-tenantId="@Model.TenantId">@UiText.Get("DosyalaraDon")</a>
+<div class="page-heading"><div><span class="eyebrow">@UiText.Get("CEVIRISTUDYOSU")</span><h1 dir="auto">@Model.Job.Title</h1><p class="muted" dir="auto">@Model.Job.SourceLanguageCode → @Model.Job.TargetLanguageCode · @(Model.Job.NotaryRequirement == "Required" ? UiText.Get("NoterGerekli") : UiText.Get("NoterGerekmiyor"))</p></div><span class="badge">@(Model.Historical ? UiText.Get("DosyaninGuncelDurumuBuSurumunOnayiDegildir") : "")@ReviewStateView.Label(Model.Review?.Status ?? "Draft")</span></div>
 @if (Model.Message is not null) { <div class="alert" role="alert">@Model.Message</div> }
 <partial name="_SubscriptionWriteNotice" model="new SubscriptionWriteNotice(Model.TenantId, Model.WriteStatus)" />
 <fieldset class="subscription-lock">
-<p><a asp-action="Assignment" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">تخصیص مترجم و سابقه در تب جدا ←</a> · @(Model.Job.AssignedTranslatorUserId.HasValue ? "مترجم مسئول تعیین شده" : "بدون تخصیص مترجم")</p>
-@if (Model.Document is not null) { <p><a asp-action="SigningPreparation" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">آماده‌سازی درخواست امضا در تب جدا ←</a></p> }
+<p><a asp-action="Assignment" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">@UiText.Get("CevirmenAtamasiVeGecmisiAyriSekmede")</a> · @(Model.Job.AssignedTranslatorUserId.HasValue ? UiText.Get("SorumluCevirmenAtandi") : UiText.Get("CevirmenAtanmadi"))</p>
+@if (Model.Document is not null) { <p><a asp-action="SigningPreparation" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">@UiText.Get("ImzaTalebiniAyriSekmedeHazirla")</a></p> }
 @if (Model.Document is null) {
-    <section class="card empty"><h2>پرونده آماده‌ی شروع است</h2><p>ابتدا سند پیش‌نویس را بسازید. سپس قالب را انتخاب کنید یا بدون قالب بنویسید.</p><form asp-action="StartDocument" method="post"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><button type="submit" disabled="@(!Model.CanWrite)">شروع نوشتن ترجمه</button></form></section>
+    <section class="card empty"><h2>@UiText.Get("DosyaBaslamayaHazir")</h2><p>@UiText.Get("OnceTaslakBelgeyiOlusturunArdindanSablonSecin")</p><form asp-action="StartDocument" method="post"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><button type="submit" disabled="@(!Model.CanWrite)">@UiText.Get("CeviriyiYazmayaBasla")</button></form></section>
 } else {
-<section class="card document-meta"><span>آخرین نسخه‌ی ذخیره‌شده: @Model.Document.CurrentDraftRevision</span>
-<a asp-controller="Settings" asp-action="Templates" asp-route-tenantId="@Model.TenantId" target="_blank" rel="noopener">مدیریت قالب‌های این فضای کاری در تب جدا ←</a>
-@if (Model.Template is not null) { <span>قالب تثبیت‌شده: نسخه @Model.Template.RevisionNumber</span> }
+<section class="card document-meta"><span>Son kaydedilen sürüm: @Model.Document.CurrentDraftRevision</span>
+<a asp-controller="Settings" asp-action="Templates" asp-route-tenantId="@Model.TenantId" target="_blank" rel="noopener">@UiText.Get("BuCalismaAlanininSablonlariniAyriSekmedeYonet")</a>
+@if (Model.Template is not null) { <span>Sabitlenen şablon: sürüm @Model.Template.RevisionNumber</span> }
 else if (Model.Document.CurrentDraftRevision == 0) {
-    <form asp-action="ApplyTemplate" method="post" id="template-form"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><label for="template-select">قالب (قبل از اولین ذخیره)</label><select id="template-select" name="templateId" required><option value="">انتخاب قالب</option>@foreach (var template in Model.Templates.Where(t => t.IsActive)) { <option value="@template.Id" data-revision="@template.CurrentRevision">@template.Name · نسخه @template.CurrentRevision</option> }</select><input type="hidden" id="template-revision" name="revisionNumber" /><button class="secondary" type="submit" disabled="@(!Model.CanWrite)">تثبیت قالب</button></form>
-    <p class="muted">قبل از اولین ذخیره، متن اولیهٔ قالب وارد ترجمه می‌شود. بعد از ذخیره نیز می‌توانید قالب را از صفحهٔ جدا وصل کنید؛ متن ذخیره‌شده جایگزین نمی‌شود.</p>
-} else { <span class="muted">این نسخه بدون قالب است.</span> }
+    <form asp-action="ApplyTemplate" method="post" id="template-form"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><label for="template-select">@UiText.Get("SablonIlkKayittanOnce")</label><select id="template-select" name="templateId" required><option value="">@UiText.Get("SablonSecin")</option>@foreach (var template in Model.Templates.Where(t => t.IsActive)) { <option value="@template.Id" data-revision="@template.CurrentRevision">@template.Name · Sürüm @template.CurrentRevision</option> }</select><input type="hidden" id="template-revision" name="revisionNumber" /><button class="secondary" type="submit" disabled="@(!Model.CanWrite)">@UiText.Get("SablonuSabitle")</button></form>
+    <p class="muted">@UiText.Get("IlkKayittanOnceSablonunBaslangicMetniCeviriye")</p>
+} else { <span class="muted">@UiText.Get("BuSurumSablonsuzdur")</span> }
 @if (Model.Document.CurrentDraftRevision > 0 && !Model.Historical && !Model.Conflict) {
-    <p><a asp-action="DocumentTemplate" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener" id="change-template-link">اتصال یا تغییر قالب در تب جدا ←</a></p>
-    <p class="muted">ابتدا تغییرات متن را ذخیره کنید. تغییر قالب یک نسخهٔ جدید از متن ذخیره‌شده می‌سازد و به بازبینی مجاز نیاز دارد.</p>
+    <p><a asp-action="DocumentTemplate" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener" id="change-template-link">@UiText.Get("SablonuAyriSekmedeBaglaVeyaDegistir")</a></p>
+    <p class="muted">@UiText.Get("OnceMetinDegisiklikleriniKaydedinSablonDegisikligiKayitli")</p>
 }
 </section>
-@if (Model.Historical || Model.Conflict) { <div class="notice">@(Model.Historical ? "این نسخه‌ی تاریخی فقط خواندنی است." : "برای جلوگیری از بازنویسی، ذخیره در این صفحه متوقف شده است.") <a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">باز کردن آخرین نسخه در تب جدید</a></div> }
-@if (Model.Review?.Locked == true) { <div class="notice">متن و مدارک مبدأ در این وضعیت قفل‌اند. برگشت برای اصلاح، پس‌گرفتن ارسال یا بازگشایی توسط مسئول مجاز، ویرایش را دوباره فعال می‌کند.</div> }
+@if (Model.Historical || Model.Conflict) { <div class="notice">@(Model.Historical ? UiText.Get("BuGecmisSurumSaltOkunurdur") : UiText.Get("UzerineYazmayiOnlemekIcinBuSayfadaKayit")) <a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">@UiText.Get("SonSurumuYeniSekmedeAc")</a></div> }
+@if (Model.Review?.Locked == true) { <div class="notice">@UiText.Get("BuDurumdaMetinVeKaynakBelgelerKilitlidir")</div> }
 <div class="editor-grid" id="editor-workspace" data-tenant-id="@Model.TenantId" data-template-id="@Model.Template?.TemplateId"
      data-rich-compatible="@compatible.ToString().ToLowerInvariant()" data-editable="@editable.ToString().ToLowerInvariant()"
      data-source-base="@Url.Action("Source", new { tenantId = Model.TenantId, jobId = Model.Job.Id })">
-<section class="card source-panel"><div class="section-heading"><h2>مدرک مبدأ</h2><span class="badge" id="source-count">@sources.Count فایل</span></div>
+<section class="card source-panel"><div class="section-heading"><h2>@UiText.Get("KaynakBelge")</h2><span class="badge" id="source-count">@sources.Count dosya</span></div>
 @if (editable) {
 <form asp-action="UploadSource" method="post" enctype="multipart/form-data" id="source-upload-form">
     <input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" />
-    <label for="source-file">افزودن فایل اصلی</label><input type="file" id="source-file" name="file" accept="application/pdf,image/png,image/jpeg,image/tiff,.pdf,.png,.jpg,.jpeg,.tif,.tiff" required />
-    <button class="secondary" type="submit">بارگذاری مدرک مبدأ</button><p class="muted">PDF، PNG، JPEG یا TIFF · حداکثر ۲۵ مگابایت برای هر فایل.</p>
+    <label for="source-file">@UiText.Get("OzgunDosyaEkle")</label><input type="file" id="source-file" name="file" accept="application/pdf,image/png,image/jpeg,image/tiff,.pdf,.png,.jpg,.jpeg,.tif,.tiff" required />
+    <button class="secondary" type="submit">@UiText.Get("KaynakBelgeYukle")</button><p class="muted">@UiText.Get("PDFPNGJPEGVeyaTIFFDosyaBasina")</p>
 </form>
 }
-<p id="source-status" class="muted" role="status">فایل‌ها خصوصی‌اند و به این پرونده تعلق دارند.</p>
-<label for="source-select">فایل برای مشاهده</label><select id="source-select"><option value="">انتخاب فایل</option>
+<p id="source-status" class="muted" role="status">@UiText.Get("DosyalarOzeldirVeBuDosyaKaydinaAittir")</p>
+<label for="source-select">@UiText.Get("GoruntulenecekDosya")</label><select id="source-select"><option value="">@UiText.Get("DosyaSecin")</option>
 @foreach (var source in sources) { <option value="@source.Id" data-type="@source.ContentType">@source.OriginalFileName</option> }
 </select>
-<div class="source-actions"><a id="source-download" hidden>دانلود فایل اصلی</a><div id="pdf-controls" hidden><button type="button" class="quiet" id="pdf-prev" disabled>صفحه‌ی قبل</button><span id="pdf-page-label" role="status"></span><button type="button" class="quiet" id="pdf-next" disabled>صفحه‌ی بعد</button><label for="source-zoom">بزرگ‌نمایی PDF</label><select id="source-zoom"><option value="1">اندازه‌ی مناسب</option><option value="1.5">۱۵۰٪</option><option value="2">۲۰۰٪</option></select></div></div>
-<div id="source-display" class="source-display"><p class="empty">فایل مبدأ را انتخاب یا بارگذاری کنید.</p></div>
-<details class="source-files"><summary>فایل‌های پرونده</summary><div id="source-file-list">
+<div class="source-actions"><a id="source-download" hidden>@UiText.Get("OzgunDosyayiIndir")</a><div id="pdf-controls" hidden><button type="button" class="quiet" id="pdf-prev" disabled>@UiText.Get("OncekiSayfa")</button><span id="pdf-page-label" role="status"></span><button type="button" class="quiet" id="pdf-next" disabled>@UiText.Get("SonrakiSayfa")</button><label for="source-zoom">@UiText.Get("PDFYakinlastirma")</label><select id="source-zoom"><option value="1">@UiText.Get("Sigdir")</option><option value="1.5">@UiText.Get("150")</option><option value="2">@UiText.Get("200")</option></select></div></div>
+<div id="source-display" class="source-display"><p class="empty">@UiText.Get("KaynakDosyayiSecinVeyaYukleyin")</p></div>
+<details class="source-files"><summary>@UiText.Get("DosyaEkleri")</summary><div id="source-file-list">
 @foreach (var source in sources) { <a asp-action="Source" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-sourceFileId="@source.Id" asp-route-download="true">@source.OriginalFileName <span class="muted">(@((source.SizeBytes / 1024d).ToString("0.#")) KB)</span></a> }
-</div></details><p class="muted">TIFF فقط قابل دانلود است. پیش‌نمایش PDF تصویری است؛ جست‌وجو، OCR و انتخاب متن ندارد. فایل‌های مبدأ بین نسخه‌های ترجمه مشترک‌اند.</p>
+</div></details><p class="muted">@UiText.Get("TIFFYalnizcaIndirilebilirPDFOnizlemesiGorseldirArama")</p>
 </section>
-<section class="card editor-controls"><div class="section-heading"><h2>متن ترجمه</h2><span id="save-state" class="muted" role="status">بدون ذخیره‌ی خودکار</span></div>
+<section class="card editor-controls"><div class="section-heading"><h2>@UiText.Get("CeviriMetni")</h2><span id="save-state" class="muted" role="status">@UiText.Get("OtomatikKayitYok")</span></div>
 <form asp-action="SaveDraft" method="post" id="draft-form"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="expectedRevision" value="@Model.ExpectedRevision" /><input type="hidden" name="mode" value="@(plain is null ? "json" : "text")" />
-<div id="rich-region" hidden><div class="editor-toolbar" role="toolbar" aria-label="قالب‌بندی ترجمه">
-    <button type="button" data-command="bold" aria-label="متن پررنگ" aria-pressed="false"><strong>B</strong></button>
-    <button type="button" data-command="italic" aria-label="متن مورب" aria-pressed="false"><em>I</em></button>
-    <button type="button" data-command="underline" aria-label="زیرخط" aria-pressed="false"><u>U</u></button>
-    <button type="button" data-command="paragraph">پاراگراف</button><button type="button" data-command="heading" aria-pressed="false">عنوان</button>
-    <button type="button" data-command="bulletList" aria-pressed="false">فهرست نقطه‌ای</button><button type="button" data-command="orderedList" aria-pressed="false">فهرست شماره‌دار</button>
-    <button type="button" data-command="rtl" aria-label="جهت راست به چپ">راست‌به‌چپ</button><button type="button" data-command="ltr" aria-label="جهت چپ به راست">چپ‌به‌راست</button><button type="button" data-command="auto">جهت خودکار</button>
-    <button type="button" data-command="undo">واگرد</button><button type="button" data-command="redo">ازنو</button>
-    <button type="button" data-command="insertTable">جدول ۳×۳ با سطر عنوان</button>
-    <button type="button" data-command="addRowAfter">سطر بعد</button><button type="button" data-command="addColumnAfter">ستون بعد</button>
-    <button type="button" data-command="deleteRow">حذف سطر</button><button type="button" data-command="deleteColumn">حذف ستون</button><button type="button" data-command="deleteTable">حذف جدول</button>
-</div><div id="rich-text"></div><p class="muted">قالب‌بندی به متن انتخاب‌شده یا پاراگراف جاری اعمال می‌شود. جدول ساده تا ۵۰ سطر و ۱۲ ستون پشتیبانی می‌شود؛ ادغام سلول، عرض دستی و ورود کامل فایل Word پشتیبانی نمی‌شوند. برای تغییر جدول، داخل یکی از سلول‌ها کلیک کنید.</p></div>
+<div id="rich-region" hidden><div class="editor-toolbar" role="toolbar" aria-label="@UiText.Get("CeviriBicimlendirme")">
+    <button type="button" data-command="bold" aria-label="@UiText.Get("KalinMetin")" aria-pressed="false"><strong>B</strong></button>
+    <button type="button" data-command="italic" aria-label="@UiText.Get("ItalikMetin")" aria-pressed="false"><em>I</em></button>
+    <button type="button" data-command="underline" aria-label="@UiText.Get("AltiCizili")" aria-pressed="false"><u>U</u></button>
+    <button type="button" data-command="paragraph">@UiText.Get("Paragraf")</button><button type="button" data-command="heading" aria-pressed="false">@UiText.Get("Baslik")</button>
+    <button type="button" data-command="bulletList" aria-pressed="false">@UiText.Get("MaddeIsaretliListe")</button><button type="button" data-command="orderedList" aria-pressed="false">@UiText.Get("NumaraliListe")</button>
+    <button type="button" data-command="rtl" aria-label="@UiText.Get("SagdanSolaYon")">@UiText.Get("SagdanSola")</button><button type="button" data-command="ltr" aria-label="@UiText.Get("SoldanSagaYon")">@UiText.Get("SoldanSaga")</button><button type="button" data-command="auto">@UiText.Get("OtomatikYon")</button>
+    <button type="button" data-command="undo">@UiText.Get("GeriAl")</button><button type="button" data-command="redo">@UiText.Get("Yinele")</button>
+    <button type="button" data-command="insertTable">@UiText.Get("Baslikli33Tablo")</button>
+    <button type="button" data-command="addRowAfter">@UiText.Get("SonrakiSatir")</button><button type="button" data-command="addColumnAfter">@UiText.Get("SonrakiSutun")</button>
+    <button type="button" data-command="deleteRow">@UiText.Get("SatiriSil")</button><button type="button" data-command="deleteColumn">@UiText.Get("SutunuSil")</button><button type="button" data-command="deleteTable">@UiText.Get("TabloyuSil")</button>
+</div><div id="rich-text"></div><p class="muted">@UiText.Get("BicimlendirmeSeciliMetneVeyaGecerliParagrafaUygulanir")</p></div>
 <p id="editor-format-status" class="muted" role="status"></p>
-@if (plain is not null) { <label for="translation-text">هر خط یک پاراگراف</label><textarea id="translation-text" name="plainText" rows="18" dir="auto" readonly="@(!editable)" maxlength="1000000">@plain</textarea><textarea id="document-json" name="editorContentJson" hidden>@Model.EditorContentJson</textarea> }
-else { <p class="notice" id="legacy-format-notice">ساختار اصلی سند حفظ شده است. اگر ویرایشگر غنی از این ساختار پشتیبانی نکند، ویرایش پیشرفته‌ی JSON در دسترس می‌ماند.</p><label for="document-json">ساختار سند (ویرایش پیشرفته)</label><textarea id="document-json" name="editorContentJson" rows="18" dir="ltr" readonly="@(!editable)" maxlength="2000000">@Model.EditorContentJson</textarea> }
-<button type="submit" disabled="@(!editable)">ذخیره‌ی نسخه‌ی جدید</button><p class="muted">فقط بدنه‌ی ترجمه تغییر می‌کند؛ سربرگ، پابرگ و لوگوی قالب تثبیت‌شده حفظ می‌شوند.</p></form>
-<p><a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">بررسی آخرین نسخه در تب جدید</a> · <a asp-controller="Account" asp-action="Login" target="_blank" rel="noopener">ورود مجدد</a></p>
-<details><summary>تاریخچه‌ی نسخه‌ها (@Model.History.Count)</summary><div class="history">@foreach (var revision in Model.History) { <a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-revisionNumber="@revision.RevisionNumber">نسخه @revision.RevisionNumber <span dir="ltr">@revision.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</span></a> }</div></details>
-<section class="draft-pdf-section"><h3>PDF پیش‌نویس · بدون امضا</h3>
+@if (plain is not null) { <label for="translation-text">@UiText.Get("HerSatirBirParagraf")</label><textarea id="translation-text" name="plainText" rows="18" dir="auto" readonly="@(!editable)" maxlength="1000000">@plain</textarea><textarea id="document-json" name="editorContentJson" hidden>@Model.EditorContentJson</textarea> }
+else { <p class="notice" id="legacy-format-notice">@UiText.Get("BelgeninOzgunYapisiKorunmusturZenginDuzenleyiciBu")</p><label for="document-json">@UiText.Get("BelgeYapisiGelismisDuzenleme")</label><textarea id="document-json" name="editorContentJson" rows="18" dir="ltr" readonly="@(!editable)" maxlength="2000000">@Model.EditorContentJson</textarea> }
+<button type="submit" disabled="@(!editable)">@UiText.Get("YeniSurumuKaydet")</button><p class="muted">@UiText.Get("YalnizcaCeviriGovdesiDegisirSabitlenenSablonunUstbilgisi")</p></form>
+<p><a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">@UiText.Get("SonSurumuYeniSekmedeIncele")</a> · <a asp-controller="Account" asp-action="Login" target="_blank" rel="noopener">@UiText.Get("YenidenGiris")</a></p>
+<details><summary>Sürüm geçmişi (@Model.History.Count)</summary><div class="history">@foreach (var revision in Model.History) { <a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-revisionNumber="@revision.RevisionNumber">Sürüm @revision.RevisionNumber <span dir="ltr">@revision.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</span></a> }</div></details>
+<section class="draft-pdf-section"><h3>@UiText.Get("TaslakPDFImzasiz")</h3>
 @if (Model.ViewedRevision > 0) {
     <form asp-action="GenerateDraftPdf" method="post" id="draft-pdf-form" data-download-base="@Url.Action("DraftPdf", new { tenantId = Model.TenantId, jobId = Model.Job.Id })">
         <input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="revisionNumber" value="@Model.ViewedRevision" />
-        <button type="submit" class="secondary" disabled="@(!Model.CanWrite)">ساخت PDF نسخه‌ی ذخیره‌شده‌ی @Model.ViewedRevision</button>
+        <button type="submit" class="secondary" disabled="@(!Model.CanWrite)">Kaydedilen sürümden PDF oluştur: @Model.ViewedRevision</button>
     </form>
-} else { <p class="muted">برای تولید PDF، ابتدا یک نسخه‌ی ترجمه ذخیره کنید.</p> }
-<p class="muted">فقط نسخه‌ی ذخیره‌شده چاپ می‌شود؛ تغییرات ذخیره‌نشده وارد PDF نمی‌شوند. سربرگ در همهٔ صفحات و پابرگ طبق تنظیم نسخهٔ تثبیت‌شده، در همهٔ صفحات یا فقط آخرین صفحهٔ ترجمه درج می‌شود. شمارهٔ صفحه و هشدار پیش‌نویس در همهٔ صفحات می‌مانند. این فایل امضای الکترونیکی، QR یا تأیید نوتر ندارد.</p>
+} else { <p class="muted">@UiText.Get("PDFOlusturmakIcinOnceBirCeviriSurumu")</p> }
+<p class="muted">@UiText.Get("YalnizcaKayitliSurumYazdirilirKaydedilmemisDegisikliklerPDF")</p>
 <p id="draft-pdf-status" role="status" class="muted"></p><div id="draft-pdf-list">
 @foreach (var pdf in Model.PdfVersions) {
-    <div data-pdf-id="@pdf.Id"><a asp-action="DraftPdf" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-pdfId="@pdf.Id">دانلود PDF پیش‌نویس نسخه‌ی @pdf.RevisionNumber</a><small dir="ltr">SHA-256: @pdf.Sha256</small></div>
+    <div data-pdf-id="@pdf.Id"><a asp-action="DraftPdf" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-pdfId="@pdf.Id">Taslak PDF indir, sürüm @pdf.RevisionNumber</a><small dir="ltr">SHA-256: @pdf.Sha256</small></div>
 }
 </div></section>
 <partial name="_DocumentReview" model="Model" />
 </section>
-<details class="preview-panel"><summary>پیش‌نمایش ترجمه با سربرگ و قالب</summary><p class="muted">نمایش تقریبی، نه PDF نهایی؛ برای چاپ، PDF نسخهٔ ذخیره‌شده را دانلود و بررسی کنید.</p><label for="preview-page-role">نمونهٔ فرضی پیش‌نمایش</label><select id="preview-page-role"><option value="Last">صفحهٔ آخر (یا سند تک‌صفحه‌ای)</option><option value="Earlier">یکی از صفحات قبل از آخر</option></select><div id="preview-notice" class="muted" role="status"></div><article class="paper" dir="auto"><div class="watermark" id="preview-watermark"></div><header id="preview-header" class="paper-header"></header><div id="preview-body" class="paper-body"></div><footer id="preview-footer" class="paper-footer"></footer></article></details>
+<details class="preview-panel"><summary>@UiText.Get("UstbilgiVeSablonlaCeviriOnizlemesi")</summary><p class="muted">@UiText.Get("YaklasikOnizlemedirNihaiPDFDegildirYazdirmadanOnce")</p><label for="preview-page-role">@UiText.Get("OrnekOnizlemeSayfasi")</label><select id="preview-page-role"><option value="Last">@UiText.Get("SonSayfaVeyaTekSayfalikBelge")</option><option value="Earlier">@UiText.Get("SonSayfadanOncekiBirSayfa")</option></select><div id="preview-notice" class="muted" role="status"></div><article class="paper" dir="auto"><div class="watermark" id="preview-watermark"></div><header id="preview-header" class="paper-header"></header><div id="preview-body" class="paper-body"></div><footer id="preview-footer" class="paper-footer"></footer></article></details>
 </div>
-<div hidden><textarea id="template-header">@Model.Template?.HeaderContentJson</textarea><textarea id="template-footer">@Model.Template?.FooterContentJson</textarea><textarea id="template-watermark">@Model.Template?.WatermarkJson</textarea><textarea id="template-layout">@Model.Template?.PageLayoutJson</textarea></div>
+<div hidden><textarea id="template-header" dir="auto">@Model.Template?.HeaderContentJson</textarea><textarea id="template-footer" dir="auto">@Model.Template?.FooterContentJson</textarea><textarea id="template-watermark" dir="auto">@Model.Template?.WatermarkJson</textarea><textarea id="template-layout" dir="auto">@Model.Template?.PageLayoutJson</textarea></div>
 }
 </fieldset>
 @section Scripts {

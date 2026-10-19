@@ -1,61 +1,61 @@
 @model SigningPageView
-@{ ViewData["Title"] = "آماده‌سازی درخواست امضا"; var state = Model.State; }
-<a class="back-link" asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id">→ بازگشت به ترجمه</a>
-<div class="page-heading"><div><span class="eyebrow">SIGNING PREPARATION · NOT SIGNED</span><h1>آماده‌سازی درخواست امضا</h1><p>@Model.Job.Title</p></div><span class="badge">فقط برنامه‌ریزی</span></div>
-<p class="notice">این صفحه امضا، رضایت امضاکننده، تأیید نوتر یا سند رسمی ایجاد نمی‌کند. بیانیه‌ها فقط متن پیشنهادی‌اند. می‌توانید یک PDF جداگانه با صفحات ترجمه‌ی مرجع و پیوست بیانیه‌ها بسازید؛ PDF مرجع تغییر نمی‌کند. پیش‌نمایش فاقد امضا و QR است و برای ارسال به ارائه‌دهنده‌ی امضا آماده نیست.</p>
+@{ ViewData["Title"] = UiText.Get("ImzaTalebiHazirligi"); var state = Model.State; }
+<a class="back-link" asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id">@UiText.Get("CeviriyeDon")</a>
+<div class="page-heading"><div><span class="eyebrow">@UiText.Get("IMZAHAZIRLIGIIMZASIZ")</span><h1>@UiText.Get("ImzaTalebiHazirligi")</h1><p>@Model.Job.Title</p></div><span class="badge">@UiText.Get("YalnizcaPlanlama")</span></div>
+<p class="notice">@UiText.Get("BuSayfaImzaImzalayaninOnayiNoterOnayi")</p>
 @if (Model.Error is not null) { <p class="notice" role="alert">@Model.Error</p> }
 <partial name="_SubscriptionWriteNotice" model="new SubscriptionWriteNotice(Model.TenantId, Model.WriteStatus)" />
-@if (Model.Error is not null && !Model.CanPrepare) { <section class="card"><h2>متن ارسال‌شده‌ی شما (ثبت نشده)</h2><p class="signing-statement" dir="auto">@Model.Form.TranslatorStatement</p><p class="signing-statement" dir="auto">@Model.Form.OfficeStatement</p><p class="muted">متن را پیش از تازه‌سازی صفحه کپی کنید.</p></section> }
-<section class="card"><h2>نسخه‌ی مرجع</h2>
-@if (!state.ArtifactServiceAvailable) { <p class="notice">بررسی PDF فعلاً در دسترس نیست؛ وضعیت تازگی درخواست‌ها نامشخص است و درخواست جدید ثبت نمی‌شود.</p> }
+@if (Model.Error is not null && !Model.CanPrepare) { <section class="card"><h2>@UiText.Get("GonderdiginizMetinKaydedilmedi")</h2><p class="signing-statement" dir="auto">@Model.Form.TranslatorStatement</p><p class="signing-statement" dir="auto">@Model.Form.OfficeStatement</p><p class="muted">@UiText.Get("SayfayiYenilemedenOnceMetniKopyalayin")</p></section> }
+<section class="card"><h2>@UiText.Get("ReferansSurum")</h2>
+@if (!state.ArtifactServiceAvailable) { <p class="notice">@UiText.Get("PDFKontroluSuAnKullanilamiyorTaleplerinGuncelligi")</p> }
 else if (state.Artifact is { } artifact) {
-    <p>تأیید داخلی دور @artifact.ReviewRound · ترجمه‌ی نسخه‌ی @artifact.RevisionNumber · پیش‌نویس بدون امضا</p>
+    <p>İç onay turu @artifact.ReviewRound · Çeviri sürümü @artifact.RevisionNumber · İmzasız taslak</p>
     <p class="signing-hash" dir="ltr">SHA-256: @artifact.Sha256</p>
-    <a asp-action="DraftPdf" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-pdfId="@artifact.PdfVersionId">دانلود PDF مرجع (خصوصی و بدون امضا)</a>
-} else { <p class="notice">ابتدا PDF نسخه‌ی جاری را بسازید، برای بازبینی بفرستید و تأیید داخلی بگیرید.</p> }
-<p class="muted">تأیید داخلی صحت حقوقی یا صلاحیت رسمی مترجم را اثبات نمی‌کند. تخصیص مسئول پرونده نیز با انتخاب امضاکننده متفاوت است.</p>
-<button type="button" disabled>ارسال برای امضای واقعی — هنوز فعال نیست</button>
+    <a asp-action="DraftPdf" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-pdfId="@artifact.PdfVersionId">@UiText.Get("ReferansPDFIndirOzelVeImzasiz")</a>
+} else { <p class="notice">@UiText.Get("OnceGuncelSurumunPDFDosyasiniOlusturunIncelemeye")</p> }
+<p class="muted">@UiText.Get("IcOnayHukukiGecerliligiVeyaCevirmeninResmi")</p>
+<button type="button" disabled>@UiText.Get("GercekImzayaGonderHenuzEtkinDegil")</button>
 </section>
 @if (Model.CanPrepare) {
-<section class="card"><h2>ثبت برنامه‌ی درخواست</h2><form asp-action="PrepareSigning" method="post">
+<section class="card"><h2>@UiText.Get("TalepPlaniniKaydet")</h2><form asp-action="PrepareSigning" method="post">
     <input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" />
     <input asp-for="Form.ExpectedReviewId" type="hidden" /><input asp-for="Form.ExpectedPdfVersionId" type="hidden" />
-    <label asp-for="Form.TranslatorUserId">۱. امضاکننده‌ی پیشنهادی ترجمه</label><select asp-for="Form.TranslatorUserId"><option value="">انتخاب عضو فعال</option>
+    <label asp-for="Form.TranslatorUserId">@UiText.Get("1CeviriIcinOnerilenImzalayan")</label><select asp-for="Form.TranslatorUserId"><option value="">@UiText.Get("EtkinUyeSecin")</option>
     @foreach (var member in Model.Candidates) { <option value="@member.UserId">@member.Email · @TeamPageView.RoleLabel(member.Role)</option> }</select>
-    <label asp-for="Form.TranslatorMethod">روش پیشنهادی مترجم</label><select asp-for="Form.TranslatorMethod"><option value="EImza">e-İmza</option><option value="MobilImza">Mobil İmza</option></select>
-    <label asp-for="Form.TranslatorStatement">متن پیشنهادی بیانیه‌ی مترجم (نه بیانیه‌ی پذیرفته‌شده)</label><textarea asp-for="Form.TranslatorStatement" maxlength="4000" rows="4" required></textarea>
+    <label asp-for="Form.TranslatorMethod">@UiText.Get("CevirmenIcinOnerilenYontem")</label><select asp-for="Form.TranslatorMethod"><option value="EImza">@UiText.Get("EImza")</option><option value="MobilImza">@UiText.Get("MobilImza")</option></select>
+    <label asp-for="Form.TranslatorStatement">@UiText.Get("OnerilenCevirmenBeyaniKabulEdilmisBeyanDegildir")</label><textarea asp-for="Form.TranslatorStatement" maxlength="4000" rows="4" required dir="auto"></textarea>
     @if (state.SignaturePolicy == "TranslatorAndTranslationOffice") {
-        <label asp-for="Form.OfficeSignerUserId">۲. امضاکننده‌ی پیشنهادی دارالترجمه</label><select asp-for="Form.OfficeSignerUserId"><option value="">انتخاب مالک یا مدیر فعال</option>
+        <label asp-for="Form.OfficeSignerUserId">@UiText.Get("2BuroIcinOnerilenImzalayan")</label><select asp-for="Form.OfficeSignerUserId"><option value="">@UiText.Get("EtkinAlanSahibiVeyaYoneticiSecin")</option>
         @foreach (var member in Model.Candidates.Where(item => item.Role is "Owner" or "Administrator")) { <option value="@member.UserId">@member.Email · @TeamPageView.RoleLabel(member.Role)</option> }</select>
-        <label asp-for="Form.OfficeMethod">روش پیشنهادی دارالترجمه</label><select asp-for="Form.OfficeMethod"><option value="EImza">e-İmza</option><option value="MobilImza">Mobil İmza</option></select>
-        <label asp-for="Form.OfficeStatement">متن پیشنهادی بیانیه‌ی دارالترجمه</label><textarea asp-for="Form.OfficeStatement" maxlength="4000" rows="4" required></textarea>
+        <label asp-for="Form.OfficeMethod">@UiText.Get("BuroIcinOnerilenYontem")</label><select asp-for="Form.OfficeMethod"><option value="EImza">@UiText.Get("EImza")</option><option value="MobilImza">@UiText.Get("MobilImza")</option></select>
+        <label asp-for="Form.OfficeStatement">@UiText.Get("OnerilenBuroBeyani")</label><textarea asp-for="Form.OfficeStatement" maxlength="4000" rows="4" required dir="auto"></textarea>
     }
-    <button type="submit">ثبت آماده‌سازی (بدون امضا)</button>
-</form><p class="muted">حداکثر ۲۰۰ عضو فعال نمایش داده می‌شوند. پس از ثبت، انتخاب‌ها و متن پیشنهادی قابل ویرایش نیستند؛ برای تغییر، درخواست را لغو و دوباره آماده کنید. PIN، کلید خصوصی یا رمز توکن را اینجا وارد نکنید.</p></section>
-} else if (!state.CanManage) { <p class="notice">فقط مالک یا مدیر می‌تواند درخواست را آماده یا لغو کند.</p> }
-<section class="card"><h2>سابقه‌ی آماده‌سازی (۲۰ درخواست اخیر)</h2>
-@if (state.Preparations.Count == 0) { <p class="muted">هنوز برنامه‌ای ثبت نشده است.</p> }
+    <button type="submit">@UiText.Get("HazirligiKaydetImzasiz")</button>
+</form><p class="muted">@UiText.Get("EnFazla200EtkinUyeGosterilirKayittan")</p></section>
+} else if (!state.CanManage) { <p class="notice">@UiText.Get("YalnizcaAlanSahibiVeyaYoneticiTalebiHazirlayabilir")</p> }
+<section class="card"><h2>@UiText.Get("HazirlikGecmisiSon20Talep")</h2>
+@if (state.Preparations.Count == 0) { <p class="muted">@UiText.Get("HenuzBirPlanKaydedilmedi")</p> }
 @foreach (var item in state.Preparations) {
-<article class="team-member"><h3>@(item.Status == "Prepared" ? "آماده‌شده — بدون امضا" : "لغوشده") · نسخه‌ی ترجمه @item.RevisionNumber</h3>
+<article class="team-member"><h3>@(item.Status == "Prepared" ? UiText.Get("HazirlandiImzasiz") : UiText.Get("IptalEdildi")) · Çeviri sürümü @item.RevisionNumber</h3>
     <p class="muted" dir="ltr">@item.Id · @item.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC · Actor: @item.CreatedByUserId</p>
     <p class="signing-hash" dir="ltr">SHA-256: @item.PdfSha256</p>
-    @if (item.Status == "Prepared" && state.ArtifactServiceAvailable && !item.IsCurrentArtifact) { <p class="notice">این برنامه دیگر به تأیید جاری وصل نیست. آن را لغو و پس از تأیید نسخه‌ی جدید، دوباره آماده کنید.</p> }
+    @if (item.Status == "Prepared" && state.ArtifactServiceAvailable && !item.IsCurrentArtifact) { <p class="notice">@UiText.Get("BuPlanArtikGuncelOnayaBagliDegildir")</p> }
     @foreach (var stage in item.Stages) {
-        <h4>@stage.Order. @(stage.Role == "Translator" ? "مترجم" : "دارالترجمه") — @stage.RequestedMethod</h4><p dir="auto">@Model.MemberLabel(stage.SignerUserId)</p>
+        <h4>@stage.Order. @(stage.Role == "Translator" ? UiText.Get("Cevirmen") : UiText.Get("TercumeBurosu")) — @stage.RequestedMethod</h4><p dir="auto">@Model.MemberLabel(stage.SignerUserId)</p>
         <p class="signing-statement" dir="auto">@stage.ProposedStatement</p>
     }
-    @if (item.Status == "Cancelled") { <p>دلیل لغو: @item.CancellationReason</p><small dir="ltr">@item.CancelledAtUtc?.ToString("yyyy-MM-dd HH:mm") UTC · Actor: @item.CancelledByUserId</small> }
+    @if (item.Status == "Cancelled") { <p>İptal gerekçesi: @item.CancellationReason</p><small dir="ltr">@item.CancelledAtUtc?.ToString("yyyy-MM-dd HH:mm") UTC · Actor: @item.CancelledByUserId</small> }
     @foreach (var preview in Model.Previews.Where(pdf => pdf.PreparationId == item.Id)) {
-        <p><a asp-action="SigningPreviewPdf" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-previewId="@preview.Id">دانلود پیش‌نمایش PDF — بدون امضا</a></p>
+        <p><a asp-action="SigningPreviewPdf" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-previewId="@preview.Id">@UiText.Get("OnizlemePDFIndirImzasiz")</a></p>
         <p class="signing-hash" dir="ltr">Preview SHA-256: @preview.Sha256</p>
-        <p class="muted">این فایل یک تصویر ثابت از برنامه‌ی ثبت‌شده است؛ لغو یا بازگشایی بعدی داخل آن منعکس نمی‌شود. شناسه‌ی حساب امضاکننده در پیوست، احراز هویت حقوقی یا گواهی امضا نیست.</p>
+        <p class="muted">@UiText.Get("BuDosyaKayitliPlaninAnlikGoruntusudurSonraki")</p>
     }
     @if (item.Status == "Prepared" && Model.CanWrite && state.CanManage && state.ArtifactServiceAvailable && item.IsCurrentArtifact) {
-        <form asp-action="GenerateSigningPreview" method="post"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="preparationId" value="@item.Id" /><button type="submit" class="secondary">ساخت یا دریافت پیش‌نمایش PDF بدون امضا</button></form>
+        <form asp-action="GenerateSigningPreview" method="post"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="preparationId" value="@item.Id" /><button type="submit" class="secondary">@UiText.Get("ImzasizOnizlemePDFOlusturVeyaAl")</button></form>
     }
     @if (item.Status == "Prepared" && Model.CanWrite && state.CanManage) {
         <form asp-action="CancelSigningPreparation" method="post"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="preparationId" value="@item.Id" /><input type="hidden" name="expectedVersion" value="@item.Version" />
-        <label for="cancel-@item.Id">دلیل لغو آماده‌سازی</label><textarea id="cancel-@item.Id" name="reason" maxlength="2000" rows="2" required></textarea><button type="submit" class="secondary">لغو آماده‌سازی</button></form>
+        <label for="cancel-@item.Id">@UiText.Get("HazirligiIptalEtmeGerekcesi")</label><textarea id="cancel-@item.Id" name="reason" maxlength="2000" rows="2" required dir="auto"></textarea><button type="submit" class="secondary">@UiText.Get("HazirligiIptalEt")</button></form>
     }
 </article>
 }

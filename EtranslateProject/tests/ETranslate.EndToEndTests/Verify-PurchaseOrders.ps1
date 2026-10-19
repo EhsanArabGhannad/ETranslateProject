@@ -96,7 +96,7 @@ try {
     Web POST '/Account/Login' 302 (Fields @{email=$email; password=$password; __RequestVerificationToken=(Csrf $loginPage.Body)}) | Out-Null
     $page=Web GET "/PurchaseOrders?tenantId=$tenantId" 200
     $text=[Net.WebUtility]::HtmlDecode($page.Body)
-    Assert-Check ($text -match 'پیش‌سفارش بدون پرداخت' -and $text -match 'قیمت هنوز تعیین نشده' -and $text -match 'TRY' -and $text -match 'منقضی‌شده') 'UI shows unpriced TRY drafts and expired history'
+    Assert-Check ($text -match 'Ödeme yapmadan ön sipariş' -and $text -match 'Fiyat henüz belirlenmedi' -and $text -match 'TRY' -and $text -match 'Süresi doldu') 'UI shows unpriced TRY drafts and expired history'
     Assert-Check ($page.Body -notmatch 'access_token|localStorage|Bearer |paymentReference' -and $page.Headers.CacheControl.ToString() -match 'no-store') 'Private order HTML contains no server tokens'
     $form=@{tenantId=$tenantId;planCode='office-monthly';requestId=[Guid]::NewGuid()}
     Web POST '/PurchaseOrders/Create' 400 (Fields $form) | Out-Null
@@ -104,7 +104,7 @@ try {
     Web POST '/PurchaseOrders/Create' 302 (Fields $form) | Out-Null
     $created=Api POST $ordersApi @{planCode='office-monthly';requestId=$form.requestId} 200
     $page=Web GET "/PurchaseOrders?tenantId=$tenantId" 200
-    Assert-Check ([Net.WebUtility]::HtmlDecode($page.Body) -match 'هیچ پرداختی انجام نشد') 'BFF notice never claims payment'
+    Assert-Check ([Net.WebUtility]::HtmlDecode($page.Body) -match 'ödeme yapılmadı') 'BFF notice never claims payment'
     $cancelForm=@{tenantId=$tenantId;orderId=$created.id;expectedVersion=0}
     Web POST '/PurchaseOrders/Cancel' 400 (Fields $cancelForm) | Out-Null
     $cancelForm.__RequestVerificationToken=Csrf $page.Body

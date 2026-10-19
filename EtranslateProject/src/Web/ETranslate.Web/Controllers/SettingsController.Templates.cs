@@ -32,25 +32,25 @@ public sealed partial class SettingsController
         if (!page.CanWrite)
         {
             Response.StatusCode = page.WriteStatus == SubscriptionWriteStatus.Required ? 402 : 503;
-            page.Message = "تغییر قالب به اشتراک معتبر و سرویس در دسترس نیاز دارد؛ اطلاعات فرم حفظ شده است.";
+            page.Message = UiText.Get("SablonDegisikligiIcinGecerliAbonelikVeErisilebilir");
             return View("Templates", page);
         }
         if (page.Selected?.IsActive == false) return StatusCode(409);
         if (form.TemplateId.HasValue && (form.ExpectedRevision < 1 || form.ExpectedRevision != page.Selected!.CurrentRevision))
-            return SaveFailure(page, 409, "نسخهٔ قالب تغییر کرده است؛ اطلاعات فرم شما حفظ شد. آخرین نسخه را در تب جدا بررسی کنید.", conflict: true);
+            return SaveFailure(page, 409, UiText.Get("SablonSurumuDegistiFormBilgilerinizKorunduSon"), conflict: true);
         if (!form.TemplateId.HasValue && (form.ExpectedRevision != 0 || form.PendingAssetId.HasValue)) return BadRequest();
-        if (page.Projection.LayoutEditable && !form.Layout.IsValid) ModelState.AddModelError("Form.PageSize", "تنظیمات صفحه یا محل نمایش پابرگ معتبر نیست؛ حاشیه‌ها باید بین ۵ و ۵۰ میلی‌متر باشند.");
-        if (form.LogoMode is not ("Add" or "Replace")) ModelState.AddModelError("Form.LogoMode", "روش تصویر معتبر نیست.");
+        if (page.Projection.LayoutEditable && !form.Layout.IsValid) ModelState.AddModelError("Form.PageSize", UiText.Get("SayfaVeyaAltbilgiKonumuAyarlariGecersizKenar"));
+        if (form.LogoMode is not ("Add" or "Replace")) ModelState.AddModelError("Form.LogoMode", UiText.Get("GorselEklemeYontemiGecersiz"));
         if (page.Projection.HeaderEditable && (!TemplateRegion.AlignmentsValid(form.HeaderLineAlignmentsJson) || form.ImageAlignment is not (null or "left" or "center" or "right") || form.ImageLayout is not (null or "logo" or "banner")))
-            ModelState.AddModelError("Form.Header", "تراز متن یا حالت تصویر سربرگ معتبر نیست.");
-        if (page.Projection.FooterEditable && !TemplateRegion.AlignmentsValid(form.FooterLineAlignmentsJson)) ModelState.AddModelError("Form.Footer", "تراز پابرگ معتبر نیست.");
+            ModelState.AddModelError("Form.Header", UiText.Get("MetinHizalamasiVeyaUstbilgiGorselDuzeniGecersiz"));
+        if (page.Projection.FooterEditable && !TemplateRegion.AlignmentsValid(form.FooterLineAlignmentsJson)) ModelState.AddModelError("Form.Footer", UiText.Get("AltbilgiHizalamasiGecersiz"));
         var hasLogo = logo is { Length: > 0 };
         var mime = logo?.ContentType.Split(';', 2)[0].Trim().ToLowerInvariant();
         if (logo is not null && (!hasLogo || logo.Length > 5 * 1024 * 1024 || mime is not ("image/png" or "image/jpeg")))
-            ModelState.AddModelError("logo", "تصویر باید PNG یا JPEG و حداکثر ۵ مگابایت باشد.");
+            ModelState.AddModelError("logo", UiText.Get("GorselPNGVeyaJPEGBicimindeVeEn"));
         if ((hasLogo || form.PendingAssetId.HasValue) && (!page.Projection.CanAppendLogo || form.LogoMode == "Replace" && !page.Projection.HeaderEditable))
-            ModelState.AddModelError("logo", "ساختار پیچیدهٔ این سربرگ برای این تغییر تصویر پشتیبانی نمی‌شود؛ نسخهٔ اصلی حفظ شده است.");
-        if (!ModelState.IsValid) return SaveFailure(page, 400, "اطلاعات فرم را بررسی کنید. اگر فایل انتخاب کرده بودید، دوباره انتخابش کنید.");
+            ModelState.AddModelError("logo", UiText.Get("KarmasikUstbilgiYapisiBuGorselDegisikliginiDesteklemiyor"));
+        if (!ModelState.IsValid) return SaveFailure(page, 400, UiText.Get("FormBilgileriniKontrolEdinDosyaSectiysenizYeniden"));
 
         var created = false; var writeAttempted = false;
         try
@@ -68,7 +68,7 @@ public sealed partial class SettingsController
                 page.Projection = TemplateProjection.From(detail, form.TenantId, out _);
                 // Subsequent failures render an EDIT form for this created ID, never another create.
                 ModelState.Clear();
-                if (!hasLogo) return Saved(form, "قالب ساخته شد؛ نسخهٔ ۱ ثبت شد.");
+                if (!hasLogo) return Saved(form, UiText.Get("SablonOlusturulduSurum1Kaydedildi"));
             }
 
             Guid? imageId = form.PendingAssetId;
@@ -89,20 +89,20 @@ public sealed partial class SettingsController
             else if (imageId.HasValue)
             {
                 var assets = await api.ReadAsync<List<AssetView>>("documents", $"{TemplatePath(form.TenantId, form.TemplateId)}/assets");
-                if (assets is null || !assets.Any(a => a.Id == imageId)) return SaveFailure(page, 400, "تصویر بازیابی متعلق به این قالب نیست.");
+                if (assets is null || !assets.Any(a => a.Id == imageId)) return SaveFailure(page, 400, UiText.Get("KurtarilanGorselBuSablonaAitDegil"));
             }
             var payload = page.Projection.Build(form, page.Selected!.Revision, imageId);
             writeAttempted = true;
             var saved = await api.PostAsync<TemplateRevision>("documents", $"{TemplatePath(form.TenantId, form.TemplateId)}/revisions", new
             { expectedCurrentRevision = form.ExpectedRevision, payload.EditorContentJson, payload.HeaderContentJson, payload.FooterContentJson, payload.PageLayoutJson, payload.WatermarkJson });
             if (saved is null || saved.TemplateId != form.TemplateId || saved.RevisionNumber != form.ExpectedRevision + 1) throw new BackendException(HttpStatusCode.BadGateway);
-            return Saved(form, "نسخهٔ جدید قالب ذخیره شد؛ اسناد و نسخه‌های قبلی تغییر نکردند.");
+            return Saved(form, UiText.Get("YeniSablonSurumuKaydedildiOncekiBelgelerVe"));
         }
         catch (BackendException error)
         {
             if (error.Status == HttpStatusCode.Unauthorized) throw;
-            var prefix = created ? "قالب ساخته شده است، اما افزودن تصویر کامل نشد؛ شناسهٔ همان قالب در فرم حفظ شد. " : "ذخیرهٔ کامل تأیید نشد؛ اطلاعات فرم حفظ شده است. ";
-            if (writeAttempted) prefix += "پیش از تکرار، آخرین نسخه را بررسی کنید؛ بعضی مراحل ممکن است انجام شده باشند. ";
+            var prefix = created ? UiText.Get("SablonOlusturulduAncakGorselEklemeTamamlanmadiAyni") : UiText.Get("KaydinTamamlandigiDogrulanamadiFormBilgileriKorunmustur");
+            if (writeAttempted) prefix += UiText.Get("TekrarDenemedenOnceSonSurumuKontrolEdin");
             ModelState.Clear();
             return SaveFailure(page, (int)error.Status, prefix + error.UserMessage, error.Status == HttpStatusCode.Conflict);
         }

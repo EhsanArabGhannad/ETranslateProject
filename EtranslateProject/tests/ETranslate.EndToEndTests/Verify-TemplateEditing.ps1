@@ -54,7 +54,7 @@ try {
     $partial=Save-Template (Template-Fields '' 0 $badName) $newPage 400 ([byte[]](1,2,3,4))
     $partialId=[regex]::Match($partial.Body,'name="Form.TemplateId"[^>]*value="([a-f0-9-]+)"').Groups[1].Value
     Assert-Check ([Guid]::TryParse($partialId,[ref]([Guid]::Empty))) 'Partial create returns its persisted template ID'
-    Assert-Check ([Net.WebUtility]::HtmlDecode($partial.Body) -match 'قالب ساخته شده') 'Partial failure is not reported as full success'
+    Assert-Check ([Net.WebUtility]::HtmlDecode($partial.Body) -match 'Şablon oluşturuldu') 'Partial failure is not reported as full success'
     Save-Template (Template-Fields $partialId 1 $badName) $partial 302 $logo | Out-Null
     $matching=@(Api GET "$DocumentsUrl/api/v1/tenants/$tenantId/document-templates" $null 200 | Where-Object name -eq $badName)
     Assert-Check ($matching.Count -eq 1 -and $matching[0].id -eq $partialId -and $matching[0].currentRevision -eq 2) 'Retry uses the existing identity, not another template'
@@ -66,7 +66,7 @@ try {
     $reuse['Form.PendingAssetId']=$originalAsset
     Save-Template $reuse $page 302 | Out-Null
     $page=Web GET "/Settings/Templates?tenantId=$tenantId&templateId=$id&pendingAssetId=$originalAsset" 200
-    Assert-Check ($page.Body -match 'در انتظار ثبت' -or [Net.WebUtility]::HtmlDecode($page.Body) -match 'بارگذاری شده') 'Verified recovery image can be reviewed in a fresh page'
+    Assert-Check ($page.Body -match 'Kaydedilmeyi bekleyen' -or [Net.WebUtility]::HtmlDecode($page.Body) -match 'yüklendi') 'Verified recovery image can be reviewed in a fresh page'
     $reuse['Form.ExpectedRevision']=4
     Save-Template $reuse $page 302 | Out-Null
     $replayed=Api GET $path $null 200

@@ -6,7 +6,7 @@ import { runInNewContext } from 'node:vm';
 const script = readFileSync(new URL('../../wwwroot/js/site.js', import.meta.url), 'utf8');
 function fixture(accept = false) {
     const element = props => ({ listeners: {}, addEventListener(name, fn) { this.listeners[name] = fn; }, ...props });
-    const picker = element({ value: 'old' }), form = element(), preview = { hidden: true, removeAttribute() { delete this.src; } };
+    const picker = element({ value: 'old' }), form = element({ dataset: { discardConfirm: 'Discard?', invalidLogo: 'Invalid logo' } }), preview = { hidden: true, removeAttribute() { delete this.src; } };
     const file = element({ files: [], setCustomValidity(value) { this.validity = value; }, reportValidity() {} });
     const nodes = { 'template-picker': picker, 'template-edit-form': form, 'template-save': {}, 'template-logo': file,
         'template-logo-preview': preview, 'template-picker-form': { requestSubmit() { this.submitted = true; } } };

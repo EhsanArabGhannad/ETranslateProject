@@ -1,10 +1,10 @@
 @model SettingsPageView
-@{ ViewData["Title"] = "تنظیمات"; }
-<div class="page-heading"><div><span class="eyebrow">WORKSPACE SETTINGS</span><h1>تنظیمات</h1><p class="muted">@(Model.Tenant?.Name ?? "ابتدا یک فضای کاری بسازید")</p></div></div>
+@{ ViewData["Title"] = UiText.Get("Ayarlar"); }
+<div class="page-heading"><div><span class="eyebrow">@UiText.Get("CALISMAALANIAYARLARI")</span><h1>@UiText.Get("Ayarlar")</h1><p class="muted">@(Model.Tenant?.Name ?? UiText.Get("OnceBirCalismaAlaniOlusturun"))</p></div></div>
 @if (Model.Tenants.Count > 0) {
-    <nav class="tenant-tabs" aria-label="فضاهای کاری">@foreach (var tenant in Model.Tenants) { <a class="@(tenant.Id == Model.Tenant?.Id ? "selected" : "")" asp-action="Index" asp-route-tenantId="@tenant.Id">@tenant.Name</a> }</nav>
+    <nav class="tenant-tabs" aria-label="@UiText.Get("CalismaAlanlari")">@foreach (var tenant in Model.Tenants) { <a class="@(tenant.Id == Model.Tenant?.Id ? "selected" : "")" asp-action="Index" asp-route-tenantId="@tenant.Id">@tenant.Name</a> }</nav>
 }
 @if (Model.Tenant is not null) {
-    <section class="card settings-card"><h2>قالب‌ها</h2><p>قالب‌های همین فضای کاری، سربرگ، لوگو، پابرگ و تنظیمات صفحه را مدیریت کنید.</p><a class="settings-link" asp-action="Templates" asp-route-tenantId="@Model.Tenant.Id">باز کردن مدیریت قالب‌ها ←</a><p class="muted">انتخاب قالب برای یک سند، همچنان در ویرایشگر همان پرونده انجام می‌شود.</p></section>
+    <section class="card settings-card"><h2>@UiText.Get("Sablonlar")</h2><p>@UiText.Get("BuCalismaAlanininSablonlariniUstbilgisiniLogosunuAltbilgisini")</p><a class="settings-link" asp-action="Templates" asp-route-tenantId="@Model.Tenant.Id">@UiText.Get("SablonYonetiminiAc")</a><p class="muted">@UiText.Get("BelgeyeSablonSecimiIlgiliDosyaninDuzenleyicisindenYapilir")</p></section>
 }
-else { <section class="card empty"><h2>هنوز فضای کاری ندارید</h2><a asp-controller="Workspace" asp-action="Index">ساخت فضای کاری</a></section> }
+else { <section class="card empty"><h2>@UiText.Get("HenuzCalismaAlaninizYok")</h2><a asp-controller="Workspace" asp-action="Index">@UiText.Get("CalismaAlaniOlustur")</a></section> }

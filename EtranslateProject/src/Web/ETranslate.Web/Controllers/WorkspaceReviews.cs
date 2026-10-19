@@ -26,7 +26,7 @@ public sealed partial class WorkspaceController
             var review = reviewId.HasValue
                 ? await api.PostAsync<ReviewView>("documents", $"{path}/{reviewId}/decision", new { action, note })
                 : await api.PostAsync<ReviewView>("documents", path, new { expectedRevision, expectedRound, pdfVersionId = pdfId });
-            var message = $"وضعیت بازبینی نسخه‌ی {review.RevisionNumber}: {ReviewStateView.Label(review.Status)}. این عملیات امضای الکترونیکی یا تأیید نوتر نیست.";
+            var message = UiText.Format("ReviewRevisionStatus", review.RevisionNumber, ReviewStateView.Label(review.Status));
             if (json) return Ok(new { message });
             TempData["Notice"] = message;
         }
@@ -34,8 +34,8 @@ public sealed partial class WorkspaceController
         {
             var message = error.Status switch
             {
-                HttpStatusCode.Conflict => "وضعیت بازبینی یا نسخه تغییر کرده است؛ آخرین وضعیت را بررسی کنید. پس از برگشت یا بازگشایی، یک نسخه‌ی جدید ذخیره کنید.",
-                HttpStatusCode.BadRequest => "اطلاعات بازبینی معتبر نیست؛ دلیل برگشت، پس‌گرفتن یا بازگشایی الزامی و حداکثر ۲۰۰۰ نویسه است.",
+                HttpStatusCode.Conflict => UiText.Get("IncelemeDurumuVeyaSurumDegistiGuncelDurumu"),
+                HttpStatusCode.BadRequest => UiText.Get("IncelemeBilgileriGecersizIadeGeriCekmeVeya"),
                 _ => error.UserMessage
             };
             if (json) return StatusCode((int)error.Status, new { message });

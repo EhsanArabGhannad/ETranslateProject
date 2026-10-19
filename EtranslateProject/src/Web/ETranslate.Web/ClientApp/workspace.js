@@ -1,3 +1,4 @@
+import ui from '../Resources/interface.tr.json' with { type: 'json' };
 import { createPreview } from './preview.js';
 import { startRichEditor } from './rich-editor.js';
 import { startSources } from './sources.js';
@@ -9,7 +10,7 @@ if (workspace) {
     const json = find('document-json'), text = find('translation-text'), form = find('draft-form');
     const preview = createPreview(workspace);
     let dirty = false, saving = false, navigating = false;
-    const changed = () => { dirty = true; find('save-state').textContent = 'تغییرات ذخیره‌نشده'; };
+    const changed = () => { dirty = true; find('save-state').textContent = ui.KaydedilmemisDegisiklikler; };
     const editor = startRichEditor(workspace, changed, preview);
     if (!editor) {
         (text ?? json).addEventListener('input', () => {
@@ -26,9 +27,9 @@ if (workspace) {
         try {
             const document = JSON.parse(json.value);
             if (!document || typeof document !== 'object' || json.value.length > 2000000 || mode === 'rich' && !isRichDocument(document)) throw new Error();
-        } catch { find('save-state').textContent = 'ساختار سند معتبر یا قابل ذخیره نیست. تغییرات حفظ شده‌اند.'; return; }
+        } catch { find('save-state').textContent = ui.BelgeYapisiGecersizVeyaKaydedilemiyorDegisikliklerKorunmustur; return; }
         const button = form.querySelector('button[type=submit]');
-        saving = true; button.disabled = true; find('save-state').textContent = 'در حال ذخیره…';
+        saving = true; button.disabled = true; find('save-state').textContent = ui.Kaydediliyor;
         // Freeze rich edits while awaiting the response: post-submit typing must not disappear on navigation.
         editor?.setEditable(false, false); if (text) text.readOnly = true; json.readOnly = true;
         const formatButtons = Array.from(document.querySelectorAll('.editor-toolbar button'));
@@ -40,13 +41,13 @@ if (workspace) {
                 dirty = false; navigating = true; location.assign(destination.href); return;
             }
             if (response.status === 409) {
-                find('save-state').textContent = 'نسخه یا وضعیت بازبینی تغییر کرده؛ متن و قالب‌بندی شما حفظ شده‌اند. آخرین وضعیت را در تب جدید بررسی کنید.';
+                find('save-state').textContent = ui.SurumVeyaIncelemeDurumuDegistiMetninizVe;
                 dirty = true; workspace.dataset.editable = 'false'; return;
             }
             find('save-state').textContent = destination.pathname === '/Account/Login' || response.status === 401
-                ? 'نشست پایان یافته. در تب جدید وارد شوید و دوباره ذخیره کنید؛ متن و قالب‌بندی حفظ شده‌اند.'
-                : 'ذخیره تأیید نشد؛ تغییرات حفظ شده‌اند. ورودی‌ها و ارتباط سرویس را بررسی کنید.';
-        } catch { find('save-state').textContent = 'ارتباط برقرار نشد؛ تغییرات هنوز در این صفحه‌اند. پیش از خروج یک کپی بگیرید.'; }
+                ? ui.OturumSonaErdiYeniSekmedeGirisYapip2
+                : ui.KayitDogrulanamadiDegisikliklerKorunduGirdileriVeHizmet;
+        } catch { find('save-state').textContent = ui.BaglantiKurulamadiDegisikliklerHalaBuSayfadaCikmadan; }
         finally {
             saving = false;
             if (!navigating && workspace.dataset.editable === 'true') {
@@ -63,7 +64,7 @@ if (workspace) {
             event.preventDefault();
             const status = find('review-status');
             if (dirty || saving) {
-                status.textContent = 'ابتدا تغییرات متن را ذخیره کنید؛ بازبینی فقط روی نسخه‌ی ذخیره‌شده انجام می‌شود.'; return;
+                status.textContent = ui.OnceMetinDegisiklikleriniKaydedinYalnizcaKayitliSurum; return;
             }
             const controls = Array.from(document.querySelectorAll('.review-form button'));
             const previousDisabled = controls.map(button => button.disabled);
@@ -75,16 +76,16 @@ if (workspace) {
             editor?.setEditable(false, false); if (text) text.readOnly = true; json.readOnly = true;
             const formatButtons = Array.from(document.querySelectorAll('.editor-toolbar button'));
             formatButtons.forEach(button => { button.disabled = true; });
-            status.textContent = 'در حال ثبت وضعیت بازبینی…';
+            status.textContent = ui.IncelemeDurumuKaydediliyor;
             try {
                 const response = await fetch(reviewForm.action, { method: 'POST', body: data, credentials: 'same-origin', headers: { Accept: 'application/json' } });
                 if (response.status === 401 || response.redirected && new URL(response.url).pathname === '/Account/Login')
-                    throw new Error('نشست پایان یافته؛ در تب جدید وارد شوید. هیچ متن یا یادداشتی پاک نشده است.');
-                if (!response.headers.get('content-type')?.includes('json')) throw new Error('ثبت بازبینی تأیید نشد؛ آخرین وضعیت را بررسی کنید.');
+                    throw new Error(ui.OturumSonaErdiYeniSekmedeGirisYapin2);
+                if (!response.headers.get('content-type')?.includes('json')) throw new Error(ui.IncelemeKaydiDogrulanamadiGuncelDurumuKontrolEdin);
                 const result = await response.json();
-                if (!response.ok) throw new Error(result.message || 'ثبت بازبینی انجام نشد.');
+                if (!response.ok) throw new Error(result.message || ui.IncelemeKaydedilemedi);
                 navigating = true; location.reload();
-            } catch (error) { status.textContent = error.message || 'ارتباط برقرار نشد؛ وضعیت را در تب جدید بررسی کنید.'; }
+            } catch (error) { status.textContent = error.message || ui.BaglantiKurulamadiDurumuYeniSekmedeKontrolEdin; }
             finally {
                 if (!navigating) {
                     saving = false; controls.forEach((button, index) => { button.disabled = previousDisabled[index]; });

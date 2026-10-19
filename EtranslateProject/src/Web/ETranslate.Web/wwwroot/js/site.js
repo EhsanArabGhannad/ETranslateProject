@@ -21,7 +21,7 @@
         editForm.addEventListener('submit', () => { dirty = false; find('template-save').disabled = true; });
         window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
         picker.addEventListener('change', () => {
-            if (dirty && !window.confirm('تغییرات فرم ذخیره نشده‌اند. قالب دیگری باز شود؟')) { picker.value = previous; return; }
+            if (dirty && !window.confirm(editForm.dataset.discardConfirm)) { picker.value = previous; return; }
             dirty = false; previous = picker.value; find('template-picker-form').requestSubmit();
         });
         const file = find('template-logo'), preview = find('template-logo-preview');
@@ -31,7 +31,7 @@
             preview.removeAttribute('src'); preview.hidden = true; file.setCustomValidity('');
             const image = file.files[0]; if (!image) return;
             if (!['image/png', 'image/jpeg'].includes(image.type) || image.size <= 0 || image.size > 5 * 1024 * 1024) {
-                file.setCustomValidity('تصویر باید PNG یا JPEG و حداکثر ۵ مگابایت باشد.'); file.reportValidity(); return;
+                file.setCustomValidity(editForm.dataset.invalidLogo); file.reportValidity(); return;
             }
             previewUrl = URL.createObjectURL(image); preview.src = previewUrl; preview.hidden = false;
         });
