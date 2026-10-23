@@ -1,0 +1,8 @@
+{
+  "name": "etranslate-canvas-editor-trial",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node build.mjs", "start": "node serve.mjs", "test": "node --test fixtures.test.mjs" },
+  "dependencies": { "@hufe921/canvas-editor": "1.0.5" },
+  "engines": { "node": ">=24.13.1" }
+}

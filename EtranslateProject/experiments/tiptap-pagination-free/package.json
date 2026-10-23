@@ -1,0 +1,24 @@
+{
+  "name": "etranslate-free-pagination-lab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node serve.mjs",
+    "test": "node --test fixtures.test.mjs"
+  },
+  "dependencies": {
+    "tiptap-pagination-plus": "3.1.0",
+    "tiptap-table-plus": "3.1.0",
+    "@tiptap/extension-table-cell": "3.31.4",
+    "@tiptap/extension-table-header": "3.31.4",
+    "@tiptap/extension-table-row": "3.31.4"
+  },
+  "peerDependencies": {
+    "@tiptap/core": "3.31.4",
+    "@tiptap/pm": "3.31.4",
+    "@tiptap/starter-kit": "3.31.4",
+    "@tiptap/extension-table": "3.31.4"
+  },
+  "engines": { "node": ">=22.13.0" }
+}

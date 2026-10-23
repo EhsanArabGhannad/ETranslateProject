@@ -1,11 +1,9 @@
 import ui from '../Resources/interface.tr.json' with { type: 'json' };
-import { Editor, Extension, Node } from '@tiptap/core';
-import StarterKit from '@tiptap/starter-kit';
-import { TableKit } from '@tiptap/extension-table';
-import { Plugin } from '@tiptap/pm/state';
-import { guid, isRichDocument, normalizeEmptyText } from './document-schema.js';
 import { assetUrl } from './preview.js';
+import { createEditorSession } from './editors/editor-session.js';
+import { defaultEditorProvider } from './editors/default-provider.js';
 
+// DOM orchestration only. All vendor-specific editing/selection/history code belongs in its provider.
 export function startRichEditor(workspace, onChanged, preview) {
     const json = document.getElementById('document-json');
     const status = document.getElementById('editor-format-status');
@@ -13,95 +11,37 @@ export function startRichEditor(workspace, onChanged, preview) {
         status.textContent = ui.BuYapiDuzenleyicininKapsamiDisindadirOzgunJSON;
         return null;
     }
-    let editor = null, initializing = true;
+    let session;
+    const cleanups = [];
+    const destroy = () => { for (const cleanup of cleanups.splice(0)) cleanup(); session?.destroy(); };
     try {
-        const content = JSON.parse(json.value);
-        if (!isRichDocument(content)) throw new Error('Unsupported structure');
-        const ManagedImage = Node.create({
-            name: 'image', group: 'block', atom: true, draggable: false,
-            addAttributes() {
-                return { assetId: { default: null, parseHTML: element => element.getAttribute('data-asset-id'), renderHTML: attrs =>
-                    guid.test(attrs.assetId ?? '') ? { 'data-asset-id': attrs.assetId } : {} } };
-            },
-            parseHTML() { return [{ tag: 'img[data-asset-id]', getAttrs: element => guid.test(element.getAttribute('data-asset-id') ?? '') ? {} : false }]; },
-            renderHTML({ node }) {
-                const url = assetUrl(workspace, node.attrs.assetId);
-                return url ? ['img', { src: url, alt: ui.SablonGorseli, 'data-asset-id': node.attrs.assetId }]
-                    : ['span', { class: 'missing-asset' }, ui.SablonGorseliKullanilamiyor];
-            }
+        session = createEditorSession({
+            provider: defaultEditorProvider, element: document.getElementById('rich-text'),
+            contentJson: json.value, editable: workspace.dataset.editable === 'true',
+            resolveAsset: id => assetUrl(workspace, id),
+            labels: { text: ui.CeviriMetni, image: ui.SablonGorseli, missingImage: ui.SablonGorseliKullanilamiyor },
+            onRejectedChange: () => { status.textContent = ui.BuDegisiklikIzinVerilenYapininDisindadirTablo; }
         });
-        const editable = workspace.dataset.editable === 'true';
-        const PreservationPolicy = Extension.create({
-            name: 'preservationPolicy',
-            addProseMirrorPlugins() {
-                return [new Plugin({ filterTransaction: transaction => {
-                    if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON())) return true;
-                    status.textContent = ui.BuDegisiklikIzinVerilenYapininDisindadirTablo;
-                    return false;
-                } })];
-            }
-        });
-        editor = new Editor({
-            element: document.getElementById('rich-text'), injectCSS: false, editable, textDirection: 'auto',
-            extensions: [StarterKit.configure({ code: false, codeBlock: false, link: false, horizontalRule: false,
-                dropcursor: false, trailingNode: false }), ManagedImage,
-                TableKit.configure({ table: { resizable: false, View: null } }), PreservationPolicy],
-            content: { type: 'doc', content: [{ type: 'paragraph' }] },
-            editorProps: { attributes: { role: 'textbox', 'aria-label': ui.CeviriMetni, 'aria-multiline': 'true', spellcheck: 'false' } },
-            onUpdate: ({ editor }) => {
-                if (initializing) return;
-                json.value = JSON.stringify(editor.getJSON());
-                onChanged(); preview();
-            }
-        });
-        // Check both our preservation policy and ProseMirror's structural constraints before replacing the fallback UI.
-        const value = editor.schema.nodeFromJSON(normalizeEmptyText(content)); value.check();
-        // Loading a saved revision is not a user edit and must not be undoable into a blank document.
-        editor.chain().setMeta('addToHistory', false)
-            .setContent(value, { emitUpdate: false, errorOnInvalidContent: true }).run();
-        initializing = false;
-        const buttons = Array.from(document.querySelectorAll('.editor-toolbar button'));
-        const tableCommands = ['addRowAfter', 'addColumnAfter', 'deleteRow', 'deleteColumn', 'deleteTable'];
-        function tableSize() {
-            const position = editor.state.selection.$from;
-            for (let depth = position.depth; depth > 0; depth--) {
-                const node = position.node(depth);
-                if (node.type.name === 'table') return { rows: node.childCount, columns: node.firstChild.childCount };
-            }
-            return null;
-        }
-        function canTableCommand(command) {
-            const size = tableSize();
-            if (command === 'insertTable') return !size && editor.state.selection.$from.depth === 1 && editor.can().insertTable({ rows: 3, cols: 3, withHeaderRow: true });
-            return !!size && (command !== 'addRowAfter' || size.rows < 50) && (command !== 'addColumnAfter' || size.columns < 12) && editor.can()[command]();
-        }
+        const buttons = Array.from(document.querySelectorAll('#rich-region .editor-toolbar button'));
         function updateToolbar() {
             for (const button of buttons) {
-                const command = button.dataset.command;
-                button.disabled = !editable || !editor.isEditable || (command === 'undo' && !editor.can().undo()) || (command === 'redo' && !editor.can().redo()) ||
-                    ([...tableCommands, 'insertTable'].includes(command) && !canTableCommand(command));
-                if (button.hasAttribute('aria-pressed')) button.setAttribute('aria-pressed', String(editor.isActive(command, command === 'heading' ? { level: 2 } : undefined)));
+                const state = session.getCommandState(button.dataset.command);
+                button.disabled = workspace.dataset.editable !== 'true' || !state.enabled;
+                if (button.hasAttribute('aria-pressed')) button.setAttribute('aria-pressed', String(state.active));
             }
         }
+        cleanups.push(session.onDocumentChange(source => { json.value = source; onChanged(); preview(); }));
+        cleanups.push(session.onStateChange(updateToolbar));
         for (const button of buttons) {
-            button.addEventListener('mousedown', event => event.preventDefault());
-            button.addEventListener('click', () => {
-                if (!editable || !editor.isEditable || workspace.dataset.editable !== 'true') return;
-                const command = button.dataset.command, chain = editor.chain().focus();
-                const operations = {
-                    bold: () => chain.toggleBold(), italic: () => chain.toggleItalic(), underline: () => chain.toggleUnderline(),
-                    paragraph: () => chain.setParagraph(), heading: () => chain.toggleHeading({ level: 2 }),
-                    bulletList: () => chain.toggleBulletList(), orderedList: () => chain.toggleOrderedList(),
-                    rtl: () => chain.setTextDirection('rtl'), ltr: () => chain.setTextDirection('ltr'), auto: () => chain.setTextDirection('auto'),
-                    undo: () => chain.undo(), redo: () => chain.redo(),
-                    insertTable: () => chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }),
-                    addRowAfter: () => chain.addRowAfter(), addColumnAfter: () => chain.addColumnAfter(),
-                    deleteRow: () => chain.deleteRow(), deleteColumn: () => chain.deleteColumn(), deleteTable: () => chain.deleteTable()
-                };
-                operations[command]?.().run(); updateToolbar();
-            });
+            const keepSelection = event => event.preventDefault();
+            const execute = () => {
+                if (workspace.dataset.editable === 'true') session.execute(button.dataset.command);
+                updateToolbar();
+            };
+            button.addEventListener('mousedown', keepSelection); button.addEventListener('click', execute);
+            cleanups.push(() => { button.removeEventListener('mousedown', keepSelection); button.removeEventListener('click', execute); });
         }
-        editor.on('selectionUpdate', updateToolbar); editor.on('transaction', updateToolbar); updateToolbar();
+        updateToolbar();
         for (const id of ['translation-text', 'legacy-format-notice']) {
             const element = document.getElementById(id); if (element) element.hidden = true;
         }
@@ -109,10 +49,11 @@ export function startRichEditor(workspace, onChanged, preview) {
         json.hidden = true;
         document.querySelector('#draft-form input[name=mode]').value = 'rich';
         document.getElementById('rich-region').hidden = false;
-        status.textContent = editable ? ui.MetinBicimlendirmesiHerSurumleBirlikteKaydedilir : ui.SaltOkunurSurumDuzenlemeKapalidir;
-        return editor;
+        status.textContent = workspace.dataset.editable === 'true'
+            ? ui.MetinBicimlendirmesiHerSurumleBirlikteKaydedilir : ui.SaltOkunurSurumDuzenlemeKapalidir;
+        return Object.freeze({ ...session, destroy });
     } catch {
-        editor?.destroy();
+        destroy();
         status.textContent = ui.OzgunYapiKorunduDuzenleyiciAcamadiMetinAlanini;
         return null;
     }

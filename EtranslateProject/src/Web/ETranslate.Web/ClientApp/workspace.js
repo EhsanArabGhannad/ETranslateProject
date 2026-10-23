@@ -25,15 +25,14 @@ if (workspace) {
         if (saving || workspace.dataset.editable !== 'true') return;
         const mode = form.elements.mode.value;
         try {
+            if (editor) json.value = editor.getDocumentJson();
             const document = JSON.parse(json.value);
             if (!document || typeof document !== 'object' || json.value.length > 2000000 || mode === 'rich' && !isRichDocument(document)) throw new Error();
         } catch { find('save-state').textContent = ui.BelgeYapisiGecersizVeyaKaydedilemiyorDegisikliklerKorunmustur; return; }
         const button = form.querySelector('button[type=submit]');
         saving = true; button.disabled = true; find('save-state').textContent = ui.Kaydediliyor;
         // Freeze rich edits while awaiting the response: post-submit typing must not disappear on navigation.
-        editor?.setEditable(false, false); if (text) text.readOnly = true; json.readOnly = true;
-        const formatButtons = Array.from(document.querySelectorAll('.editor-toolbar button'));
-        for (const control of formatButtons) control.disabled = true;
+        editor?.setEditable(false); if (text) text.readOnly = true; json.readOnly = true;
         try {
             const response = await fetch(form.action, { method: 'POST', body: new FormData(form), credentials: 'same-origin' });
             const destination = new URL(response.url);
@@ -51,8 +50,7 @@ if (workspace) {
         finally {
             saving = false;
             if (!navigating && workspace.dataset.editable === 'true') {
-                button.disabled = false; editor?.setEditable(true, false); if (text) text.readOnly = false; json.readOnly = false;
-                for (const control of formatButtons) control.disabled = false;
+                button.disabled = false; editor?.setEditable(true); if (text) text.readOnly = false; json.readOnly = false;
             }
         }
         dirty = true;
@@ -73,9 +71,7 @@ if (workspace) {
             const data = new FormData(reviewForm);
             saving = true;
             controls.forEach(button => { button.disabled = true; }); saveButton.disabled = true;
-            editor?.setEditable(false, false); if (text) text.readOnly = true; json.readOnly = true;
-            const formatButtons = Array.from(document.querySelectorAll('.editor-toolbar button'));
-            formatButtons.forEach(button => { button.disabled = true; });
+            editor?.setEditable(false); if (text) text.readOnly = true; json.readOnly = true;
             status.textContent = ui.IncelemeDurumuKaydediliyor;
             try {
                 const response = await fetch(reviewForm.action, { method: 'POST', body: data, credentials: 'same-origin', headers: { Accept: 'application/json' } });
@@ -89,9 +85,8 @@ if (workspace) {
             finally {
                 if (!navigating) {
                     saving = false; controls.forEach((button, index) => { button.disabled = previousDisabled[index]; });
-                    saveButton.disabled = !editable; editor?.setEditable(editable, false);
+                    saveButton.disabled = !editable; editor?.setEditable(editable);
                     if (text) text.readOnly = !editable; json.readOnly = !editable;
-                    formatButtons.forEach(button => { button.disabled = !editable; });
                 }
             }
         });

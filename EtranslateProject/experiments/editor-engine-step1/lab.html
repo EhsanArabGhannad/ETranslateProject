@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="tr" dir="ltr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ETranslate - Editör araştırma laboratuvarı</title><link rel="stylesheet" href="/lab.css"><script src="/generated/lab.js" defer></script></head>
+<body>
+<header class="heading"><span class="eyebrow">ETRANSLATE / ADIM 1 / YEREL DENEY</span><h1>Belge editörü araştırması</h1>
+<p>Üretim editörü değildir. Veriler yalnızca bu sekmenin belleğindedir; sunucuya kaydedilmez. Gerçek veya özel belge kullanmayın.</p></header>
+<section class="controls" aria-label="Deney araçları">
+<label for="sample">Sentetik örnek</label><select id="sample"><option value="baseline">Farsça / Türkçe metin ve basit tablo</option><option value="word">Word benzeri biçimli HTML</option><option value="merged">Birleştirilmiş tablo hücresi</option><option value="oversized">Sayfaya sığmayan tek paragraf</option></select>
+<button id="load" type="button">Örneği yükle</button><button id="reflow" type="button">Ölçümü yenile</button>
+<label for="zoom">Önizleme ölçeği</label><select id="zoom"><option value="1">%100</option><option value="0.75">%75</option><option value="1.25">%125</option></select>
+</section>
+<p class="warning">Sağdaki görünüm yalnızca tam blokları ayıran, salt okunur bir ölçüm denemesidir. Paragrafı veya tabloyu bölmez; PDF ile aynı sayfa sınırını garanti etmez. Gerçek sayfalı düzenleyici henüz seçilmedi.</p>
+<section class="summary" aria-label="Deney sonuçları"><p id="status" role="status">Yükleniyor…</p><p id="gaps"></p><nav id="page-nav" aria-label="Örnek sayfalar"></nav></section>
+<main class="grid"><section class="pane"><h2>Mevcut motor: sürekli metin</h2><p class="hint">Aynı sabit baskı fontları ve A4 gövde genişliğiyle karşılaştırma. İçeriği düzenlemek sayfa ölçümünü yeniler; hiçbir dosya kaydedilmez.</p><div class="scroll"><div id="editor"></div></div></section>
+<section class="pane"><h2>Salt okunur sayfa deneyi</h2><p class="hint">A4, üst 25 / sağ 20 / alt 20 / sol 20 mm; taslak işareti için 8 mm ayrılır. Şablon, imza, sütun ve dipnot içermez.</p><div class="scroll"><div id="pages"></div></div></section></main>
+<details class="diagnostics"><summary>Teknik ölçüm - JSON ve uyumluluk</summary><pre id="report"></pre></details>
+<footer>Tüm örnekler sentetiktir. Tiptap Pro, Syncfusion veya ONLYOFFICE bu laboratuvarda kurulu ya da etkin değildir.</footer>
+</body></html>
