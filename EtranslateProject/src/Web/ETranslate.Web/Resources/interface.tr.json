@@ -573,5 +573,16 @@
   "EditTemplateRevision": "Şablonu düzenle: {0} · Sürüm {1}",
   "TemplateRevisionName": "{0} · Sürüm {1}",
   "DecimalNumberRequired": "Geçerli bir sayı girin; ondalık ayırıcı olarak nokta kullanın.",
+  "EditorViewControls": "Düzenleyici görünümü",
+  "EditorEnterFocus": "Odak modunu aç",
+  "EditorExitFocus": "Odak modundan çık (Esc)",
+  "EditorZoom": "Yakınlaştırma",
+  "EditorFitWidth": "Genişliğe sığdır",
+  "EditorZoomPercent": "%{0}",
+  "EditorPortrait": "Dikey",
+  "EditorLandscape": "Yatay",
+  "EditorPaperRegion": "Çeviri kâğıdı, kaydırılabilir düzenleme alanı",
+  "EditorPaperDescription": "Sürekli kâğıt görünümü · {0} · {1} · {2} × {3} mm. Otomatik sayfalama yoktur. Yalnızca gövde gösterilir; üstbilgi ve altbilgi için şablon önizlemesini kullanın. Kesin sayfa sınırlarını kayıtlı sürümün PDF dosyasında kontrol edin. Yakınlaştırma metni değiştirmez.",
+  "EditorPaperUnavailable": "Kâğıt ayarları desteklenmiyor; normal metin görünümü korundu. Sayfa düzenini PDF dosyasında kontrol edin.",
   "BelgeIcerikSurumuDesteklenmiyor": "İçerik biçimi veya şema sürümü bu uygulama tarafından desteklenmiyor. Özgün veri ve önceki PDF dosyaları korunmuştur; bu içerikle düzenleme ve yeni PDF oluşturma kapalıdır."
 }

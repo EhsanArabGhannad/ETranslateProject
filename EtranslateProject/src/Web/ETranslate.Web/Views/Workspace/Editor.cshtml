@@ -51,7 +51,12 @@ else if (Model.Document.CurrentDraftRevision == 0) {
 @foreach (var source in sources) { <a asp-action="Source" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" asp-route-sourceFileId="@source.Id" asp-route-download="true">@source.OriginalFileName <span class="muted">(@((source.SizeBytes / 1024d).ToString("0.#")) KB)</span></a> }
 </div></details><p class="muted">@UiText.Get("TIFFYalnizcaIndirilebilirPDFOnizlemesiGorseldirArama")</p>
 </section>
-<section class="card editor-controls"><div class="section-heading"><h2>@UiText.Get("CeviriMetni")</h2><span id="save-state" class="muted" role="status">@UiText.Get("OtomatikKayitYok")</span></div>
+<section class="card editor-controls"><div class="section-heading"><h2 id="editor-heading">@UiText.Get("CeviriMetni")</h2><span id="save-state" class="muted" role="status">@UiText.Get("OtomatikKayitYok")</span></div>
+<div id="editor-view-controls" class="editor-view-controls" role="group" aria-label="@UiText.Get("EditorViewControls")" hidden>
+    <button type="button" class="secondary" id="editor-focus-toggle" aria-pressed="false">@UiText.Get("EditorEnterFocus")</button>
+    <label for="editor-zoom">@UiText.Get("EditorZoom")</label><select id="editor-zoom" aria-describedby="editor-paper-description"><option value="fit">@UiText.Get("EditorFitWidth")</option><option value="75">75%</option><option value="100">100%</option><option value="125">125%</option><option value="150">150%</option></select>
+    <span id="editor-zoom-status" class="muted" role="status"></span>
+</div>
 <form asp-action="SaveDraft" method="post" id="draft-form"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="expectedRevision" value="@Model.ExpectedRevision" /><input type="hidden" name="mode" value="@(plain is null ? "json" : "text")" />
 <div id="rich-region" hidden><div class="editor-toolbar" role="toolbar" aria-label="@UiText.Get("CeviriBicimlendirme")">
     <button type="button" data-command="bold" aria-label="@UiText.Get("KalinMetin")" aria-pressed="false"><strong>B</strong></button>
@@ -64,7 +69,7 @@ else if (Model.Document.CurrentDraftRevision == 0) {
     <button type="button" data-command="insertTable">@UiText.Get("Baslikli33Tablo")</button>
     <button type="button" data-command="addRowAfter">@UiText.Get("SonrakiSatir")</button><button type="button" data-command="addColumnAfter">@UiText.Get("SonrakiSutun")</button>
     <button type="button" data-command="deleteRow">@UiText.Get("SatiriSil")</button><button type="button" data-command="deleteColumn">@UiText.Get("SutunuSil")</button><button type="button" data-command="deleteTable">@UiText.Get("TabloyuSil")</button>
-</div><div id="rich-text"></div><p class="muted">@UiText.Get("BicimlendirmeSeciliMetneVeyaGecerliParagrafaUygulanir")</p></div>
+</div><p id="editor-paper-description" class="muted"></p><div id="editor-viewport" class="editor-viewport" tabindex="0" role="region" aria-label="@UiText.Get("EditorPaperRegion")" aria-describedby="editor-paper-description"><div id="editor-paper-stage"><div id="editor-paper"><div id="rich-text"></div></div></div></div><p class="muted">@UiText.Get("BicimlendirmeSeciliMetneVeyaGecerliParagrafaUygulanir")</p></div>
 <p id="editor-format-status" class="muted" role="status"></p>
 @if (plain is not null) { <label for="translation-text">@UiText.Get("HerSatirBirParagraf")</label><textarea id="translation-text" name="plainText" rows="18" dir="auto" readonly="@(!editable)" maxlength="1000000">@plain</textarea><textarea id="document-json" name="editorContentJson" hidden>@Model.EditorContentJson</textarea> }
 else { <p class="notice" id="legacy-format-notice">@UiText.Get("BelgeninOzgunYapisiKorunmusturZenginDuzenleyiciBu")</p><label for="document-json">@UiText.Get("BelgeYapisiGelismisDuzenleme")</label><textarea id="document-json" name="editorContentJson" rows="18" dir="ltr" readonly="@(!editable)" maxlength="2000000">@Model.EditorContentJson</textarea> }

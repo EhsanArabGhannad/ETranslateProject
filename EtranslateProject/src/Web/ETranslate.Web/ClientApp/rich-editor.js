@@ -3,6 +3,7 @@ import { assetUrl } from './preview.js';
 import { createEditorSession } from './editors/editor-session.js';
 import { defaultEditorProvider } from './editors/default-provider.js';
 import { supportsStoredContent } from './editors/document-contract.js';
+import { startEditorView } from './editor-view.js';
 
 // DOM orchestration only. All vendor-specific editing/selection/history code belongs in its provider.
 export function startRichEditor(workspace, onChanged, preview) {
@@ -57,6 +58,7 @@ export function startRichEditor(workspace, onChanged, preview) {
         json.hidden = true;
         document.querySelector('#draft-form input[name=mode]').value = 'rich';
         document.getElementById('rich-region').hidden = false;
+        cleanups.push(startEditorView(workspace));
         status.textContent = workspace.dataset.editable === 'true'
             ? ui.MetinBicimlendirmesiHerSurumleBirlikteKaydedilir : ui.SaltOkunurSurumDuzenlemeKapalidir;
         return Object.freeze({ ...session, destroy });

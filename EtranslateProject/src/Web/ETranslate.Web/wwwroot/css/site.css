@@ -112,6 +112,20 @@ summary { cursor: pointer; font-weight: 600; }
 .editor-controls textarea { min-height: 360px; }
 .editor-controls button { width: 100%; }
 .editor-controls details { border-top: 1px solid var(--border); padding-top: 16px; }
+.editor-view-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px 0; background: white; }
+.editor-controls .editor-view-controls button { width: auto; margin: 0; padding: 8px 12px; }
+.editor-view-controls label { margin: 0; font-size: 12px; }
+.editor-view-controls select { width: auto; max-width: 100%; padding: 8px; }
+#editor-paper-description { margin: 10px 0; }
+.editor-viewport[data-paper-view=true] { max-width: 100%; max-height: 70vh; overflow: auto; scrollbar-gutter: stable; padding: 16px; background: #e8eeea; border: 1px solid var(--border); border-radius: 8px; direction: ltr; }
+[data-paper-view=true] #editor-paper-stage { position: relative; margin: 0 auto; overflow: clip; }
+[data-paper-view=true] #editor-paper { position: absolute; top: 0; left: 0; transform-origin: top left; background: white; border: 1px solid #d2dcd6; box-shadow: 0 3px 12px #193a3918; }
+[data-paper-view=true] #rich-text [role=textbox] { border: 0; border-radius: 0; padding: 0; min-height: var(--editor-body-min-height); background: white; }
+body.editor-focus-open { overflow: hidden; }
+.editor-controls.editor-focus { position: fixed; inset: 0; z-index: 100; overflow: auto; scrollbar-gutter: stable; overscroll-behavior: contain; margin: 0; border: 0; border-radius: 0; padding: 20px max(20px, 4vw); background: white; }
+.editor-focus .editor-view-controls { position: sticky; top: -20px; z-index: 2; border-bottom: 1px solid var(--border); padding-block: 12px; }
+.editor-focus #draft-form { max-width: 1200px; margin-inline: auto; }
+.editor-focus .editor-viewport { max-height: 65vh; }
 .history a { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; font-size: 12px; }
 .paper { background: white; position: relative; min-height: 840px; padding: 55px 48px; border: 1px solid var(--border); box-shadow: 0 10px 30px #193a3910; overflow-wrap: anywhere; display: flex; flex-direction: column; }
 .paper-header { border-bottom: 1px solid #d8dfd9; padding-bottom: 15px; margin-bottom: 25px; }
