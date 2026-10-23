@@ -154,6 +154,37 @@ public sealed class EditorAdapterBrowserTests
         Assert.Empty(fixture.Unexpected); Assert.Empty(fixture.Errors);
     }
 
+    [LocalEditorAdapterFact]
+    public async Task Stored_metadata_gates_editing_and_preview_even_if_a_stale_page_claims_compatibility()
+    {
+        await using var fixture = await BrowserFixture.CreateAsync(Initial);
+        var page = fixture.Page;
+        foreach (var pair in new[] { (DocumentContentDescriptor.RichFormat, "1"), (DocumentContentDescriptor.LegacyDisplayFormat, "0") })
+        {
+            fixture.Format = pair.Item1; fixture.SchemaVersion = pair.Item2;
+            await fixture.OpenAsync();
+            Assert.Equal(Initial, await page.Locator("#document-json").InputValueAsync());
+            await Assertions.Expect(page.Locator("#rich-text [role=textbox]")).ToHaveAttributeAsync("contenteditable", "true");
+        }
+        foreach (var pair in new[] { (DocumentContentDescriptor.RichFormat, "2"), ("sfdt", "1"), (DocumentContentDescriptor.RichFormat, "") })
+        {
+            fixture.Format = pair.Item1; fixture.SchemaVersion = pair.Item2;
+            await fixture.OpenAsync(rich: false);
+            await Assertions.Expect(page.Locator("#editor-workspace")).ToHaveAttributeAsync("data-editable", "false");
+            Assert.Equal(Initial, await page.Locator("#document-json").InputValueAsync());
+            Assert.True(await page.Locator("#document-json").EvaluateAsync<bool>("input => input.readOnly"));
+            Assert.True(await page.Locator("#rich-region").IsHiddenAsync());
+            await Assertions.Expect(page.Locator("#draft-form button[type=submit]")).ToBeDisabledAsync();
+            await Assertions.Expect(page.Locator("#preview-body")).Not.ToContainTextAsync("İstanbul");
+        }
+        fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "1";
+        fixture.TemplateFormat = DocumentContentDescriptor.RichFormat; fixture.TemplateSchemaVersion = "2";
+        await fixture.OpenAsync(rich: false);
+        await Assertions.Expect(page.Locator("#draft-form button[type=submit]")).ToBeDisabledAsync();
+        Assert.Equal(Initial, await page.Locator("#document-json").InputValueAsync());
+        Assert.Empty(fixture.Unexpected); Assert.Empty(fixture.Errors);
+    }
+
     private static ILocator Command(IPage page, string name) => page.Locator($"button[data-command={name}]");
     private static async Task AssertFrozenAsync(IPage page)
     {
@@ -192,6 +223,10 @@ public sealed class EditorAdapterBrowserTests
         public List<string> Responses { get; } = [];
         public string Source { get; set; }
         public bool Editable { get; set; }
+        public string? Format { get; set; }
+        public string? SchemaVersion { get; set; }
+        public string? TemplateFormat { get; set; }
+        public string? TemplateSchemaVersion { get; set; }
         private BrowserFixture(IPlaywright playwright, IBrowser browser, IBrowserContext context, IPage page,
             WebApplication server, string source, bool editable)
         {
@@ -278,9 +313,11 @@ public sealed class EditorAdapterBrowserTests
         {
             var commands = new[] { "bold", "italic", "underline", "paragraph", "heading", "bulletList", "orderedList", "rtl", "ltr", "auto", "undo", "redo", "insertTable", "addRowAfter", "addColumnAfter", "deleteRow", "deleteColumn", "deleteTable", "notSupported" };
             var buttons = string.Join("", commands.Select(command => $"<button type='button' data-command='{command}' aria-pressed='false'>{command}</button>"));
+            var metadata = Format is null && SchemaVersion is null ? "" : $"data-content-format='{WebUtility.HtmlEncode(Format)}' data-content-schema-version='{WebUtility.HtmlEncode(SchemaVersion)}'";
+            var templateMetadata = TemplateFormat is null && TemplateSchemaVersion is null ? "" : $"data-template-content-format='{WebUtility.HtmlEncode(TemplateFormat)}' data-template-content-schema-version='{WebUtility.HtmlEncode(TemplateSchemaVersion)}'";
             return $$"""
                 <!doctype html><html lang="tr"><head><meta charset="utf-8"><link rel="stylesheet" href="/css/site.css"></head><body>
-                <main id="editor-workspace" data-rich-compatible="true" data-editable="{{Editable.ToString().ToLowerInvariant()}}">
+                <main id="editor-workspace" data-rich-compatible="true" data-editable="{{Editable.ToString().ToLowerInvariant()}}" {{metadata}} {{templateMetadata}}>
                 <section class="editor-controls"><p id="save-state">CLEAN</p>
                 <form id="draft-form" action="/Workspace/SaveDraft" method="post"><input type="hidden" name="mode" value="{{(rich ? "text" : "json")}}">
                 <div id="rich-region" hidden><div class="editor-toolbar">{{buttons}}</div><div id="rich-text"></div></div>

@@ -41,7 +41,8 @@ public sealed class LateTemplateSqlTests
             var current = await left.DraftRevisions.AsNoTracking().SingleAsync(d => d.Id == first.Id);
             left.DraftRevisions.Add(a.ChangeTemplate(1, template, template.Revisions.Single(), current, actor, now));
             if (reviewRace) right.Reviews.Add(b.SubmitReview(1, 0, pdf, null, "[]", actor, now));
-            else right.DraftRevisions.Add(b.AddDraftRevision(1, "{\"edited\":true}", null, actor, now));
+            else right.DraftRevisions.Add(b.AddDraftRevision(1, "{\"edited\":true}", null, actor, now,
+                previousRevision: await right.DraftRevisions.AsNoTracking().SingleAsync(d => d.Id == first.Id)));
             // Alternate the winner deterministically; the stale operation must roll back its insert too.
             if (reviewRace) { await right.SaveChangesAsync(); await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => left.SaveChangesAsync()); }
             else {

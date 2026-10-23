@@ -3,6 +3,7 @@ param([string]$NodePath='C:/Users/user/.cache/codex-runtimes/codex-primary-runti
 $ErrorActionPreference='Stop'
 $projectRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $webRoot=Join-Path $projectRoot 'src/Web/ETranslate.Web'
+$browserResults=Join-Path $projectRoot 'tmp/editor-adapter'
 if (-not (Test-Path -LiteralPath $NodePath -PathType Leaf)) { throw "Executable not found: $NodePath" }
 Push-Location $webRoot
 try {
@@ -16,7 +17,7 @@ $previous=@{}; foreach ($name in $names) { $previous[$name]=[Environment]::GetEn
 try {
     $env:ETRANSLATE_EDITOR_ADAPTER_TESTS='1'; $env:ETRANSLATE_EDITOR_ADAPTER_WEB_ROOT=$webRoot
     $env:PLAYWRIGHT_BROWSERS_PATH=[IO.Path]::GetFullPath((Join-Path $projectRoot '../.local/pdf-browsers'))
-    & dotnet test (Join-Path $PSScriptRoot '../ETranslate.DomainTests/ETranslate.DomainTests.csproj') --no-restore --filter 'FullyQualifiedName~EditorAdapterBrowserTests' --logger 'console;verbosity=normal'
+    & dotnet test (Join-Path $PSScriptRoot '../ETranslate.DomainTests/ETranslate.DomainTests.csproj') --no-restore --filter 'FullyQualifiedName~EditorAdapterBrowserTests' --logger 'console;verbosity=normal' --logger 'trx;LogFileName=editor-adapter.trx' --results-directory $browserResults
     if ($LASTEXITCODE -ne 0) { throw 'Editor adapter browser tests failed.' }
     Write-Output 'Editor adapter checks passed. Temporary loopback test host only; no SQL, AppHost, PDF generation or external services.'
 } finally { foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name,$previous[$name]) } }

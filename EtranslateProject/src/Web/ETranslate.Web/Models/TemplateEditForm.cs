@@ -47,6 +47,7 @@ public sealed class TemplateProjection
     {
         form = new() { TenantId = tenantId, TemplateId = detail?.Id, ExpectedRevision = detail?.CurrentRevision ?? 0, Name = detail?.Name ?? "" };
         var revision = detail?.Revision;
+        if (revision is { ContentDescriptor.IsSupported: false }) return new();
         var header = revision?.HeaderContentJson;
         var headerPlain = HeaderText(header, out var imageIds);
         TemplateRegion.Read(header, "header", out _, out var headerAlignments, out _);

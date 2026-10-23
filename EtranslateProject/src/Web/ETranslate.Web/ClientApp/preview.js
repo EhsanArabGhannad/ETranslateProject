@@ -1,6 +1,7 @@
 import ui from '../Resources/interface.tr.json' with { type: 'json' };
 import { guid, isRichDocument } from './document-schema.js';
 import { footerPolicy, showFooter } from './footer-policy.js';
+import { supportsStoredContent } from './editors/document-contract.js';
 
 export function assetUrl(workspace, assetId) {
     const { tenantId, templateId } = workspace.dataset;
@@ -51,6 +52,11 @@ export function createPreview(workspace, resolveImage = id => assetUrl(workspace
     function region(id, source) {
         const target = find(id); target.replaceChildren(); target.dir = 'auto';
         if (!source.trim()) return;
+        const body = id === 'preview-body';
+        if (!supportsStoredContent(body ? workspace.dataset.contentFormat : workspace.dataset.templateContentFormat,
+            body ? workspace.dataset.contentSchemaVersion : workspace.dataset.templateContentSchemaVersion)) {
+            unsupported = true; target.append(document.createTextNode(ui.BelgeIcerikSurumuDesteklenmiyor)); return;
+        }
         const root = JSON.parse(source);
         if (id === 'preview-body' && !isRichDocument(root)) {
             unsupported = true;

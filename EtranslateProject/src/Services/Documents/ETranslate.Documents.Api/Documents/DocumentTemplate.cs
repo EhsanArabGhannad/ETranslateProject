@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ETranslate.Contracts.Documents;
 
 namespace ETranslate.Documents.Api.Documents;
 
@@ -55,11 +56,13 @@ public sealed class DocumentTemplate
         string pageLayoutJson,
         string? watermarkJson,
         Guid createdByUserId,
-        DateTimeOffset createdAtUtc)
+        DateTimeOffset createdAtUtc, string? contentFormat = null, int? contentSchemaVersion = null)
     {
         ArgumentOutOfRangeException.ThrowIfEqual(tenantId, Guid.Empty);
         ArgumentOutOfRangeException.ThrowIfEqual(createdByUserId, Guid.Empty);
 
+        if (!DocumentContentDescriptor.TryResolveNext(DocumentContentDescriptor.Legacy, contentFormat, contentSchemaVersion, out var descriptor))
+            throw ContentFormatError();
         var errors = Validate(
             name,
             description,
@@ -67,7 +70,7 @@ public sealed class DocumentTemplate
             headerContentJson,
             footerContentJson,
             pageLayoutJson,
-            watermarkJson);
+            watermarkJson, descriptor);
         if (errors.Count > 0)
         {
             throw new DocumentTemplateValidationException(errors);
@@ -86,7 +89,7 @@ public sealed class DocumentTemplate
             pageLayoutJson,
             watermarkJson,
             createdByUserId,
-            createdAtUtc);
+            createdAtUtc, descriptor);
 
         return template;
     }
@@ -99,7 +102,8 @@ public sealed class DocumentTemplate
         string pageLayoutJson,
         string? watermarkJson,
         Guid createdByUserId,
-        DateTimeOffset createdAtUtc)
+        DateTimeOffset createdAtUtc, string? contentFormat = null, int? contentSchemaVersion = null,
+        DocumentTemplateRevision? previousRevision = null)
     {
         ArgumentOutOfRangeException.ThrowIfEqual(createdByUserId, Guid.Empty);
 
@@ -115,12 +119,16 @@ public sealed class DocumentTemplate
                 CurrentRevision);
         }
 
+        var previous = previousRevision ?? _revisions.SingleOrDefault(r => r.RevisionNumber == CurrentRevision);
+        if (previous is null || previous.TemplateId != Id || previous.RevisionNumber != CurrentRevision ||
+            !DocumentContentDescriptor.TryResolveNext(previous.ContentDescriptor, contentFormat, contentSchemaVersion, out var descriptor))
+            throw ContentFormatError();
         var errors = ValidateRevision(
             editorContentJson,
             headerContentJson,
             footerContentJson,
             pageLayoutJson,
-            watermarkJson);
+            watermarkJson, descriptor);
         if (errors.Count > 0)
         {
             throw new DocumentTemplateValidationException(errors);
@@ -133,7 +141,7 @@ public sealed class DocumentTemplate
             pageLayoutJson,
             watermarkJson,
             createdByUserId,
-            createdAtUtc);
+            createdAtUtc, descriptor);
     }
 
     public void SetActive(bool isActive, DateTimeOffset updatedAtUtc)
@@ -149,7 +157,7 @@ public sealed class DocumentTemplate
         string pageLayoutJson,
         string? watermarkJson,
         Guid createdByUserId,
-        DateTimeOffset createdAtUtc)
+        DateTimeOffset createdAtUtc, DocumentContentDescriptor descriptor)
     {
         var revision = new DocumentTemplateRevision(
             Id,
@@ -160,7 +168,7 @@ public sealed class DocumentTemplate
             pageLayoutJson,
             NormalizeOptional(watermarkJson),
             createdByUserId,
-            createdAtUtc);
+            createdAtUtc, descriptor);
 
         _revisions.Add(revision);
         CurrentRevision = revision.RevisionNumber;
@@ -175,14 +183,14 @@ public sealed class DocumentTemplate
         string? headerContentJson,
         string? footerContentJson,
         string pageLayoutJson,
-        string? watermarkJson)
+        string? watermarkJson, DocumentContentDescriptor descriptor)
     {
         var errors = ValidateRevision(
             editorContentJson,
             headerContentJson,
             footerContentJson,
             pageLayoutJson,
-            watermarkJson);
+            watermarkJson, descriptor);
 
         if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > MaximumNameLength)
         {
@@ -202,9 +210,16 @@ public sealed class DocumentTemplate
         string? headerContentJson,
         string? footerContentJson,
         string pageLayoutJson,
-        string? watermarkJson)
+        string? watermarkJson, DocumentContentDescriptor descriptor)
     {
         var errors = new Dictionary<string, string[]>();
+        if (!descriptor.IsSupported) errors[nameof(DocumentTemplateRevision.ContentFormat)] = ["Unsupported content format/version."];
+        if (descriptor.IsRichV1)
+        {
+            if (!descriptor.TryRead(editorContentJson, out _)) errors[nameof(DocumentTemplateRevision.EditorContentJson)] = ["Body does not conform to the declared content schema."];
+            if (!string.IsNullOrWhiteSpace(headerContentJson) && !descriptor.TryRead(headerContentJson, out _, "header")) errors[nameof(DocumentTemplateRevision.HeaderContentJson)] = ["Header does not conform to the declared content schema."];
+            if (!string.IsNullOrWhiteSpace(footerContentJson) && !descriptor.TryRead(footerContentJson, out _, "footer")) errors[nameof(DocumentTemplateRevision.FooterContentJson)] = ["Footer does not conform to the declared content schema."];
+        }
         ValidateJson(
             errors,
             nameof(DocumentTemplateRevision.EditorContentJson),
@@ -286,4 +301,7 @@ public sealed class DocumentTemplate
 
     private static string? NormalizeOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static DocumentTemplateValidationException ContentFormatError() => new(new Dictionary<string, string[]>
+    { [nameof(DocumentTemplateRevision.ContentFormat)] = ["Unsupported content format/version, conversion or missing current revision metadata."] });
 }

@@ -88,6 +88,21 @@ public sealed class TemplateSaveTests
         Assert.IsType<ViewResult>(await f.Controller.SaveTemplate(form, File())); Assert.Equal(400, f.Context.Response.StatusCode); Assert.Empty(f.Writes);
     }
 
+    [Fact] public async Task A_new_template_declares_rich_v1_and_the_logo_revision_inherits_that_declaration()
+    {
+        var f = new Fixture();
+        Assert.IsType<RedirectToActionResult>(await f.Controller.SaveTemplate(Form(false), File()));
+        Assert.Equal(DocumentContentDescriptor.RichFormat, f.Payload!.RootElement.GetProperty("contentFormat").GetString());
+        Assert.Equal(1, f.Payload.RootElement.GetProperty("contentSchemaVersion").GetInt32());
+    }
+
+    [Fact] public async Task A_future_template_cannot_be_edited_or_receive_an_upload_through_a_forged_form()
+    {
+        var f = new Fixture(); f.DeclareContent(DocumentContentDescriptor.RichFormat, 2);
+        var page = Assert.IsType<SettingsPageView>(Assert.IsType<ViewResult>(await f.Controller.SaveTemplate(Form(), File())).Model);
+        Assert.Equal(422, f.Context.Response.StatusCode); Assert.Empty(f.Writes); Assert.False(page.CanSave);
+    }
+
     private static IFormFile File() => new FormFile(new MemoryStream([137,80,78,71]), 0, 4, "logo", "logo.png") { Headers = new HeaderDictionary(), ContentType = "image/png" };
     private sealed class Fixture
     {
@@ -98,6 +113,7 @@ public sealed class TemplateSaveTests
         public DefaultHttpContext Context { get; }
         public SettingsController Controller { get; }
         private TemplateDetail _detail = new(Template, "Name", null, true, 2, new(Guid.NewGuid(), Template, 2, DocumentText.FromPlainText("Starter"), DocumentText.FromPlainText("Header"), DocumentText.FromPlainText("Footer"), DocumentPageLayout.Default.ToJson(), null));
+        public void DeclareContent(string format, int version) => _detail = _detail with { Revision = _detail.Revision with { ContentFormat = format, ContentSchemaVersion = version } };
         public Fixture()
         {
             Context = new() { RequestServices = new ServiceCollection().AddSingleton<IAuthenticationService, Auth>().AddSingleton<IUrlHelperFactory, UrlHelperFactory>().BuildServiceProvider() };
@@ -126,7 +142,8 @@ public sealed class TemplateSaveTests
                     else
                     {
                         Writes.Add("create"); _detail = new(Template, data.GetProperty("name").GetString()!, null, true, 1, new(Guid.NewGuid(), Template, 1,
-                            data.GetProperty("editorContentJson").GetString()!, data.GetProperty("headerContentJson").GetString(), data.GetProperty("footerContentJson").GetString(), data.GetProperty("pageLayoutJson").GetString()!, data.GetProperty("watermarkJson").GetString())); value = _detail;
+                            data.GetProperty("editorContentJson").GetString()!, data.GetProperty("headerContentJson").GetString(), data.GetProperty("footerContentJson").GetString(), data.GetProperty("pageLayoutJson").GetString()!, data.GetProperty("watermarkJson").GetString(),
+                            data.GetProperty("contentFormat").GetString(), data.GetProperty("contentSchemaVersion").GetInt32())); value = _detail;
                     }
                 }
                 return new(HttpStatusCode.OK) { Content = JsonContent.Create(value, value.GetType()) };

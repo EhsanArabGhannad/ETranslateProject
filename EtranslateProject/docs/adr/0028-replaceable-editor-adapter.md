@@ -36,6 +36,8 @@ Before introducing features outside the current vocabulary, add coordinated serv
 
 Rendering remains an independent versioned concern. A new editing engine must pass font, direction, template-pin, last-page-footer and page/PDF parity checks before it can become an authoritative paginated view. Do not create a separate microservice per vendor just to expose these client methods.
 
+Follow-up (2026-10-24): [ADR 0029](0029-versioned-document-content.md) adds persisted nullable content descriptors and version-aware server/client dispatch. This does not retroactively change the no-migration scope of the initial adapter slice or approve a richer schema/paginator.
+
 ## Verification
 
 See the [test guide](../testing/editor-adapter.fa.md). Pure client tests exercise two fake providers with a different internal representation; they prove the seam, not compatibility with any uninstalled vendor. Opt-in browser tests load the actual production bundle and stylesheet under the production CSP from a temporary loopback-only test host, with synthetic responses and blocked external browser requests. A real local redirect exercises the save/reload path; the host is disposed after each test. They cover typing/history/table commands, payload preservation, save/reload, pending locks, retry, conflict, review failure, historical/read-only mounts, unsupported fallback, legacy loading and table limits. They do not exercise product APIs, SQL, sign a document or generate a PDF.

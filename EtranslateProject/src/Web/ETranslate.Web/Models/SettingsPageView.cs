@@ -14,5 +14,5 @@ public sealed class SettingsPageView
     public TemplateProjection Projection { get; set; } = TemplateProjection.From(null, Guid.Empty, out _);
     public string? Message { get; set; }
     public bool Conflict { get; set; }
-    public bool CanSave => CanWrite && !Conflict && Selected?.IsActive != false;
+    public bool CanSave => CanWrite && !Conflict && Selected?.IsActive != false && (Selected?.Revision.ContentDescriptor.IsSupported ?? true);
 }

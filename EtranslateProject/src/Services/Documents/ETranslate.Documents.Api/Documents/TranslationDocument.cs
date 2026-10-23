@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ETranslate.Contracts.Documents;
 
 namespace ETranslate.Documents.Api.Documents;
 
@@ -68,7 +69,7 @@ public sealed class TranslationDocument
         if (TemplateRevisionId is not null || CurrentDraftRevision != 0)
             throw new InvalidOperationException("A template can only be applied once, before the first draft revision.");
 
-        var draft = AddDraftRevisionCore(0, revision.EditorContentJson, null, userId, now, revision.Id);
+        var draft = AddDraftRevisionCore(0, revision.EditorContentJson, null, userId, now, revision.Id, revision.ContentDescriptor);
         TemplateRevisionId = revision.Id;
         return draft;
     }
@@ -78,8 +79,20 @@ public sealed class TranslationDocument
         string editorContentJson,
         string? plainText,
         Guid createdByUserId,
-        DateTimeOffset createdAtUtc)
-        => AddDraftRevisionCore(expectedCurrentRevision, editorContentJson, plainText, createdByUserId, createdAtUtc, TemplateRevisionId);
+        DateTimeOffset createdAtUtc, string? contentFormat = null, int? contentSchemaVersion = null,
+        DocumentDraftRevision? previousRevision = null)
+    {
+        EnsureReviewEditable();
+        if (expectedCurrentRevision != CurrentDraftRevision) throw new DocumentRevisionConflictException(expectedCurrentRevision, CurrentDraftRevision);
+        var previous = previousRevision ?? _draftRevisions.SingleOrDefault(r => r.RevisionNumber == CurrentDraftRevision);
+        if (CurrentDraftRevision == 0 && previous is not null || CurrentDraftRevision > 0 &&
+            (previous is null || previous.DocumentId != Id || previous.RevisionNumber != CurrentDraftRevision || previous.TemplateRevisionId != TemplateRevisionId))
+            throw new DocumentValidationException(new Dictionary<string, string[]> { [nameof(DocumentDraftRevision.ContentFormat)] = ["The exact current draft metadata is required; no legacy fallback was used."] });
+        if (!DocumentContentDescriptor.TryResolveNext(previous?.ContentDescriptor ?? DocumentContentDescriptor.Legacy,
+                contentFormat, contentSchemaVersion, out var descriptor))
+            throw new DocumentValidationException(new Dictionary<string, string[]> { [nameof(DocumentDraftRevision.ContentFormat)] = ["Unsupported content format/version or content conversion."] });
+        return AddDraftRevisionCore(expectedCurrentRevision, editorContentJson, plainText, createdByUserId, createdAtUtc, TemplateRevisionId, descriptor);
+    }
 
     public DocumentDraftRevision ChangeTemplate(int expectedRevision, DocumentTemplate template, DocumentTemplateRevision revision,
         DocumentDraftRevision current, Guid actor, DateTimeOffset now)
@@ -91,13 +104,15 @@ public sealed class TranslationDocument
         if (template.TenantId != TenantId || revision.TemplateId != template.Id || !template.IsActive)
             throw new InvalidOperationException("Template revision is unavailable for this document.");
         if (revision.Id == TemplateRevisionId) throw new InvalidOperationException("This template revision is already pinned.");
-        var draft = AddDraftRevisionCore(expectedRevision, current.EditorContentJson, current.PlainText, actor, now, revision.Id);
+        if (!revision.ContentDescriptor.IsSupported)
+            throw new DocumentValidationException(new Dictionary<string, string[]> { [nameof(DocumentTemplateRevision.ContentFormat)] = ["Unsupported template content format/version."] });
+        var draft = AddDraftRevisionCore(expectedRevision, current.EditorContentJson, current.PlainText, actor, now, revision.Id, current.ContentDescriptor);
         TemplateRevisionId = revision.Id;
         return draft;
     }
 
     private DocumentDraftRevision AddDraftRevisionCore(int expectedCurrentRevision, string editorContentJson, string? plainText,
-        Guid createdByUserId, DateTimeOffset createdAtUtc, Guid? templateRevisionId)
+        Guid createdByUserId, DateTimeOffset createdAtUtc, Guid? templateRevisionId, DocumentContentDescriptor descriptor)
     {
         ArgumentOutOfRangeException.ThrowIfEqual(createdByUserId, Guid.Empty);
         EnsureReviewEditable();
@@ -108,6 +123,16 @@ public sealed class TranslationDocument
         }
 
         var errors = ValidateDraft(editorContentJson, plainText);
+        if (!descriptor.IsSupported)
+            errors[nameof(DocumentDraftRevision.ContentFormat)] = ["Unsupported content format/version."];
+        else if (descriptor.IsRichV1)
+        {
+            if (!descriptor.TryRead(editorContentJson, out var extracted))
+                errors[nameof(DocumentDraftRevision.EditorContentJson)] = ["Content does not conform to the declared rich-document schema."];
+            else plainText = extracted; // Never trust a caller's unrelated search/plain-text projection.
+        }
+        if (plainText?.Length > MaximumPlainTextLength)
+            errors[nameof(DocumentDraftRevision.PlainText)] = [$"Plain text cannot exceed {MaximumPlainTextLength} characters."];
         if (errors.Count > 0)
         {
             throw new DocumentValidationException(errors);
@@ -119,7 +144,7 @@ public sealed class TranslationDocument
             editorContentJson,
             string.IsNullOrWhiteSpace(plainText) ? null : plainText,
             createdByUserId,
-            createdAtUtc, templateRevisionId);
+            createdAtUtc, templateRevisionId, descriptor);
 
         _draftRevisions.Add(revision);
         CurrentDraftRevision = revision.RevisionNumber;

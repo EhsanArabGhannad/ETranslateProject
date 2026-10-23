@@ -2,11 +2,19 @@ import ui from '../Resources/interface.tr.json' with { type: 'json' };
 import { assetUrl } from './preview.js';
 import { createEditorSession } from './editors/editor-session.js';
 import { defaultEditorProvider } from './editors/default-provider.js';
+import { supportsStoredContent } from './editors/document-contract.js';
 
 // DOM orchestration only. All vendor-specific editing/selection/history code belongs in its provider.
 export function startRichEditor(workspace, onChanged, preview) {
     const json = document.getElementById('document-json');
     const status = document.getElementById('editor-format-status');
+    if (!supportsStoredContent(workspace.dataset.contentFormat, workspace.dataset.contentSchemaVersion) ||
+        !supportsStoredContent(workspace.dataset.templateContentFormat, workspace.dataset.templateContentSchemaVersion)) {
+        workspace.dataset.editable = 'false'; json.readOnly = true;
+        const text = document.getElementById('translation-text'); if (text) text.readOnly = true;
+        const save = document.querySelector('#draft-form button[type=submit]'); if (save) save.disabled = true;
+        status.textContent = ui.BelgeIcerikSurumuDesteklenmiyor; return null;
+    }
     if (workspace.dataset.richCompatible !== 'true') {
         status.textContent = ui.BuYapiDuzenleyicininKapsamiDisindadirOzgunJSON;
         return null;

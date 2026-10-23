@@ -28,6 +28,8 @@ public static partial class DocumentEndpoints
             where template.TenantId == tenantId && template.Id == request.TemplateId && revision.RevisionNumber == request.RevisionNumber
             select new { Template = template, Revision = revision }).SingleOrDefaultAsync(cancellationToken);
         if (target is null) return Results.NotFound();
+        if (!current.ContentDescriptor.IsSupported || !target.Revision.ContentDescriptor.IsSupported)
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["ContentFormat"] = ["Unsupported content format/version; no template change was made."] });
         IReadOnlyCollection<Guid> assets;
         try { assets = TemplateAssetReferences.Parse(current.EditorContentJson); }
         catch (DocumentTemplateValidationException error) { return Results.ValidationProblem(error.Errors.ToDictionary()); }
@@ -37,6 +39,7 @@ public static partial class DocumentEndpoints
         var previousTemplate = document.TemplateRevisionId;
         DocumentDraftRevision draft;
         try { draft = document.ChangeTemplate(request.ExpectedCurrentRevision, target.Template, target.Revision, current, access.Actor!.UserId, now); }
+        catch (DocumentValidationException error) { return Results.ValidationProblem(error.Errors.ToDictionary()); }
         catch (DocumentRevisionConflictException) { return RevisionConflict(request.ExpectedCurrentRevision, document.CurrentDraftRevision); }
         catch (DocumentReviewConflictException) { return Results.Conflict(new { error = "document_review_locked" }); }
         catch (InvalidOperationException error) { return Results.Conflict(new { error = "document_template_cannot_be_changed", detail = error.Message }); }

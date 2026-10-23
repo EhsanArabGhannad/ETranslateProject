@@ -51,9 +51,12 @@ public sealed class DocumentsDbContext(
 
         modelBuilder.Entity<DocumentDraftRevision>(entity =>
         {
-            entity.ToTable("draft_revisions");
+            entity.ToTable("draft_revisions", table => table.HasCheckConstraint("CK_draft_revisions_content_metadata",
+                "([ContentFormat] IS NULL AND [ContentSchemaVersion] IS NULL) OR ([ContentFormat] IS NOT NULL AND LEN([ContentFormat]) > 0 AND [ContentSchemaVersion] IS NOT NULL AND [ContentSchemaVersion] > 0)"));
             entity.HasKey(revision => revision.Id);
             entity.Property(revision => revision.EditorContentJson).HasColumnType("nvarchar(max)").IsRequired();
+            entity.Property(revision => revision.ContentFormat).HasMaxLength(100);
+            entity.Ignore(revision => revision.ContentDescriptor);
             entity.Property(revision => revision.PlainText).HasColumnType("nvarchar(max)");
             entity.HasIndex(revision => new { revision.DocumentId, revision.RevisionNumber }).IsUnique();
             entity.HasOne<DocumentTemplateRevision>().WithMany().HasForeignKey(revision => revision.TemplateRevisionId).OnDelete(DeleteBehavior.Restrict);
@@ -90,9 +93,12 @@ public sealed class DocumentsDbContext(
 
         modelBuilder.Entity<DocumentTemplateRevision>(entity =>
         {
-            entity.ToTable("document_template_revisions");
+            entity.ToTable("document_template_revisions", table => table.HasCheckConstraint("CK_template_revisions_content_metadata",
+                "([ContentFormat] IS NULL AND [ContentSchemaVersion] IS NULL) OR ([ContentFormat] IS NOT NULL AND LEN([ContentFormat]) > 0 AND [ContentSchemaVersion] IS NOT NULL AND [ContentSchemaVersion] > 0)"));
             entity.HasKey(revision => revision.Id);
             entity.Property(revision => revision.EditorContentJson).HasColumnType("nvarchar(max)").IsRequired();
+            entity.Property(revision => revision.ContentFormat).HasMaxLength(100);
+            entity.Ignore(revision => revision.ContentDescriptor);
             entity.Property(revision => revision.HeaderContentJson).HasColumnType("nvarchar(max)");
             entity.Property(revision => revision.FooterContentJson).HasColumnType("nvarchar(max)");
             entity.Property(revision => revision.PageLayoutJson).HasColumnType("nvarchar(max)").IsRequired();

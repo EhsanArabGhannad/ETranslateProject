@@ -1,3 +1,5 @@
+using ETranslate.Contracts.Documents;
+
 namespace ETranslate.Documents.Api.Documents;
 
 public sealed class DocumentDraftRevision
@@ -12,7 +14,7 @@ public sealed class DocumentDraftRevision
         string editorContentJson,
         string? plainText,
         Guid createdByUserId,
-        DateTimeOffset createdAtUtc, Guid? templateRevisionId = null)
+        DateTimeOffset createdAtUtc, Guid? templateRevisionId = null, DocumentContentDescriptor? contentDescriptor = null)
     {
         Id = Guid.NewGuid();
         DocumentId = documentId;
@@ -22,6 +24,8 @@ public sealed class DocumentDraftRevision
         CreatedByUserId = createdByUserId;
         CreatedAtUtc = createdAtUtc;
         TemplateRevisionId = templateRevisionId;
+        ContentFormat = contentDescriptor?.Format;
+        ContentSchemaVersion = contentDescriptor?.SchemaVersion;
     }
 
     public Guid Id { get; private init; }
@@ -29,6 +33,9 @@ public sealed class DocumentDraftRevision
     public int RevisionNumber { get; private init; }
     public Guid? TemplateRevisionId { get; private init; }
     public string EditorContentJson { get; private init; } = string.Empty;
+    public string? ContentFormat { get; private init; }
+    public int? ContentSchemaVersion { get; private init; }
+    public DocumentContentDescriptor ContentDescriptor => new(ContentFormat, ContentSchemaVersion);
     public string? PlainText { get; private init; }
     public Guid CreatedByUserId { get; private init; }
     public DateTimeOffset CreatedAtUtc { get; private init; }

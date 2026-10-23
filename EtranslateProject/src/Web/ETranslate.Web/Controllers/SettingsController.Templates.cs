@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using ETranslate.SubscriptionAccess;
+using ETranslate.Contracts.Documents;
 using ETranslate.Web.Models;
 using ETranslate.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +37,8 @@ public sealed partial class SettingsController
             return View("Templates", page);
         }
         if (page.Selected?.IsActive == false) return StatusCode(409);
+        if (page.Selected is { Revision.ContentDescriptor.IsSupported: false })
+            return SaveFailure(page, 422, UiText.Get("BelgeIcerikSurumuDesteklenmiyor"));
         if (form.TemplateId.HasValue && (form.ExpectedRevision < 1 || form.ExpectedRevision != page.Selected!.CurrentRevision))
             return SaveFailure(page, 409, UiText.Get("SablonSurumuDegistiFormBilgilerinizKorunduSon"), conflict: true);
         if (!form.TemplateId.HasValue && (form.ExpectedRevision != 0 || form.PendingAssetId.HasValue)) return BadRequest();
@@ -60,7 +63,8 @@ public sealed partial class SettingsController
                 var content = page.Projection.Build(form, null, null);
                 writeAttempted = true;
                 var detail = await api.PostAsync<TemplateDetail>("documents", TemplatePath(form.TenantId), new
-                { form.Name, description = (string?)null, content.EditorContentJson, content.HeaderContentJson, content.FooterContentJson, content.PageLayoutJson, content.WatermarkJson });
+                { form.Name, description = (string?)null, content.EditorContentJson, content.HeaderContentJson, content.FooterContentJson, content.PageLayoutJson, content.WatermarkJson,
+                    contentFormat = DocumentContentDescriptor.RichFormat, contentSchemaVersion = DocumentContentDescriptor.RichSchemaVersion });
                 if (detail is null || detail.Id == Guid.Empty || detail.Revision is null || detail.Revision.TemplateId != detail.Id || detail.CurrentRevision != 1 || detail.Revision.RevisionNumber != 1)
                     throw new BackendException(HttpStatusCode.BadGateway);
                 created = true; page.Selected = detail; form.TemplateId = detail.Id; form.ExpectedRevision = 1; form.Name = detail.Name;
@@ -94,7 +98,8 @@ public sealed partial class SettingsController
             var payload = page.Projection.Build(form, page.Selected!.Revision, imageId);
             writeAttempted = true;
             var saved = await api.PostAsync<TemplateRevision>("documents", $"{TemplatePath(form.TenantId, form.TemplateId)}/revisions", new
-            { expectedCurrentRevision = form.ExpectedRevision, payload.EditorContentJson, payload.HeaderContentJson, payload.FooterContentJson, payload.PageLayoutJson, payload.WatermarkJson });
+            { expectedCurrentRevision = form.ExpectedRevision, payload.EditorContentJson, payload.HeaderContentJson, payload.FooterContentJson, payload.PageLayoutJson, payload.WatermarkJson,
+                page.Selected.Revision.ContentFormat, page.Selected.Revision.ContentSchemaVersion });
             if (saved is null || saved.TemplateId != form.TemplateId || saved.RevisionNumber != form.ExpectedRevision + 1) throw new BackendException(HttpStatusCode.BadGateway);
             return Saved(form, UiText.Get("YeniSablonSurumuKaydedildiOncekiBelgelerVe"));
         }

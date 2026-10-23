@@ -572,5 +572,6 @@
   "ReviewRevisionStatus": "Sürüm {0}, inceleme durumu: {1}. Bu işlem elektronik imza veya noter onayı değildir.",
   "EditTemplateRevision": "Şablonu düzenle: {0} · Sürüm {1}",
   "TemplateRevisionName": "{0} · Sürüm {1}",
-  "DecimalNumberRequired": "Geçerli bir sayı girin; ondalık ayırıcı olarak nokta kullanın."
+  "DecimalNumberRequired": "Geçerli bir sayı girin; ondalık ayırıcı olarak nokta kullanın.",
+  "BelgeIcerikSurumuDesteklenmiyor": "İçerik biçimi veya şema sürümü bu uygulama tarafından desteklenmiyor. Özgün veri ve önceki PDF dosyaları korunmuştur; bu içerikle düzenleme ve yeni PDF oluşturma kapalıdır."
 }

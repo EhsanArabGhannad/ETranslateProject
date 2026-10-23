@@ -32,12 +32,14 @@ public static partial class DocumentEndpoints
             where revision.Id == draft.TemplateRevisionId && parent.TenantId == tenantId
             select revision).SingleOrDefaultAsync(cancellationToken);
         if (draft.TemplateRevisionId is not null && template is null) return Results.Conflict(new { error = "pinned_template_unavailable" });
+        if (!draft.ContentDescriptor.IsSupported || template is not null && !template.ContentDescriptor.IsSupported)
+            return Results.Problem(statusCode: 422, title: "draft_pdf_not_supported", detail: "Unsupported content format/version; archived PDFs remain unchanged.");
         byte[] bytes;
         try
         {
-            var ids = DraftPdfHtml.ImageReferences(draft.EditorContentJson, "doc")
-                .Concat(DraftPdfHtml.ImageReferences(template?.HeaderContentJson, "header"))
-                .Concat(DraftPdfHtml.ImageReferences(template?.FooterContentJson, "footer")).Distinct().ToArray();
+            var ids = DraftPdfHtml.ImageReferences(draft.EditorContentJson, "doc", draft.ContentDescriptor)
+                .Concat(DraftPdfHtml.ImageReferences(template?.HeaderContentJson, "header", template?.ContentDescriptor))
+                .Concat(DraftPdfHtml.ImageReferences(template?.FooterContentJson, "footer", template?.ContentDescriptor)).Distinct().ToArray();
             if (ids.Length > DraftPdfPolicy.MaximumImages) throw new PdfRenderValidationException("Too many managed images for a draft PDF.");
             var assets = template is null ? [] : await database.TemplateAssets.AsNoTracking()
                 .Where(asset => asset.TemplateId == template.TemplateId && ids.Contains(asset.Id)).ToListAsync(cancellationToken);
@@ -55,7 +57,9 @@ public static partial class DocumentEndpoints
                 images.Add(asset.Id, new PdfImage(asset.ContentType, image));
             }
             bytes = await renderer.RenderAsync(new DraftPdfInput(document.Id, draft.RevisionNumber, draft.TemplateRevisionId,
-                draft.EditorContentJson, template?.HeaderContentJson, template?.FooterContentJson, template?.PageLayoutJson, template?.WatermarkJson, images), cancellationToken);
+                draft.EditorContentJson, template?.HeaderContentJson, template?.FooterContentJson, template?.PageLayoutJson, template?.WatermarkJson, images)
+                { ContentFormat = draft.ContentFormat, ContentSchemaVersion = draft.ContentSchemaVersion,
+                  TemplateContentFormat = template?.ContentFormat, TemplateContentSchemaVersion = template?.ContentSchemaVersion }, cancellationToken);
         }
         catch (PdfRenderValidationException error) { return Results.Problem(statusCode: 422, title: "draft_pdf_not_supported", detail: error.Message); }
         catch (PdfRendererBusyException) { httpContext.Response.Headers.RetryAfter = "2"; return Results.Problem(statusCode: 429, title: "draft_pdf_renderer_busy"); }

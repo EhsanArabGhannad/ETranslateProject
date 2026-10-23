@@ -10,13 +10,16 @@ public static class DraftPdfHtml
 {
     public static PreparedPdf Prepare(DraftPdfInput input, string fontCss)
     {
+        if (!input.BodyDescriptor.IsSupported || !input.TemplateDescriptor.IsSupported)
+            throw new PdfRenderValidationException("Unsupported content format/version; no PDF was generated.");
         if (!DocumentPageLayout.TryParse(input.LayoutJson, out var layout))
             throw new PdfRenderValidationException("Unsupported page layout; no PDF was generated.");
         var textLength = 0;
         string Part(string? json, string expected)
         {
             if (json is null) return "";
-            using var document = ParseContent(json, expected, out var text);
+            using var document = ParseContent(json, expected, out var text,
+                expected == "doc" ? input.BodyDescriptor : input.TemplateDescriptor);
             textLength += text.Length;
             if (textLength > DraftPdfPolicy.MaximumTextLength) throw new PdfRenderValidationException("Document exceeds the draft PDF text limit.");
             var html = new StringBuilder();
@@ -64,10 +67,11 @@ public static class DraftPdfHtml
         return new PreparedPdf(htmlDocument, layout);
     }
 
-    public static IReadOnlyCollection<Guid> ImageReferences(string? json, string expectedRoot)
+    public static IReadOnlyCollection<Guid> ImageReferences(string? json, string expectedRoot, DocumentContentDescriptor? descriptor = null)
     {
+        if (descriptor is { IsSupported: false }) throw new PdfRenderValidationException("Unsupported content format/version.");
         if (json is null) return [];
-        using var document = ParseContent(json, expectedRoot, out _);
+        using var document = ParseContent(json, expectedRoot, out _, descriptor ?? DocumentContentDescriptor.Legacy);
         var ids = new HashSet<Guid>();
         void Visit(JsonElement node)
         {
@@ -76,12 +80,9 @@ public static class DraftPdfHtml
         }
         Visit(document.RootElement); return ids;
     }
-    private static JsonDocument ParseContent(string json, string expected, out string text)
+    private static JsonDocument ParseContent(string json, string expected, out string text, DocumentContentDescriptor descriptor)
     {
-        var root = expected;
-        // Existing simple templates store a doc root; explicitly support it alongside header/footer roots.
-        if (!DocumentContentJson.TryGetPlainText(json, out var extracted, root) &&
-            (expected == "doc" || !DocumentContentJson.TryGetPlainText(json, out extracted)))
+        if (!descriptor.TryRead(json, out var extracted, expected))
             throw new PdfRenderValidationException("Unsupported document content; nothing was flattened or omitted.");
         text = extracted!;
         return JsonDocument.Parse(json);

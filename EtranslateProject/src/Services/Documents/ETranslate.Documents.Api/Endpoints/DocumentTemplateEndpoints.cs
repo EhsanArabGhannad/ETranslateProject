@@ -66,7 +66,7 @@ public static partial class DocumentTemplateEndpoints
                 request.PageLayoutJson,
                 request.WatermarkJson,
                 authorization.Actor!.UserId,
-                now);
+                now, request.ContentFormat, request.ContentSchemaVersion);
         }
         catch (DocumentTemplateValidationException exception)
         {
@@ -218,6 +218,8 @@ public static partial class DocumentTemplateEndpoints
 
         var now = timeProvider.GetUtcNow();
         DocumentTemplateRevision revision;
+        var previous = await database.TemplateRevisions.AsNoTracking()
+            .SingleOrDefaultAsync(r => r.TemplateId == template.Id && r.RevisionNumber == template.CurrentRevision, cancellationToken);
         try
         {
             revision = template.AddRevision(
@@ -228,7 +230,7 @@ public static partial class DocumentTemplateEndpoints
                 request.PageLayoutJson,
                 request.WatermarkJson,
                 authorization.Actor!.UserId,
-                now);
+                now, request.ContentFormat, request.ContentSchemaVersion, previous);
         }
         catch (DocumentTemplateValidationException exception)
         {
@@ -311,7 +313,7 @@ public static partial class DocumentTemplateEndpoints
                 revision.Id,
                 revision.RevisionNumber,
                 revision.CreatedByUserId,
-                revision.CreatedAtUtc))
+                revision.CreatedAtUtc, revision.ContentFormat, revision.ContentSchemaVersion))
             .ToListAsync(cancellationToken);
 
         return Results.Ok(revisions);
@@ -466,7 +468,7 @@ public static partial class DocumentTemplateEndpoints
             revision.PageLayoutJson,
             revision.WatermarkJson,
             revision.CreatedByUserId,
-            revision.CreatedAtUtc);
+            revision.CreatedAtUtc, revision.ContentFormat, revision.ContentSchemaVersion);
 
     private sealed record AuthorizationResult(TenantActor? Actor, IResult? Error);
 }
@@ -478,7 +480,7 @@ public sealed record CreateDocumentTemplateRequest(
     string? HeaderContentJson,
     string? FooterContentJson,
     string PageLayoutJson,
-    string? WatermarkJson);
+    string? WatermarkJson, string? ContentFormat = null, int? ContentSchemaVersion = null);
 
 public sealed record CreateDocumentTemplateRevisionRequest(
     int ExpectedCurrentRevision,
@@ -486,7 +488,7 @@ public sealed record CreateDocumentTemplateRevisionRequest(
     string? HeaderContentJson,
     string? FooterContentJson,
     string PageLayoutJson,
-    string? WatermarkJson);
+    string? WatermarkJson, string? ContentFormat = null, int? ContentSchemaVersion = null);
 
 public sealed record SetDocumentTemplateStatusRequest(bool IsActive);
 
@@ -514,7 +516,7 @@ public sealed record DocumentTemplateRevisionSummaryResponse(
     Guid Id,
     int RevisionNumber,
     Guid CreatedByUserId,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc, string? ContentFormat = null, int? ContentSchemaVersion = null);
 
 public sealed record DocumentTemplateRevisionResponse(
     Guid Id,
@@ -526,4 +528,4 @@ public sealed record DocumentTemplateRevisionResponse(
     string PageLayoutJson,
     string? WatermarkJson,
     Guid CreatedByUserId,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc, string? ContentFormat = null, int? ContentSchemaVersion = null);

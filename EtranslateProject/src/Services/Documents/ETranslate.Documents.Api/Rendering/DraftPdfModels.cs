@@ -6,6 +6,12 @@ public sealed record DraftPdfInput(Guid DocumentId, int RevisionNumber, Guid? Te
     string BodyJson, string? HeaderJson, string? FooterJson, string? LayoutJson, string? WatermarkJson,
     IReadOnlyDictionary<Guid, PdfImage> Images)
 {
+    public string? ContentFormat { get; init; }
+    public int? ContentSchemaVersion { get; init; }
+    public string? TemplateContentFormat { get; init; }
+    public int? TemplateContentSchemaVersion { get; init; }
+    public DocumentContentDescriptor BodyDescriptor => new(ContentFormat, ContentSchemaVersion);
+    public DocumentContentDescriptor TemplateDescriptor => new(TemplateContentFormat, TemplateContentSchemaVersion);
     public ETranslate.Contracts.Trust.SigningPreviewSnapshotV1? PreviewPlan { get; init; }
     public Guid PreviewId { get; init; }
 }

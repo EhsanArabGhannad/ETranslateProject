@@ -22,6 +22,7 @@ else {
     <section class="card">
         <h2 class="template-heading">@(Model.Selected is null ? UiText.Get("YeniSablonOlustur") : UiText.Format("EditTemplateRevision", Model.Selected.Name, Model.Selected.CurrentRevision))</h2>
         @if (Model.Selected?.IsActive == false) { <p class="notice">@UiText.Get("ArsivlenmisSablonSaltOkunurdur")</p> }
+        @if (Model.Selected is { Revision.ContentDescriptor.IsSupported: false }) { <p class="notice">@UiText.Get("BelgeIcerikSurumuDesteklenmiyor")</p> }
         @if (Model.Selected is not null) { <p><a asp-action="Templates" asp-route-tenantId="@Model.Tenant.Id" asp-route-templateId="@Model.Selected.Id" asp-route-pendingAssetId="@Model.Form.PendingAssetId" target="_blank" rel="noopener">@UiText.Get("SonSurumuAyriSekmedeIncele")</a></p> }
         <form asp-action="SaveTemplate" method="post" enctype="multipart/form-data" id="template-edit-form" data-discard-confirm="@UiText.Get("DiscardTemplateChanges")" data-invalid-logo="@UiText.Get("InvalidLogo")">
             <div asp-validation-summary="All" class="alert"></div>
@@ -72,6 +73,10 @@ else {
         @if (Model.Selected is not null) { <details><summary>@UiText.Get("SecilenSurumunOzgunYapisiSaltOkunur")</summary><pre class="template-json" dir="ltr">@Model.Selected.Revision.EditorContentJson</pre><pre class="template-json" dir="ltr">@Model.Selected.Revision.HeaderContentJson</pre><pre class="template-json" dir="ltr">@Model.Selected.Revision.FooterContentJson</pre></details> }
     </section>
     <section class="card" id="template-live-preview" data-tenant-id="@Model.Tenant.Id" data-template-id="@Model.Form.TemplateId"
+        data-content-format="@(Model.Selected?.Revision.ContentDescriptor.DisplayFormat ?? ETranslate.Contracts.Documents.DocumentContentDescriptor.RichFormat)"
+        data-content-schema-version="@(Model.Selected?.Revision.ContentDescriptor.DisplaySchemaVersion ?? 1)"
+        data-template-content-format="@(Model.Selected?.Revision.ContentDescriptor.DisplayFormat ?? ETranslate.Contracts.Documents.DocumentContentDescriptor.RichFormat)"
+        data-template-content-schema-version="@(Model.Selected?.Revision.ContentDescriptor.DisplaySchemaVersion ?? 1)"
         data-header-editable="@Model.Projection.HeaderEditable.ToString().ToLowerInvariant()" data-footer-editable="@Model.Projection.FooterEditable.ToString().ToLowerInvariant()"
         data-body-editable="@Model.Projection.BodyEditable.ToString().ToLowerInvariant()" data-watermark-editable="@Model.Projection.WatermarkEditable.ToString().ToLowerInvariant()"
         data-layout-editable="@Model.Projection.LayoutEditable.ToString().ToLowerInvariant()" data-can-save="@Model.CanSave.ToString().ToLowerInvariant()">

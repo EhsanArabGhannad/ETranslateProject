@@ -19,11 +19,19 @@ public sealed record JobView(Guid Id, string Title, string SourceLanguageCode, s
 public sealed record TemplateView(Guid Id, string Name, bool IsActive, int CurrentRevision);
 public sealed record TemplateDetail(Guid Id, string Name, string? Description, bool IsActive, int CurrentRevision, TemplateRevision Revision);
 public sealed record TemplateRevision(Guid Id, Guid TemplateId, int RevisionNumber, string EditorContentJson,
-    string? HeaderContentJson, string? FooterContentJson, string PageLayoutJson, string? WatermarkJson);
+    string? HeaderContentJson, string? FooterContentJson, string PageLayoutJson, string? WatermarkJson,
+    string? ContentFormat = null, int? ContentSchemaVersion = null)
+{
+    public ETranslate.Contracts.Documents.DocumentContentDescriptor ContentDescriptor => new(ContentFormat, ContentSchemaVersion);
+}
 public sealed record DocumentView(Guid Id, int CurrentDraftRevision, Guid? TemplateRevisionId,
     IReadOnlyList<SourceFileView>? SourceFiles = null, string ReviewStatus = "Draft", int ReviewRound = 0);
 public sealed record SourceFileView(Guid Id, string OriginalFileName, string ContentType, long SizeBytes, string Sha256);
-public sealed record DraftView(int RevisionNumber, string EditorContentJson, string? PlainText, Guid? TemplateRevisionId = null);
+public sealed record DraftView(int RevisionNumber, string EditorContentJson, string? PlainText, Guid? TemplateRevisionId = null,
+    string? ContentFormat = null, int? ContentSchemaVersion = null)
+{
+    public ETranslate.Contracts.Documents.DocumentContentDescriptor ContentDescriptor => new(ContentFormat, ContentSchemaVersion);
+}
 public sealed record DraftSummary(int RevisionNumber, DateTimeOffset CreatedAtUtc);
 public sealed record AssetView(Guid Id);
 public sealed record PdfVersionView(Guid Id, int RevisionNumber, Guid? TemplateRevisionId,
@@ -63,6 +71,10 @@ public sealed class EditorView
     public List<TemplateView> Templates { get; set; } = [];
     public List<DraftSummary> History { get; set; } = [];
     public string EditorContentJson { get; set; } = DocumentText.Empty;
+    public string? ContentFormat { get; set; } = ETranslate.Contracts.Documents.DocumentContentDescriptor.RichFormat;
+    public int? ContentSchemaVersion { get; set; } = ETranslate.Contracts.Documents.DocumentContentDescriptor.RichSchemaVersion;
+    public ETranslate.Contracts.Documents.DocumentContentDescriptor ContentDescriptor => new(ContentFormat, ContentSchemaVersion);
+    public bool ContentIsSupported => ContentDescriptor.IsSupported && (Template?.ContentDescriptor.IsSupported ?? true);
     public int ExpectedRevision { get; set; }
     public int ViewedRevision { get; set; }
     public List<PdfVersionView> PdfVersions { get; set; } = [];

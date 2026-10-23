@@ -1,8 +1,16 @@
 import { isRichDocument, normalizeEmptyText } from '../document-schema.js';
 
 // Application vocabulary, not a vendor's unrestricted JSON. Existing API payloads stay unwrapped.
-// Persisted format/version dispatch is a separate, server-coordinated change; this descriptor is local.
+// Matches the server descriptor; NULL/NULL legacy rows remain unlabelled in storage.
 export const richDocumentV1 = Object.freeze({ id: 'etranslate.rich-document', version: 1 });
+export const legacyDocument = Object.freeze({ id: 'etranslate.legacy-json', version: 0 });
+
+export function supportsStoredContent(format, version) {
+    // Old pages had no metadata attributes. Do not treat partial/empty/unknown metadata as legacy.
+    if (format == null && version == null) return true;
+    return format === richDocumentV1.id && (version === 1 || version === '1') ||
+        format === legacyDocument.id && (version === 0 || version === '0');
+}
 export const editorCommands = Object.freeze([
     'bold', 'italic', 'underline', 'paragraph', 'heading', 'bulletList', 'orderedList',
     'rtl', 'ltr', 'auto', 'undo', 'redo', 'insertTable', 'addRowAfter', 'addColumnAfter',

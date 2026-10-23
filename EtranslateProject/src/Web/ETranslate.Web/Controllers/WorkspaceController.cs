@@ -97,6 +97,8 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
                 model.ViewedRevision = number;
                 var draft = await api.ReadAsync<DraftView>("documents", $"{path}/draft-revisions/{number}");
                 model.EditorContentJson = draft.EditorContentJson;
+                model.ContentFormat = draft.ContentFormat;
+                model.ContentSchemaVersion = draft.ContentSchemaVersion;
                 model.Historical = number != document.CurrentDraftRevision;
                 if (draft.TemplateRevisionId is not null)
                 {
@@ -144,15 +146,17 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
             if (!ModelState.IsValid) throw new BackendException(HttpStatusCode.BadRequest);
             var document = await api.ReadAsync<DocumentView>("documents", DocumentsPath(tenantId, jobId));
             // Check the immutable revision too, not a browser-supplied assertion of editability.
+            DraftView? original = null;
+            if (expectedRevision > 0)
+            {
+                original = await api.ReadAsync<DraftView>("documents",
+                    $"{DocumentsPath(tenantId, jobId)}/{document.Id}/draft-revisions/{expectedRevision}");
+                if (!original.ContentDescriptor.IsSupported) throw new BackendException(HttpStatusCode.UnprocessableEntity);
+            }
             if (mode == "text")
             {
-                if (expectedRevision > 0)
-                {
-                    var original = await api.ReadAsync<DraftView>("documents",
-                        $"{DocumentsPath(tenantId, jobId)}/{document.Id}/draft-revisions/{expectedRevision}");
-                    if (DocumentText.TryPlainText(original.EditorContentJson) is null)
-                        throw new BackendException(HttpStatusCode.BadRequest);
-                }
+                if (original is not null && DocumentText.TryPlainText(original.EditorContentJson) is null)
+                    throw new BackendException(HttpStatusCode.BadRequest);
                 json = DocumentText.FromPlainText(plainText ?? "");
             }
             else if (mode == "rich")
@@ -160,9 +164,12 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
                 if (!RichDocument.TryGetPlainText(json, out _)) throw new BackendException(HttpStatusCode.BadRequest);
             }
             else if (mode != "json") throw new BackendException(HttpStatusCode.BadRequest);
+            var descriptor = mode is "rich" or "text" ? DocumentContentDescriptor.RichV1
+                : original?.ContentDescriptor ?? DocumentContentDescriptor.Legacy;
             await api.PostAsync<DraftView>("documents", $"{DocumentsPath(tenantId, jobId)}/{document.Id}/draft-revisions", new
             { expectedCurrentRevision = expectedRevision, editorContentJson = json,
-                plainText = RichDocument.TryGetPlainText(json, out var extracted) ? extracted : DocumentText.TryPlainText(json) });
+                plainText = descriptor.TryRead(json, out var extracted) ? extracted : null,
+                contentFormat = descriptor.Format, contentSchemaVersion = descriptor.SchemaVersion });
             TempData["Notice"] = UiText.Get("YeniSurumKaydedildiOncekiSurumlerDegistirilmedenKorunur");
             return RedirectToAction(nameof(Editor), new { tenantId, jobId });
         }
@@ -170,7 +177,8 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
         {
             conflict = error.Status == HttpStatusCode.Conflict;
             failureStatus = (int)error.Status;
-            message = conflict ? UiText.Get("BelgeninSurumuVeyaIncelemeDurumuDegistiMetniniz") : error.UserMessage;
+            message = conflict ? UiText.Get("BelgeninSurumuVeyaIncelemeDurumuDegistiMetniniz")
+                : error.Status == HttpStatusCode.UnprocessableEntity ? UiText.Get("BelgeIcerikSurumuDesteklenmiyor") : error.UserMessage;
             if (mode == "text") json = DocumentText.FromPlainText(plainText ?? "");
         }
         var model = await LoadEditor(tenantId, jobId);
@@ -199,7 +207,8 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
                 headerContentJson = DocumentText.FromPlainText(header ?? ""),
                 footerContentJson = DocumentText.FromPlainText(footer ?? ""),
                 pageLayoutJson = layout.ToJson(),
-                watermarkJson = string.IsNullOrWhiteSpace(watermark) ? null : JsonSerializer.Serialize(new { text = watermark, opacity = 0.12, rotation = -35 })
+                watermarkJson = string.IsNullOrWhiteSpace(watermark) ? null : JsonSerializer.Serialize(new { text = watermark, opacity = 0.12, rotation = -35 }),
+                contentFormat = DocumentContentDescriptor.RichFormat, contentSchemaVersion = DocumentContentDescriptor.RichSchemaVersion
             });
             TempData["Notice"] = UiText.Get("SablonOlusturulduSimdiYeniBirSurumeLogo");
         }
@@ -216,6 +225,8 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
         { TempData["Notice"] = UiText.Get("LogoPNGVeyaJPEGBicimindeVeEn"); return TemplateSettings(tenantId); }
         var path = $"{TemplatesPath(tenantId)}/{templateId}";
         var template = await api.ReadAsync<TemplateDetail>("documents", path);
+        if (!template.Revision.ContentDescriptor.IsSupported)
+        { TempData["Notice"] = UiText.Get("BelgeIcerikSurumuDesteklenmiyor"); return TemplateSettings(tenantId); }
         var header = JsonNode.Parse(template.Revision.HeaderContentJson ?? DocumentText.Empty) as JsonObject;
         if (header?["content"] is not JsonArray)
         { TempData["Notice"] = UiText.Get("BuSablonunUstbilgiYapisiBasitArayuzdeDesteklenmiyor"); return TemplateSettings(tenantId); }
@@ -234,7 +245,8 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
             {
                 expectedCurrentRevision = template.CurrentRevision, template.Revision.EditorContentJson,
                 headerContentJson = header.ToJsonString(), template.Revision.FooterContentJson,
-                template.Revision.PageLayoutJson, template.Revision.WatermarkJson
+                template.Revision.PageLayoutJson, template.Revision.WatermarkJson,
+                template.Revision.ContentFormat, template.Revision.ContentSchemaVersion
             });
             TempData["Notice"] = UiText.Get("LogoluYeniSablonSurumuOlusturulduOncekiBelgeler");
         }

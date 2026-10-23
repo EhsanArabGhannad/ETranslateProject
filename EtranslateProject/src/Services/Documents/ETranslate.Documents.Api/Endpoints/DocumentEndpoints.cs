@@ -180,8 +180,8 @@ public static partial class DocumentEndpoints
             return Results.NotFound();
         }
 
-        var assetError = await ValidateDraftAssetsAsync(document, request.EditorContentJson, database, cancellationToken);
-        if (assetError is not null) return assetError;
+        var previous = document.CurrentDraftRevision == 0 ? null : await database.DraftRevisions.AsNoTracking()
+            .SingleOrDefaultAsync(r => r.DocumentId == document.Id && r.RevisionNumber == document.CurrentDraftRevision, cancellationToken);
 
         var now = timeProvider.GetUtcNow();
         DocumentDraftRevision revision;
@@ -192,7 +192,7 @@ public static partial class DocumentEndpoints
                 request.EditorContentJson,
                 request.PlainText,
                 access.Actor!.UserId,
-                now);
+                now, request.ContentFormat, request.ContentSchemaVersion, previous);
         }
         catch (DocumentValidationException exception)
         {
@@ -206,6 +206,9 @@ public static partial class DocumentEndpoints
         {
             return Results.Conflict(new { error = "document_review_locked" });
         }
+
+        var assetError = await ValidateDraftAssetsAsync(document, request.EditorContentJson, database, cancellationToken);
+        if (assetError is not null) return assetError;
 
         await publishEndpoint.Publish(
             new DocumentDraftRevisionCreatedV1(
@@ -281,7 +284,7 @@ public static partial class DocumentEndpoints
                 revision.Id,
                 revision.RevisionNumber,
                 revision.CreatedByUserId,
-                revision.CreatedAtUtc))
+                revision.CreatedAtUtc, revision.ContentFormat, revision.ContentSchemaVersion))
             .ToListAsync(cancellationToken);
 
         return Results.Ok(revisions);
@@ -612,7 +615,7 @@ public static partial class DocumentEndpoints
             revision.EditorContentJson,
             revision.PlainText,
             revision.CreatedByUserId,
-            revision.CreatedAtUtc, revision.TemplateRevisionId);
+            revision.CreatedAtUtc, revision.TemplateRevisionId, revision.ContentFormat, revision.ContentSchemaVersion);
 
     private static SourceFileResponse ToResponse(SourceFile file) =>
         new(
@@ -630,7 +633,7 @@ public static partial class DocumentEndpoints
 public sealed record CreateDraftRevisionRequest(
     int ExpectedCurrentRevision,
     string EditorContentJson,
-    string? PlainText);
+    string? PlainText, string? ContentFormat = null, int? ContentSchemaVersion = null);
 
 public sealed record TranslationDocumentResponse(
     Guid Id,
@@ -649,7 +652,7 @@ public sealed record DocumentDraftRevisionSummaryResponse(
     Guid Id,
     int RevisionNumber,
     Guid CreatedByUserId,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc, string? ContentFormat = null, int? ContentSchemaVersion = null);
 
 public sealed record DocumentDraftRevisionResponse(
     Guid Id,
@@ -658,7 +661,7 @@ public sealed record DocumentDraftRevisionResponse(
     string EditorContentJson,
     string? PlainText,
     Guid CreatedByUserId,
-    DateTimeOffset CreatedAtUtc, Guid? TemplateRevisionId = null);
+    DateTimeOffset CreatedAtUtc, Guid? TemplateRevisionId = null, string? ContentFormat = null, int? ContentSchemaVersion = null);
 
 public sealed record SourceFileResponse(
     Guid Id,

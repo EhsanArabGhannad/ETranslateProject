@@ -1,6 +1,6 @@
 @model EditorView
-@{ ViewData["Title"] = Model.Job.Title; var plain = DocumentText.TryPlainText(Model.EditorContentJson); var editable = Model.CanWrite && !Model.Historical && !Model.Conflict && Model.Review is { Locked: false, CanManage: true };
-   var compatible = RichDocument.TryGetPlainText(Model.EditorContentJson, out _);
+@{ ViewData["Title"] = Model.Job.Title; var plain = Model.ContentIsSupported ? DocumentText.TryPlainText(Model.EditorContentJson) : null; var editable = Model.ContentIsSupported && Model.CanWrite && !Model.Historical && !Model.Conflict && Model.Review is { Locked: false, CanManage: true };
+   var compatible = Model.ContentIsSupported && Model.ContentDescriptor.TryRead(Model.EditorContentJson, out _);
    var sources = Model.Document?.SourceFiles ?? Array.Empty<SourceFileView>(); }
 <a class="back-link" asp-action="Index" asp-route-tenantId="@Model.TenantId">@UiText.Get("DosyalaraDon")</a>
 <div class="page-heading"><div><span class="eyebrow">@UiText.Get("CEVIRISTUDYOSU")</span><h1 dir="auto">@Model.Job.Title</h1><p class="muted" dir="auto">@Model.Job.SourceLanguageCode → @Model.Job.TargetLanguageCode · @(Model.Job.NotaryRequirement == "Required" ? UiText.Get("NoterGerekli") : UiText.Get("NoterGerekmiyor"))</p></div><span class="badge">@(Model.Historical ? UiText.Get("DosyaninGuncelDurumuBuSurumunOnayiDegildir") : "")@ReviewStateView.Label(Model.Review?.Status ?? "Draft")</span></div>
@@ -26,7 +26,11 @@ else if (Model.Document.CurrentDraftRevision == 0) {
 </section>
 @if (Model.Historical || Model.Conflict) { <div class="notice">@(Model.Historical ? UiText.Get("BuGecmisSurumSaltOkunurdur") : UiText.Get("UzerineYazmayiOnlemekIcinBuSayfadaKayit")) <a asp-action="Editor" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">@UiText.Get("SonSurumuYeniSekmedeAc")</a></div> }
 @if (Model.Review?.Locked == true) { <div class="notice">@UiText.Get("BuDurumdaMetinVeKaynakBelgelerKilitlidir")</div> }
+@if (!Model.ContentIsSupported) { <div class="notice">@UiText.Get("BelgeIcerikSurumuDesteklenmiyor")</div> }
 <div class="editor-grid" id="editor-workspace" data-tenant-id="@Model.TenantId" data-template-id="@Model.Template?.TemplateId"
+     data-content-format="@Model.ContentDescriptor.DisplayFormat" data-content-schema-version="@Model.ContentDescriptor.DisplaySchemaVersion"
+     data-template-content-format="@(Model.Template?.ContentDescriptor.DisplayFormat ?? ETranslate.Contracts.Documents.DocumentContentDescriptor.LegacyDisplayFormat)"
+     data-template-content-schema-version="@(Model.Template?.ContentDescriptor.DisplaySchemaVersion ?? 0)"
      data-rich-compatible="@compatible.ToString().ToLowerInvariant()" data-editable="@editable.ToString().ToLowerInvariant()"
      data-source-base="@Url.Action("Source", new { tenantId = Model.TenantId, jobId = Model.Job.Id })">
 <section class="card source-panel"><div class="section-heading"><h2>@UiText.Get("KaynakBelge")</h2><span class="badge" id="source-count">@sources.Count dosya</span></div>
@@ -71,7 +75,7 @@ else { <p class="notice" id="legacy-format-notice">@UiText.Get("BelgeninOzgunYap
 @if (Model.ViewedRevision > 0) {
     <form asp-action="GenerateDraftPdf" method="post" id="draft-pdf-form" data-download-base="@Url.Action("DraftPdf", new { tenantId = Model.TenantId, jobId = Model.Job.Id })">
         <input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="revisionNumber" value="@Model.ViewedRevision" />
-        <button type="submit" class="secondary" disabled="@(!Model.CanWrite)">Kaydedilen sürümden PDF oluştur: @Model.ViewedRevision</button>
+        <button type="submit" class="secondary" disabled="@(!Model.CanWrite || !Model.ContentIsSupported)">Kaydedilen sürümden PDF oluştur: @Model.ViewedRevision</button>
     </form>
 } else { <p class="muted">@UiText.Get("PDFOlusturmakIcinOnceBirCeviriSurumu")</p> }
 <p class="muted">@UiText.Get("YalnizcaKayitliSurumYazdirilirKaydedilmemisDegisikliklerPDF")</p>

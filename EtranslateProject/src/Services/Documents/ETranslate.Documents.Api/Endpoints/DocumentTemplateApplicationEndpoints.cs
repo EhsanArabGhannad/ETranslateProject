@@ -35,6 +35,7 @@ public static partial class DocumentEndpoints
         {
             draft = document.ApplyTemplate(result.Template, result.Revision, access.Actor!.UserId, now);
         }
+        catch (DocumentValidationException error) { return Results.ValidationProblem(error.Errors.ToDictionary()); }
         catch (InvalidOperationException exception)
         {
             return Results.Conflict(new { error = "document_template_cannot_be_applied", detail = exception.Message });
@@ -84,7 +85,7 @@ public static partial class DocumentEndpoints
         return revision is null ? Results.NotFound() : Results.Ok(new DocumentTemplateRevisionResponse(
             revision.Id, revision.TemplateId, revision.RevisionNumber, revision.EditorContentJson,
             revision.HeaderContentJson, revision.FooterContentJson, revision.PageLayoutJson,
-            revision.WatermarkJson, revision.CreatedByUserId, revision.CreatedAtUtc));
+            revision.WatermarkJson, revision.CreatedByUserId, revision.CreatedAtUtc, revision.ContentFormat, revision.ContentSchemaVersion));
     }
 
     private static async Task<IResult?> ValidateDraftAssetsAsync(
