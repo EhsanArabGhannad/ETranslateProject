@@ -14,6 +14,23 @@ test('geometry includes the renderer footer reserve and header/footer measuremen
     assert.equal(geometry(null, 46, 0), null); assert.equal(geometry('{}'), null);
     const last = fixture('letterhead-last'); assert.equal(geometry(JSON.stringify(last.layout), 20.2, 10.1).contentHeight, headed.contentHeight);
 });
+test('heading variants preserve the original document and identify only an all-header first row', () => {
+    const row = id => fixture(id).body.content.find(node => node.type === 'table').content[0];
+    const header = id => row(id).content.every(cell => cell.type === 'tableHeader');
+    assert.equal(header('long-table'), true); assert.equal(header('long-table-multiline'), true);
+    assert.equal(header('table-no-header'), false); assert.equal(header('table-mixed-header'), false);
+    assert.equal(row('table-mixed-header').content[0].type, 'tableHeader');
+    assert.equal(row('table-no-header').content[0].type, 'tableCell');
+    assert.equal(row('long-table').content[0].content[0].content[0].text, 'Sıra');
+    assert.equal(row('long-table-multiline').content[1].content[0].attrs.dir, 'rtl');
+});
+test('repeating headings are CSS-only and scoped to experimental column mode, not measuring or saved documents', async () => {
+    const css = await readFile(new URL('lab.css', import.meta.url), 'utf8');
+    assert.match(css, /#world\[data-mode=columns\] #editor .*:not\(:has\(>tbody>tr:first-child>td\)\)>tbody\{display:contents\}/);
+    assert.match(css, /tr:first-child:has\(>th\):not\(:has\(>td\)\)\{display:table-header-group;break-inside:avoid\}/);
+    const production = await readFile(new URL('../../src/Web/ETranslate.Web/wwwroot/css/site.css', import.meta.url), 'utf8');
+    assert.doesNotMatch(production, /display:table-header-group|display:contents/);
+});
 test('native column counting is bounded without adding page nodes to the document', () => {
     const g = geometry(null); assert.equal(pageCount(g.contentWidth, g), 1);
     assert.equal(pageCount(g.contentWidth + g.pitch, g), 2);

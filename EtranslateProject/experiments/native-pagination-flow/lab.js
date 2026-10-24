@@ -61,6 +61,19 @@ function followCaret() {
     const n = selectionReport().page;
     if (Number.isInteger(n) && n !== active && n <= pages) jump(n);
 }
+function tableReports() {
+    const origin = dom().getBoundingClientRect().left;
+    return [...dom().querySelectorAll('table')].map(table => {
+        const rows = [...table.querySelectorAll('tr')], header = rows[0];
+        const hasHeader = !!header?.children.length && [...header.children].every(cell => cell.tagName === 'TH');
+        const tablePages = [...new Set(rows.flatMap(row => [...row.getClientRects()].map(rect => pageAt((rect.left - origin) / scale, metrics))))].sort((a, b) => a - b);
+        const fragments = hasHeader ? header.getClientRects().length : 0;
+        return { rows: rows.length, columns: header?.children.length ?? 0, hasHeader, tablePages: issue ? [] : tablePages,
+            headerFragments: fragments, headerDisplay: header ? getComputedStyle(header).display : null,
+            repetitionMatches: !issue && (hasHeader ? fragments === tablePages.length : fragments === 0),
+            bodyGroups: table.querySelectorAll('tbody').length };
+    });
+}
 function report() {
     const json = JSON.parse(session.getDocumentJson());
     return { sample: current.id, pages: issue ? null : pages, activePage: issue ? null : active, layoutIssue: issue, maximumObservedPages,
@@ -68,6 +81,7 @@ function report() {
         sourceTextPreserved: flatText(json) === originalText, jsonUnchanged: session.getDocumentJson() === initialJson,
         format: session.format, markers: markerPages(), selection: selectionReport(), readonly: !session.getCommandState('bold').enabled,
         tableHeaderGroups: dom().querySelectorAll('thead').length,
+        tables: tableReports(),
         bodyDomIsSingle: host.querySelectorAll('[role=textbox]').length === 1,
         productionApproved: false, realWordClipboardTested: false, realDocxTested: false };
 }
@@ -121,7 +135,7 @@ function layout() {
     sheetNodes(pages, height); refreshNavigation();
     find('issues').hidden = !issue && !dom().querySelector('table');
     find('issues').textContent = issue ? 'Bu içerik yazdırılabilir sayfaya sığmıyor. Sayfalama kapatıldı; metin silinmedi ve örnek başarısız olarak işaretlendi.'
-        : dom().querySelector('table') ? 'Tablo üstbilgisi tekrarları ve PDF sınırları ayrıca doğrulanmalıdır. Bu örnek üretim için onaylanmadı.' : '';
+        : dom().querySelector('table') ? 'Tablo yerleşimi deneysel olarak ölçülür; PDF karşılaştırmasını ayrıca kontrol edin. Üretim için onaylanmadı.' : '';
     for (const button of document.querySelectorAll('[data-command]')) button.disabled = !session.getCommandState(button.dataset.command).enabled;
     layoutEpoch++; lastLayout = performance.now(); find('report').textContent = JSON.stringify(report(), null, 2);
 }
@@ -163,6 +177,8 @@ async function start() {
     new ResizeObserver(schedule).observe(viewport);
     window.nativeFlowLab = { load, report, ready: () => ready && !pending, json: () => session.getDocumentJson(), fixture: () => current,
         selection: selectionReport,
+        command: name => session.execute(name),
+        commandState: name => session.getCommandState(name),
         undo: () => session.execute('undo'), redo: () => session.execute('redo'), jump };
 }
 start().catch(error => { find('issues').hidden = false; find('issues').textContent = `Deney açılamadı: ${error.message}`; console.error(error); });

@@ -16,7 +16,7 @@ public sealed class NativePaginationFlowFactAttribute : FactAttribute
     }
 }
 
-public sealed class NativePaginationFlowTests
+public sealed partial class NativePaginationFlowTests
 {
     [NativePaginationFlowFact(Timeout = 180_000)]
     public async Task Native_fragmentation_is_measured_against_the_existing_renderer_without_product_or_database_writes()
@@ -133,10 +133,12 @@ public sealed class NativePaginationFlowTests
             await page.Locator("#page").SelectOptionAsync("2"); Assert.Equal(original, await Json(page));
             await page.Locator("#readonly").ClickAsync(); await Stable(page);
 
+            var tableEditing = await VerifyTableEditing(page, output);
+
             // PDF files below are new synthetic QA artifacts from the unchanged production renderer.
             var samples = new Dictionary<string, object>();
             using var renderer = new ChromiumDraftPdfRenderer();
-            foreach (var id in new[] { "text", "letterhead-last", "landscape", "simple-table", "long-table", "long-paragraph", "tall-cell" })
+            foreach (var id in new[] { "text", "letterhead-last", "landscape", "simple-table", "long-table", "long-table-multiline", "table-no-header", "table-mixed-header", "long-paragraph", "tall-cell" })
             {
                 await page.EvaluateAsync("id => window.nativeFlowLab.load(id)", id);
                 var snapshot = await Stable(page); var json = await Json(page);
@@ -144,6 +146,10 @@ public sealed class NativePaginationFlowTests
                 Assert.True(snapshot.GetProperty("sourceTextPreserved").GetBoolean());
                 Assert.True(snapshot.GetProperty("jsonUnchanged").GetBoolean());
                 Assert.True(snapshot.GetProperty("bodyDomIsSingle").GetBoolean());
+                if (id != "tall-cell") foreach (var table in snapshot.GetProperty("tables").EnumerateArray()) {
+                    Assert.True(table.GetProperty("repetitionMatches").GetBoolean(), $"Header fragment mismatch: {id}: {table}");
+                    Assert.Equal(1, table.GetProperty("bodyGroups").GetInt32());
+                }
                 using var fixtureJson = JsonDocument.Parse(await page.EvaluateAsync<string>("() => JSON.stringify(window.nativeFlowLab.fixture())"));
                 var value = fixtureJson.RootElement;
                 var input = new DraftPdfInput(Guid.NewGuid(), 1, null, json,
@@ -177,7 +183,7 @@ public sealed class NativePaginationFlowTests
                     await page.EvaluateAsync("() => window.nativeFlowLab.jump(window.nativeFlowLab.report().pages)");
                     await Shot(page, output, id + "-last-page");
                 }
-                if (id is "long-table" or "long-paragraph") {
+                if (id is "long-table" or "long-table-multiline" or "table-no-header" or "table-mixed-header" or "long-paragraph") {
                     await page.EvaluateAsync("() => window.nativeFlowLab.jump(2)"); await Shot(page, output, id + "-page2");
                     await page.EvaluateAsync("() => window.nativeFlowLab.jump(window.nativeFlowLab.report().pages)"); await Shot(page, output, id + "-last-page");
                 }
@@ -187,6 +193,7 @@ public sealed class NativePaginationFlowTests
                 KeyboardPageTwoEditUndoRedoPassed = true, ForwardBackwardFlowPassed = true, ZoomPreservedJsonAndSelection = true,
                 RtlPageTwoCaretEditUndoPassed = true, NativeArrowForwardPassed = arrowForward, NativeArrowBackwardPassed = arrowBackward,
                 NativeArrowUiSynchronized = arrowUiSynchronized,
+                TableEditing = tableEditing,
                 NativeArrowDown = arrowDown.Select(r => new { UiPage = r.GetProperty("activePage"), Selection = r.GetProperty("selection") }).ToArray(),
                 NativeArrowUp = arrowUp.Select(r => new { UiPage = r.GetProperty("activePage"), Selection = r.GetProperty("selection") }).ToArray(),
                 ReadonlyNavigationPassed = true, MobileOuterOverflow = false, Baseline = baseline, Grown = grown, AfterUndo = shrunk,
