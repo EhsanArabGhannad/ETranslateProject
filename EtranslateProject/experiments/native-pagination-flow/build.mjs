@@ -14,6 +14,8 @@ const { build } = await import(pathToFileURL(path.join(modules, 'esbuild/lib/mai
 const result = await build({ entryPoints: [path.join(root, 'lab.js')], outfile: path.join(root, 'generated/lab.js'),
     nodePaths: [modules], bundle: true, format: 'iife', target: ['es2022'], legalComments: 'linked', metafile: true, logLevel: 'info' });
 await writeFile(path.join(root, 'generated/bundle-inputs.json'), JSON.stringify(Object.keys(result.metafile.inputs), null, 2));
+await build({ entryPoints: [path.join(root, 'table-row-plan.js')], outfile: path.join(root, 'generated/table-row-plan.js'),
+    bundle: true, format: 'iife', globalName: 'NativeTableRows', target: ['es2022'], logLevel: 'info' });
 const fonts = path.resolve(root, '../../src/Services/Documents/ETranslate.Documents.Api/Rendering/Fonts');
 await mkdir(path.join(root, 'generated/fonts'), { recursive: true });
 for (const name of ['NotoSans-Regular.ttf', 'NotoSans-Bold.ttf', 'NotoSans-Italic.ttf', 'NotoSans-BoldItalic.ttf',

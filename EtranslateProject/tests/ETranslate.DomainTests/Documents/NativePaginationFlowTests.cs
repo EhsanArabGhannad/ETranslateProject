@@ -133,12 +133,18 @@ public sealed partial class NativePaginationFlowTests
             await page.Locator("#page").SelectOptionAsync("2"); Assert.Equal(original, await Json(page));
             await page.Locator("#readonly").ClickAsync(); await Stable(page);
 
+            await ProbeUnheadedTableFlow(page, output);
             var tableEditing = await VerifyTableEditing(page, output);
+            var directToolbar = await VerifyDirectTableToolbar(page, output);
 
             // PDF files below are new synthetic QA artifacts from the unchanged production renderer.
             var samples = new Dictionary<string, object>();
             using var renderer = new ChromiumDraftPdfRenderer();
-            foreach (var id in new[] { "text", "letterhead-last", "landscape", "simple-table", "long-table", "long-table-multiline", "table-no-header", "table-mixed-header", "long-paragraph", "tall-cell" })
+            var rowPlanner = await File.ReadAllTextAsync(Path.Combine(root, "generated", "table-row-plan.js"));
+            var plannedPage = await context.NewPageAsync();
+            plannedPage.PageError += (_, error) => errors.Add(error);
+            plannedPage.Console += (_, message) => { if (message.Type == "error") errors.Add(message.Text); };
+            foreach (var id in await page.Locator("#sample option").EvaluateAllAsync<string[]>("options => options.map(option=>option.value)"))
             {
                 await page.EvaluateAsync("id => window.nativeFlowLab.load(id)", id);
                 var snapshot = await Stable(page); var json = await Json(page);
@@ -152,11 +158,16 @@ public sealed partial class NativePaginationFlowTests
                 }
                 using var fixtureJson = JsonDocument.Parse(await page.EvaluateAsync<string>("() => JSON.stringify(window.nativeFlowLab.fixture())"));
                 var value = fixtureJson.RootElement;
+                var expectedRisk = value.GetProperty("body").GetProperty("content").EnumerateArray()
+                    .Where(node=>node.GetProperty("type").GetString()=="table")
+                    .Any(table=>table.GetProperty("content")[0].GetProperty("content").EnumerateArray().Any(cell=>cell.GetProperty("type").GetString()!="tableHeader"));
+                Assert.Equal(expectedRisk, snapshot.GetProperty("knownPrintBoundaryRisk").GetBoolean());
+                if (expectedRisk && id != "tall-cell") await Assertions.Expect(page.Locator("#issues")).ToContainTextAsync("bilinen fark");
                 var input = new DraftPdfInput(Guid.NewGuid(), 1, null, json,
                     Part(value.GetProperty("header"), "header"), Part(value.GetProperty("footer"), "footer"),
                     value.GetProperty("layout").GetRawText(), null, new Dictionary<Guid, PdfImage>())
                     { ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 1 };
-                int? pdfPages = null; string? rejection = null;
+                int? pdfPages = null, plannedPages = null; string? rejection = null, plannedRejection = null; JsonElement? printPlan = null;
                 try
                 {
                     var bytes = await renderer.RenderAsync(input, CancellationToken.None);
@@ -164,36 +175,58 @@ public sealed partial class NativePaginationFlowTests
                     await File.WriteAllBytesAsync(Path.Combine(output, id + ".pdf"), bytes);
                 }
                 catch (PdfRenderValidationException error) { rejection = error.Message; }
+                try {
+                    var planned = await NativePlannedPdfExperiment.Render(plannedPage, input, rowPlanner);
+                    printPlan = planned.Plan;
+                    using var stream = new MemoryStream(planned.Bytes); using var pdf = PdfReader.Open(stream, PdfDocumentOpenMode.Import); plannedPages = pdf.PageCount;
+                    await File.WriteAllBytesAsync(Path.Combine(output, id + "-planned.pdf"), planned.Bytes);
+                    Assert.Equal(snapshot.GetProperty("pages").GetInt32(), plannedPages);
+                    Assert.Equal(snapshot.GetProperty("experimentalRowPlan").GetProperty("fingerprint").GetString(), printPlan.Value.GetProperty("fingerprint").GetString());
+                    var editorTables = snapshot.GetProperty("experimentalRowPlan").GetProperty("tables"); var printTables = printPlan.Value.GetProperty("tables");
+                    Assert.Equal(editorTables.GetArrayLength(), printTables.GetArrayLength());
+                    for (var tableIndex = 0; tableIndex < editorTables.GetArrayLength(); tableIndex++) {
+                        var first = editorTables[tableIndex]; var second = printTables[tableIndex];
+                        Assert.Equal(first.GetProperty("hasHeader").GetBoolean(), second.GetProperty("hasHeader").GetBoolean());
+                        Assert.Equal(first.GetProperty("rowCount").GetInt32(), second.GetProperty("rowCount").GetInt32());
+                        var startRow = first.GetProperty("hasHeader").GetBoolean() ? 1 : 0;
+                        for (var row = startRow; row < first.GetProperty("rowCount").GetInt32(); row++)
+                            Assert.Equal(first.GetProperty("rows")[row].GetProperty("page").GetInt32(), second.GetProperty("rows")[row].GetProperty("page").GetInt32());
+                    }
+                } catch (PdfRenderValidationException error) { plannedRejection = error.Message; }
                 if (id == "tall-cell")
                 {
                     Assert.Equal("tall-row-exceeds-printable-page", snapshot.GetProperty("layoutIssue").GetString());
                     Assert.Null(pdfPages); Assert.Contains("table row", rejection);
+                    Assert.Null(plannedPages); Assert.Contains("table row", plannedRejection);
                     // No retrying paginator or proliferating page nodes on an unsupported row.
                     for (var n = 0; n < 10; n++) {
                         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
                         Assert.Equal(1, await page.Locator(".sheet").CountAsync());
                     }
                 }
-                else { Assert.Null(rejection); Assert.NotNull(pdfPages); }
+                else { Assert.Null(rejection); Assert.NotNull(pdfPages); Assert.Null(plannedRejection); Assert.NotNull(plannedPages); }
                 await Shot(page, output, id);
-                if (id == "letterhead-last")
+                if (id is "letterhead-last" or "table-letterhead-last")
                 {
                     Assert.Equal(snapshot.GetProperty("pages").GetInt32(), await page.Locator(".sheet .letterhead").CountAsync());
                     Assert.Equal(1, await page.Locator(".sheet .letterfoot").CountAsync());
                     await page.EvaluateAsync("() => window.nativeFlowLab.jump(window.nativeFlowLab.report().pages)");
                     await Shot(page, output, id + "-last-page");
                 }
-                if (id is "long-table" or "long-table-multiline" or "table-no-header" or "table-mixed-header" or "long-paragraph") {
+                if (id is "long-table" or "long-table-multiline" or "long-paragraph" || id.StartsWith("table-")) {
                     await page.EvaluateAsync("() => window.nativeFlowLab.jump(2)"); await Shot(page, output, id + "-page2");
                     await page.EvaluateAsync("() => window.nativeFlowLab.jump(window.nativeFlowLab.report().pages)"); await Shot(page, output, id + "-last-page");
                 }
-                samples[id] = new { Editor = snapshot, ProductionPdfPages = pdfPages, RendererRejection = rejection };
+                samples[id] = new { Editor = snapshot, ProductionPdfPages = pdfPages, RendererRejection = rejection,
+                    PlannedPdfPages = plannedPages, PlannedRejection = plannedRejection, PrintRowPlan = printPlan };
             }
+            await plannedPage.CloseAsync();
             var report = new { RunUtc = DateTimeOffset.UtcNow, LocalOnly = true, ProductionApproved = false,
                 KeyboardPageTwoEditUndoRedoPassed = true, ForwardBackwardFlowPassed = true, ZoomPreservedJsonAndSelection = true,
                 RtlPageTwoCaretEditUndoPassed = true, NativeArrowForwardPassed = arrowForward, NativeArrowBackwardPassed = arrowBackward,
                 NativeArrowUiSynchronized = arrowUiSynchronized,
                 TableEditing = tableEditing,
+                DirectTableToolbar = directToolbar,
                 NativeArrowDown = arrowDown.Select(r => new { UiPage = r.GetProperty("activePage"), Selection = r.GetProperty("selection") }).ToArray(),
                 NativeArrowUp = arrowUp.Select(r => new { UiPage = r.GetProperty("activePage"), Selection = r.GetProperty("selection") }).ToArray(),
                 ReadonlyNavigationPassed = true, MobileOuterOverflow = false, Baseline = baseline, Grown = grown, AfterUndo = shrunk,

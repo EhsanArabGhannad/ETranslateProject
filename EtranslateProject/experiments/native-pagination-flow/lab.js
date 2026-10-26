@@ -3,10 +3,12 @@ import { defaultEditorProvider } from '../../src/Web/ETranslate.Web/ClientApp/ed
 import { paperScale, mmToPixels } from '../../src/Web/ETranslate.Web/ClientApp/editor-view-layout.js';
 import { fixture, flatText } from './samples.js';
 import { geometry, pageCount, pageAt } from './geometry.js';
+import { measureRowPlan } from './table-row-plan.js';
 
 const find = id => document.getElementById(id);
 let session, current, metrics, originalText, initialJson, changes = 0, active = 1, pages = 1, scale = 1, pending = 0, issue = null, ready = false;
 let layoutEpoch = 0, lastLayout = 0, maximumObservedPages = 1;
+let currentRowPlan = null;
 const viewport = find('viewport'), world = find('world'), host = find('editor'), measure = find('measure');
 const dom = () => host.querySelector('[role=textbox]');
 function region(lines, type) {
@@ -68,11 +70,30 @@ function tableReports() {
         const hasHeader = !!header?.children.length && [...header.children].every(cell => cell.tagName === 'TH');
         const tablePages = [...new Set(rows.flatMap(row => [...row.getClientRects()].map(rect => pageAt((rect.left - origin) / scale, metrics))))].sort((a, b) => a - b);
         const fragments = hasHeader ? header.getClientRects().length : 0;
+        const headerToken = hasHeader ? header.cells[0].querySelector('p')?.firstChild?.textContent : null;
+        // Mixed RTL/LTR extraction can reorder the RTL run. Count a unique leading non-RTL
+        // anchor where available; appearance and the other heading cells still need visual QA.
+        const headerVerificationToken = headerToken?.match(/^[^\u0590-\u08ff]+/)?.[0].trim() || null;
         return { rows: rows.length, columns: header?.children.length ?? 0, hasHeader, tablePages: issue ? [] : tablePages,
+            headerToken, headerTokenLogicalOccurrences: headerToken ? dom().textContent.split(headerToken).length - 1 : 0,
+            headerVerificationToken, headerVerificationOccurrences: headerVerificationToken ? dom().textContent.split(headerVerificationToken).length - 1 : 0,
             headerFragments: fragments, headerDisplay: header ? getComputedStyle(header).display : null,
             repetitionMatches: !issue && (hasHeader ? fragments === tablePages.length : fragments === 0),
             bodyGroups: table.querySelectorAll('tbody').length };
     });
+}
+function hasKnownPrintBoundaryRisk() {
+    return [...dom().querySelectorAll('table')].some(table => {
+        const cells = [...(table.rows[0]?.cells ?? [])];
+        return !cells.length || cells.some(cell => cell.tagName !== 'TH');
+    });
+}
+function rowPlan() {
+    if (issue) return null;
+    const clone = dom().cloneNode(true);
+    clone.removeAttribute('contenteditable'); clone.removeAttribute('role'); clone.removeAttribute('tabindex');
+    measure.replaceChildren(clone);
+    try { return measureRowPlan(clone, metrics); } finally { measure.replaceChildren(); }
 }
 function report() {
     const json = JSON.parse(session.getDocumentJson());
@@ -82,6 +103,8 @@ function report() {
         format: session.format, markers: markerPages(), selection: selectionReport(), readonly: !session.getCommandState('bold').enabled,
         tableHeaderGroups: dom().querySelectorAll('thead').length,
         tables: tableReports(),
+        knownPrintBoundaryRisk: hasKnownPrintBoundaryRisk(),
+        experimentalRowPlan: currentRowPlan,
         bodyDomIsSingle: host.querySelectorAll('[role=textbox]').length === 1,
         productionApproved: false, realWordClipboardTested: false, realDocxTested: false };
 }
@@ -126,6 +149,7 @@ function layout() {
     const measured = issue ? 1 : pageCount(dom().scrollWidth, metrics);
     if (measured === null) { issue = 'more-than-50-pages'; world.dataset.mode = 'continuous'; }
     pages = measured ?? 1; maximumObservedPages = Math.max(maximumObservedPages, pages);
+    currentRowPlan = rowPlan();
     active = Math.min(active, pages);
     scale = paperScale(find('zoom').value, viewport.clientWidth - 32, metrics.pageWidth);
     const height = issue ? dom().getBoundingClientRect().height / (Number(world.dataset.scale) || 1) + metrics.top + mmToPixels(metrics.margins.bottom + 8) : metrics.pageHeight;
@@ -135,6 +159,7 @@ function layout() {
     sheetNodes(pages, height); refreshNavigation();
     find('issues').hidden = !issue && !dom().querySelector('table');
     find('issues').textContent = issue ? 'Bu içerik yazdırılabilir sayfaya sığmıyor. Sayfalama kapatıldı; metin silinmedi ve örnek başarısız olarak işaretlendi.'
+        : hasKnownPrintBoundaryRisk() ? 'Bu tablo türünde PDF sayfa sınırlarıyla bilinen fark var. Sayfa numaraları yalnızca deney görünümüne aittir; yazdırma veya üretim onayı değildir.'
         : dom().querySelector('table') ? 'Tablo yerleşimi deneysel olarak ölçülür; PDF karşılaştırmasını ayrıca kontrol edin. Üretim için onaylanmadı.' : '';
     for (const button of document.querySelectorAll('[data-command]')) button.disabled = !session.getCommandState(button.dataset.command).enabled;
     layoutEpoch++; lastLayout = performance.now(); find('report').textContent = JSON.stringify(report(), null, 2);

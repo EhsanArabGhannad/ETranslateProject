@@ -4,9 +4,32 @@ import { readFile } from 'node:fs/promises';
 import { geometry, pageCount, pageAt } from './geometry.js';
 import { fixture, ids } from './samples.js';
 import { isRichDocument } from '../../src/Web/ETranslate.Web/ClientApp/document-schema.js';
+import { buildRowPlan, rowPlanVersion } from './table-row-plan.js';
+
+test('row plans use measured native boundaries, not row-count estimates or document page nodes', () => {
+    const rows = pages => pages.map((page,index) => ({index,page,fragments:1}));
+    const plan = buildRowPlan([{hasHeader:false,rows:rows([1,1,2,2,3])},{hasHeader:true,rows:rows([3,3,4])}],4,'test');
+    assert.equal(plan.version,rowPlanVersion);
+    assert.deepEqual(plan.tables.map(table=>table.breakBeforeRows),[[2,4],[2]]);
+    assert.equal(plan.tables[1].rowCount,3);
+    assert.throws(()=>buildRowPlan([{hasHeader:false,rows:[{index:0,page:1,fragments:2}]}],2,'test'));
+    assert.throws(()=>buildRowPlan([{hasHeader:false,rows:rows([1,3])}],3,'test'));
+    assert.throws(()=>buildRowPlan([{hasHeader:false,rows:rows([2,1])}],2,'test'));
+    assert.throws(()=>buildRowPlan([],51,'test'));
+    assert.deepEqual(buildRowPlan([],1,'test').tables,[]);
+});
 test('every synthetic native-flow input uses the unchanged strict production vocabulary', () => {
     for (const id of ids) assert.equal(isRichDocument(fixture(id).body), true, id);
     assert.throws(() => fixture('../../appsettings.json'));
+});
+test('every fixture has a selectable Turkish lab option and unique trace markers', async () => {
+    const html = await readFile(new URL('lab.html',import.meta.url),'utf8');
+    const options = [...html.matchAll(/<option value="([^"]+)">/g)].map(match=>match[1]).filter(id=>!['fit','75','100','125'].includes(id));
+    assert.deepEqual(options,ids);
+    for (const id of ids) {
+        const markers = JSON.stringify(fixture(id).body).match(/MARK_\d{3}/g) ?? [];
+        assert.equal(new Set(markers).size,markers.length,id);
+    }
 });
 test('geometry includes the renderer footer reserve and header/footer measurements', () => {
     const basic = geometry(null); assert.ok(Math.abs(basic.contentHeight - 244 * 96 / 25.4) < 0.001);
@@ -37,7 +60,7 @@ test('native column counting is bounded without adding page nodes to the documen
     assert.equal(pageCount(g.contentWidth + 50 * g.pitch, g), null);
     assert.equal(pageCount(Infinity, g), null); assert.equal(pageAt(g.pitch + 20, g), 2);
 });
-test('the lab reuses the adapter, has no paginator, network client or storage API and is absent from production bundle inputs', async () => {
+test('the lab reuses the adapter, has no third-party paginator, network client or storage API and is absent from production bundle inputs', async () => {
     const code = await readFile(new URL('lab.js', import.meta.url), 'utf8');
     assert.doesNotMatch(code, /@tiptap|\.chain\(|\.getJSON\(|innerHTML|fetch\(|localStorage|sessionStorage/);
     const inputs = await readFile(new URL('generated/bundle-inputs.json', import.meta.url), 'utf8');

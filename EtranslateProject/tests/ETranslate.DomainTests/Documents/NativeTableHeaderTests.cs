@@ -120,20 +120,16 @@ public sealed partial class NativePaginationFlowTests
         }
         await page.EvaluateAsync("() => window.nativeFlowLab.undo()"); await Stable(page); Assert.Equal(source, await Json(page));
 
-        // Existing vendor-neutral table commands must still operate across the CSS row groups.
-        await bodyCell.ClickAsync(); await page.Keyboard.PressAsync("End"); await Stable(page);
-        await page.WaitForFunctionAsync("() => window.nativeFlowLab.commandState('addRowAfter').enabled");
-        Assert.True(await page.EvaluateAsync<bool>("() => window.nativeFlowLab.command('addRowAfter')"));
+        // Exercise the actual toolbar route, not an immediate test hook after a synthetic End.
+        // The latter can see DOM selection before the engine state has observed it.
+        await bodyCell.ClickAsync(); await page.Locator("[data-command=addRowAfter]").ClickAsync();
         Assert.Equal(rows + 1, await textbox.Locator("tr").CountAsync()); AssertTableHeaders(await Stable(page));
         await page.EvaluateAsync("() => window.nativeFlowLab.undo()"); await Stable(page); Assert.Equal(source, await Json(page));
-        await bodyCell.ClickAsync(); await page.Keyboard.PressAsync("End"); await Stable(page);
-        await page.WaitForFunctionAsync("() => window.nativeFlowLab.commandState('addColumnAfter').enabled");
-        Assert.True(await page.EvaluateAsync<bool>("() => window.nativeFlowLab.command('addColumnAfter')"));
+        await bodyCell.ClickAsync(); await page.Locator("[data-command=addColumnAfter]").ClickAsync();
         Assert.Equal(3, await textbox.Locator("tr").First.Locator("th,td").CountAsync()); AssertTableHeaders(await Stable(page));
         await page.EvaluateAsync("() => window.nativeFlowLab.undo()"); await Stable(page); Assert.Equal(source, await Json(page));
-        await textbox.Locator("th p").First.ClickAsync(); await page.Keyboard.PressAsync("End"); await Stable(page);
-        await page.WaitForFunctionAsync("() => window.nativeFlowLab.selection().paragraphPrefix === 'Sıra' && window.nativeFlowLab.commandState('deleteRow').enabled");
-        Assert.True(await page.EvaluateAsync<bool>("() => window.nativeFlowLab.command('deleteRow')"));
+        await page.EvaluateAsync("() => window.nativeFlowLab.jump(1)");
+        await textbox.Locator("th p").First.ClickAsync(); await page.Locator("[data-command=deleteRow]").ClickAsync();
         var withoutHeader = await Stable(page);
         Assert.False(withoutHeader.GetProperty("tables")[0].GetProperty("hasHeader").GetBoolean());
         Assert.Equal(0, withoutHeader.GetProperty("tables")[0].GetProperty("headerFragments").GetInt32());
