@@ -1,9 +1,10 @@
 import ui from '../Resources/interface.tr.json' with { type: 'json' };
 import { formatUi } from './ui-format.js';
 import { readPaperLayout, mmToPixels, paperScale } from './editor-view-layout.js';
+import { startEditorPagination } from './editor-pagination.js';
 
 // Operate on the existing DOM only. No editor SDK, content transactions, remounts or saved preferences.
-export function startEditorView(workspace) {
+export function startEditorView(workspace, session) {
     const find = id => document.getElementById(id);
     const controls = find('editor-view-controls'), viewport = find('editor-viewport');
     const stage = find('editor-paper-stage'), paper = find('editor-paper');
@@ -25,13 +26,17 @@ export function startEditorView(workspace) {
         frame = 0;
         if (disposed) return;
         const scale = paperScale(zoom.value, viewport.clientWidth - 32, width);
-        paper.style.transform = `scale(${scale})`;
-        stage.style.width = `${width * scale}px`; stage.style.height = `${paper.offsetHeight * scale}px`;
+        if(!pagination?.render(scale)) {
+            paper.style.transform = `scale(${scale})`;
+            stage.style.width = `${width * scale}px`; stage.style.height = `${paper.offsetHeight * scale}px`;
+        }
         status.textContent = formatUi(ui.EditorZoomPercent, Math.round(scale * 100));
     }
     function scheduleResize() { if (!frame && !disposed) frame = requestAnimationFrame(resize); }
     const observer = new ResizeObserver(scheduleResize);
     observer.observe(viewport); observer.observe(paper);
+    const pagination = startEditorPagination(workspace,session,scheduleResize);
+    const unsubscribe = session?.onStateChange(scheduleResize);
     function setFocused(value, restore = true) {
         if (focused === value) return;
         focused = value;
@@ -87,6 +92,7 @@ export function startEditorView(workspace) {
     resize();
     return () => {
         setFocused(false); disposed = true; cancelAnimationFrame(frame); observer.disconnect();
+        pagination?.destroy(); unsubscribe?.();
         toggle.removeEventListener('mousedown', keepSelection); toggle.removeEventListener('click', toggleFocus);
         zoom.removeEventListener('change', scheduleResize); document.removeEventListener('keydown', keyboard);
         window.removeEventListener('pagehide', leavePage);

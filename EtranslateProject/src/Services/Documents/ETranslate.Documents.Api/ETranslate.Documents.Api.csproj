@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <Content Include="Rendering/Fonts/**/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <EmbeddedResource Include="Rendering/Layout/table-row-plan.bundle.js" LogicalName="ETranslate.Documents.RowPlan" />
   </ItemGroup>
 
 </Project>

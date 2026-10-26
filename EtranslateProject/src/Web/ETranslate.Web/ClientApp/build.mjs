@@ -1,5 +1,18 @@
 import { build } from 'esbuild';
 import { cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+
+// Checked-in trusted server resource; production needs no Node runtime or external script.
+const plannerSource = '../../Shared/DocumentLayout/table-row-plan.js';
+const plannerHash = createHash('sha256').update((await readFile(plannerSource,'utf8')).replace(/\r\n/g,'\n')).digest('hex');
+await build({ entryPoints: [plannerSource], outfile: '../../Services/Documents/ETranslate.Documents.Api/Rendering/Layout/table-row-plan.bundle.js',
+    bundle: true, format: 'iife', globalName: 'NativeTableRows', target: ['es2022'],
+    banner: { js: `// Generated from shared table-row-plan.js; source-sha256:${plannerHash}` }, logLevel: 'info' });
+await mkdir('wwwroot/fonts/document-layout', { recursive: true });
+for (const name of ['NotoSans-Regular.ttf', 'NotoSans-Bold.ttf', 'NotoSans-Italic.ttf', 'NotoSans-BoldItalic.ttf',
+    'NotoSansArabic-Regular.ttf', 'NotoSansArabic-Bold.ttf', 'OFL.txt'])
+    await cp(`../../Services/Documents/ETranslate.Documents.Api/Rendering/Fonts/${name}`, `wwwroot/fonts/document-layout/${name}`);
+await cp('ClientApp/document-pagination.css', 'wwwroot/css/document-pagination.css');
 
 await build({
     entryPoints: { workspace: 'ClientApp/workspace.js', 'template-preview': 'ClientApp/template-preview.js', 'pdf.worker': 'node_modules/pdfjs-dist/build/pdf.worker.mjs' },

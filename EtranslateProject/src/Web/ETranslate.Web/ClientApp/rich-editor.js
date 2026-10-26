@@ -58,7 +58,7 @@ export function startRichEditor(workspace, onChanged, preview) {
         json.hidden = true;
         document.querySelector('#draft-form input[name=mode]').value = 'rich';
         document.getElementById('rich-region').hidden = false;
-        cleanups.push(startEditorView(workspace));
+        cleanups.push(startEditorView(workspace, session));
         status.textContent = workspace.dataset.editable === 'true'
             ? ui.MetinBicimlendirmesiHerSurumleBirlikteKaydedilir : ui.SaltOkunurSurumDuzenlemeKapalidir;
         return Object.freeze({ ...session, destroy });

@@ -45,7 +45,8 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
                             const row = Math.max(0, ...[...table.querySelectorAll('tbody tr')].map(row => row.getBoundingClientRect().height));
                             return (header + row) * 25.4 / 96;
                         })),
-                        OversizedImage: [...document.images].some(image => image.naturalWidth * image.naturalHeight > 16000000)
+                        OversizedImage: [...document.images].some(image => image.naturalWidth * image.naturalHeight > 16000000),
+                        HasTable: !!document.querySelector('main table')
                     };
                 }
                 """).WaitAsync(token);
@@ -69,6 +70,13 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
                     return true;
                 }
                 """).WaitAsync(token);
+            int? expectedPages = null;
+            // Signing-preview appendices retain their existing rendering path/version. Old stored
+            // PDFs are downloaded by identity; only new drafts use the new renderer identifier.
+            if (input.PreviewPlan is null && metrics.HasTable)
+                expectedPages = await DocumentRowPlanner.ApplyAsync(page,
+                    (double)(layout.DimensionsMm.Width - layout.Left - layout.Right) * 96 / 25.4,
+                    (double)bodyHeight * 96 / 25.4, (double)(layout.Left + layout.Right) * 96 / 25.4 + 28, token);
             var bytes = await page.PdfAsync(new()
             {
                 Width = $"{DraftPdfHtml.Number(layout.DimensionsMm.Width)}mm",
@@ -83,6 +91,7 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
                 Tagged = true, Outline = false
             }).WaitAsync(token);
             if (bytes.LongLength is <= 0 or > DraftPdfPolicy.MaximumBytes) throw new PdfRenderValidationException("Rendered PDF exceeds the size limit.");
+            ValidatePageCount(bytes, expectedPages);
             if (metrics.HeaderMm > 0 || metrics.FooterMm > 0)
             {
                 await page.SetContentAsync(prepared.Html, new() { WaitUntil = WaitUntilState.Load }).WaitAsync(token);
@@ -130,7 +139,7 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
         catch (PlaywrightException error) { throw new PdfRendererUnavailableException(error); }
         finally { _slot.Release(); }
     }
-    private sealed record PrintMetrics(decimal HeaderMm, decimal FooterMm, decimal BodyMm, decimal MaximumTableRowMm, bool OversizedImage);
+    private sealed record PrintMetrics(decimal HeaderMm, decimal FooterMm, decimal BodyMm, decimal MaximumTableRowMm, bool OversizedImage, bool HasTable);
     private static byte[] ApplyLetterhead(byte[] body, byte[] letterhead, byte[]? earlierLetterhead, bool lastOnly, CancellationToken token)
     {
         using var bodyStream = new MemoryStream(body, writable:false);
@@ -162,11 +171,13 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
         }
         using var output = new MemoryStream(); document.Save(output, closeStream:false); return output.ToArray();
     }
-    private static void ValidatePageCount(byte[] bytes)
+    private static void ValidatePageCount(byte[] bytes, int? expectedPages = null)
     {
         using var stream = new MemoryStream(bytes, writable:false);
         using var document = PdfReader.Open(stream, PdfDocumentOpenMode.Import);
         if (document.PageCount > 50) throw new PdfRenderValidationException("Document exceeds 50 PDF pages.");
+        if (expectedPages.HasValue && document.PageCount != expectedPages.Value)
+            throw new PdfRenderValidationException("Printed table pages did not match the measured plan; no PDF was accepted.");
     }
     private static string LoadFonts()
     {

@@ -1,10 +1,14 @@
 #Requires -Version 7.0
-param([string]$NodePath='C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe')
+param(
+    [string]$NodePath='C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe',
+    [string]$PythonPath='C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'
+)
 $ErrorActionPreference='Stop'
 $projectRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $webRoot=Join-Path $projectRoot 'src/Web/ETranslate.Web'
 $browserResults=Join-Path $projectRoot 'tmp/editor-adapter'
 if (-not (Test-Path -LiteralPath $NodePath -PathType Leaf)) { throw "Executable not found: $NodePath" }
+if (-not (Test-Path -LiteralPath $PythonPath -PathType Leaf)) { throw "Executable not found: $PythonPath" }
 Push-Location $webRoot
 try {
     & $NodePath --test 'ClientApp/tests/*.test.js'
@@ -19,5 +23,7 @@ try {
     $env:PLAYWRIGHT_BROWSERS_PATH=[IO.Path]::GetFullPath((Join-Path $projectRoot '../.local/pdf-browsers'))
     & dotnet test (Join-Path $PSScriptRoot '../ETranslate.DomainTests/ETranslate.DomainTests.csproj') --no-restore --filter 'FullyQualifiedName~EditorAdapterBrowserTests' --logger 'console;verbosity=normal' --logger 'trx;LogFileName=editor-adapter.trx' --results-directory $browserResults
     if ($LASTEXITCODE -ne 0) { throw 'Editor adapter browser tests failed.' }
-    Write-Output 'Editor adapter checks passed. Temporary loopback test host only; no SQL, AppHost, PDF generation or external services.'
+    & $PythonPath (Join-Path $PSScriptRoot 'verify_product_pagination.py') $browserResults
+    if ($LASTEXITCODE -ne 0) { throw 'Product editor/PDF marker pages differed.' }
+    Write-Output 'Editor adapter and page-flow checks passed. Synthetic PDF comparison and temporary loopback host only; no SQL, AppHost or external services.'
 } finally { foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name,$previous[$name]) } }

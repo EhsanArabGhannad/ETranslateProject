@@ -24,7 +24,7 @@ public sealed class LocalEditorAdapterFactAttribute : FactAttribute
     }
 }
 
-public sealed class EditorAdapterBrowserTests
+public sealed partial class EditorAdapterBrowserTests
 {
     private const string Initial = """
         {"type":"doc","content":[{"type":"paragraph","attrs":{"dir":"rtl"},"content":[{"type":"text","text":"ترجمه با نیم‌فاصله و شماره ۱۲۳"}]},{"type":"paragraph","attrs":{"dir":"ltr"},"content":[{"type":"text","text":"İstanbul şĞı Çeviri 123"}]}]}
@@ -370,6 +370,11 @@ public sealed class EditorAdapterBrowserTests
         public string? TemplateFormat { get; set; }
         public string? TemplateSchemaVersion { get; set; }
         public string? Layout { get; set; }
+        public string Header { get; set; } = "";
+        public string Footer { get; set; } = "";
+        public static readonly Guid ImageId=Guid.Parse("11111111-1111-1111-1111-111111111111");
+        public static readonly byte[] ImageBytes=Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jVloAAAAASUVORK5CYII=");
+        public bool ServeImage { get; set; } = true;
         private BrowserFixture(IPlaywright playwright, IBrowser browser, IBrowserContext context, IPage page,
             WebApplication server, string source, bool editable)
         {
@@ -447,11 +452,19 @@ public sealed class EditorAdapterBrowserTests
                 request.Response.Headers.ContentSecurityPolicy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; img-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
                 await request.Response.WriteAsync(Html(), request.RequestAborted); return;
             }
+            if(request.Request.Method=="GET" && path=="/Workspace/Asset" && request.Request.Query["assetId"]==ImageId.ToString()) {
+                if(!ServeImage){request.Response.StatusCode=404;return;}
+                request.Response.ContentType="image/png";
+                await request.Response.Body.WriteAsync(ImageBytes,request.RequestAborted);return;
+            }
             var file = path switch {
                 "/js/generated/workspace.js" => ("wwwroot/js/generated/workspace.js", "text/javascript"),
                 "/css/site.css" => ("wwwroot/css/site.css", "text/css"),
+                "/css/document-pagination.css" => ("wwwroot/css/document-pagination.css", "text/css"),
                 _ => default
             };
+            if(path?.StartsWith("/fonts/document-layout/") == true && new[]{"NotoSans-Regular.ttf","NotoSans-Bold.ttf","NotoSans-Italic.ttf","NotoSans-BoldItalic.ttf","NotoSansArabic-Regular.ttf","NotoSansArabic-Bold.ttf"}.Contains(Path.GetFileName(path)))
+                file=("wwwroot/fonts/document-layout/"+Path.GetFileName(path),"font/ttf");
             if (request.Request.Method == "GET" && file.Item1 is not null)
             {
                 request.Response.ContentType = file.Item2;
@@ -467,16 +480,18 @@ public sealed class EditorAdapterBrowserTests
             var metadata = Format is null && SchemaVersion is null ? "" : $"data-content-format='{WebUtility.HtmlEncode(Format)}' data-content-schema-version='{WebUtility.HtmlEncode(SchemaVersion)}'";
             var templateMetadata = TemplateFormat is null && TemplateSchemaVersion is null ? "" : $"data-template-content-format='{WebUtility.HtmlEncode(TemplateFormat)}' data-template-content-schema-version='{WebUtility.HtmlEncode(TemplateSchemaVersion)}'";
             return $$"""
-                <!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/site.css"></head><body>
+                <!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/site.css"><link rel="stylesheet" href="/css/document-pagination.css"></head><body>
                 <header class="topbar"><a href="/Workspace/Editor">ETranslate · Yerel test</a></header><main class="shell"><h1>Çeviri stüdyosu · Deneme belgesi</h1>
-                <fieldset class="subscription-lock"><div class="editor-grid" id="editor-workspace" data-rich-compatible="true" data-editable="{{Editable.ToString().ToLowerInvariant()}}" {{metadata}} {{templateMetadata}}>
+                <fieldset class="subscription-lock"><div class="editor-grid" id="editor-workspace" data-rich-compatible="true" data-tenant-id="22222222-2222-2222-2222-222222222222" data-template-id="33333333-3333-3333-3333-333333333333" data-editable="{{Editable.ToString().ToLowerInvariant()}}" {{metadata}} {{templateMetadata}}>
                 <section class="card source-panel"><h2>Kaynak belge</h2><div class="source-display">Yalnızca sentetik test verisi</div></section>
                 <section class="card editor-controls"><div class="section-heading"><h2 id="editor-heading">{{UiText.Get("CeviriMetni")}}</h2><p id="save-state">CLEAN</p></div>
                 <div id="editor-view-controls" class="editor-view-controls" role="group" aria-label="{{UiText.Get("EditorViewControls")}}" hidden>
                     <button type="button" class="secondary" id="editor-focus-toggle" aria-pressed="false">{{UiText.Get("EditorEnterFocus")}}</button>
                     <label for="editor-zoom">{{UiText.Get("EditorZoom")}}</label><select id="editor-zoom" aria-describedby="editor-paper-description"><option value="fit">{{UiText.Get("EditorFitWidth")}}</option><option value="75">75%</option><option value="100">100%</option><option value="125">125%</option><option value="150">150%</option></select>
                     <span id="editor-zoom-status" class="muted" role="status"></span>
+                    <button type="button" id="editor-pages-toggle" aria-pressed="false">{{UiText.Get("EditorEnablePages")}}</button>
                 </div>
+                <nav id="editor-pages-nav" class="editor-pagination-nav" hidden><button id="editor-page-prev" type="button">Önceki</button><select id="editor-page-index"></select><button id="editor-page-next" type="button">Sonraki</button><span id="editor-page-count"></span></nav><p id="editor-pagination-status"></p>
                 <form id="draft-form" action="/Workspace/SaveDraft" method="post"><input type="hidden" name="mode" value="{{(rich ? "text" : "json")}}">
                 <div id="rich-region" hidden><div class="editor-toolbar" role="toolbar" aria-label="{{UiText.Get("CeviriBicimlendirme")}}">{{buttons}}</div><p id="editor-paper-description" class="muted"></p>
                 <div id="editor-viewport" class="editor-viewport" tabindex="0" role="region" aria-label="{{UiText.Get("EditorPaperRegion")}}" aria-describedby="editor-paper-description"><div id="editor-paper-stage"><div id="editor-paper"><div id="rich-text"></div></div></div></div></div>
@@ -485,7 +500,7 @@ public sealed class EditorAdapterBrowserTests
                 <button type="submit">Kaydet</button></form>
                 <form class="review-form" action="/Workspace/Review" method="post"><button type="submit">İncele</button></form><p id="review-status"></p>
                 </section><div class="preview-panel" hidden><div id="preview-notice"></div><div id="preview-watermark"></div><div id="preview-header"></div><div id="preview-body"></div><div id="preview-footer"></div></div>
-                <textarea id="template-header" hidden></textarea><textarea id="template-footer" hidden></textarea><textarea id="template-watermark" hidden></textarea><textarea id="template-layout" hidden>{{WebUtility.HtmlEncode(Layout)}}</textarea>
+                <textarea id="template-header" hidden>{{WebUtility.HtmlEncode(Header)}}</textarea><textarea id="template-footer" hidden>{{WebUtility.HtmlEncode(Footer)}}</textarea><textarea id="template-watermark" hidden></textarea><textarea id="template-layout" hidden>{{WebUtility.HtmlEncode(Layout)}}</textarea>
                 </div></fieldset></main><script type="module" src="/js/generated/workspace.js"></script></body></html>
                 """;
         }

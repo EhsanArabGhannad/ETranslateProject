@@ -1,0 +1,45 @@
+@font-face{font-family:'Noto Sans';src:url('/fonts/document-layout/NotoSans-Regular.ttf')}
+@font-face{font-family:'Noto Sans';src:url('/fonts/document-layout/NotoSans-Bold.ttf');font-weight:700}
+@font-face{font-family:'Noto Sans';src:url('/fonts/document-layout/NotoSans-Italic.ttf');font-style:italic}
+@font-face{font-family:'Noto Sans';src:url('/fonts/document-layout/NotoSans-BoldItalic.ttf');font-weight:700;font-style:italic}
+@font-face{font-family:'Noto Sans Arabic';src:url('/fonts/document-layout/NotoSansArabic-Regular.ttf')}
+@font-face{font-family:'Noto Sans Arabic';src:url('/fonts/document-layout/NotoSansArabic-Bold.ttf');font-weight:700}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow{font:11pt/1.65 'Noto Sans','Noto Sans Arabic',sans-serif;color:#20282b;white-space:pre-wrap;overflow-wrap:anywhere;direction:ltr;box-sizing:border-box}
+#rich-text [role=textbox].document-flow{min-height:0;padding:0;border:0;border-radius:0;background:transparent;outline:none}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow p{margin:0 0 3mm;min-height:1.65em;white-space:pre-wrap;overflow-wrap:anywhere;orphans:3;widows:3}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow :is(h1,h2,h3,h4,h5,h6){margin:0 0 4mm;line-height:1.5;break-after:avoid;overflow-wrap:anywhere;white-space:pre-wrap}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow h1{font-size:20pt}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow h2{font-size:17pt}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow h3{font-size:15pt}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow :is(h4,h5,h6){font-size:12pt}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow :is(ul,ol){padding-inline-start:8mm;margin:0 0 4mm}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow li>p{margin-bottom:1mm}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow blockquote{margin:3mm 0;padding-inline-start:4mm;border-inline-start:1mm solid #bbc4c9}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow table{width:100%;table-layout:fixed;border-collapse:collapse;margin:0 0 4mm}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow thead{display:table-header-group}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow tr{break-inside:avoid}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow :is(th,td){border:.25mm solid #87969c;padding:2mm;vertical-align:top;text-align:start;overflow-wrap:anywhere}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow th{background:#edf1f3;font-weight:700}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow :is(th,td) p{margin-bottom:1mm}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow img{display:block;max-width:40mm;max-height:20mm;width:auto;height:auto;object-fit:contain;break-inside:avoid}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow img.template-banner{width:100%;max-width:100%;max-height:30mm}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow img.image-left{margin-left:0;margin-right:auto}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow img.image-center{margin-left:auto;margin-right:auto}
+:is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow img.image-right{margin-left:auto;margin-right:0}
+#editor-flow-measure{position:fixed;top:0;left:-20000px;visibility:hidden;pointer-events:none}
+:is(#editor-flow-measure,#editor-page-sheets) .pagination-region{position:absolute;font-size:9pt;line-height:1.5;white-space:normal}
+:is(#editor-flow-measure,#editor-page-sheets) .pagination-header{padding-bottom:3mm;border-bottom:.2mm solid #bcc6ca}
+:is(#editor-flow-measure,#editor-page-sheets) .pagination-footer{padding-top:3mm;border-top:.2mm solid #bcc6ca}
+:is(#editor-flow-measure,#editor-page-sheets) .pagination-region p{margin-bottom:1mm}
+#editor-paper.editor-page-world{background:transparent;border:0;box-shadow:none}
+.editor-page-world #rich-text{position:absolute}
+.editor-page-world #rich-text .document-flow table:has(>tbody>tr:first-child>th):not(:has(>tbody>tr:first-child>td))>tbody{display:contents}
+.editor-page-world #rich-text .document-flow table>tbody>tr:first-child:has(>th):not(:has(>td)){display:table-header-group;break-inside:avoid}
+#editor-page-sheets{pointer-events:none}
+.editor-page-sheet{position:absolute;top:0;background:white;box-shadow:0 2px 5px #193a3920;overflow:hidden}
+.editor-page-number{position:absolute;bottom:12px;left:0;right:0;text-align:center;font:10px sans-serif;color:#843737}
+.editor-page-draft{position:absolute;top:48%;left:0;width:100%;text-align:center;opacity:.1;color:#8b3131;font:28pt 'Noto Sans';transform:rotate(-30deg)}
+.editor-page-watermark{position:absolute;top:35%;left:0;width:100%;text-align:center;font-size:32pt;overflow-wrap:anywhere}
+.editor-pagination-nav{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 0}
+.editor-controls .editor-pagination-nav button{width:auto;margin:0;padding:6px 10px}
+.editor-pagination-nav select{width:auto;margin:0;padding:6px}

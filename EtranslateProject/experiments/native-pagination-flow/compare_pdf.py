@@ -86,8 +86,13 @@ for name in ["table-no-header", "table-mixed-header"]:
             "matchesCurrentRenderer": markers == pdf_marker_sets[name] and len(reader.pages) == results[name]["pdfPages"],
             "matchesEditor": markers == editor["markers"] and len(reader.pages) == editor["pages"],
             "css": sample["PrintControls"][variant]["Css"]}
-    if not geometry_matches or not controls["print-control"]["matchesCurrentRenderer"]:
-        raise ValueError(f"The independent control does not reproduce the current renderer: {name}")
+    # The old raw-HTML control intentionally has no row plan; it is now a v10 reference,
+    # not the v11 product renderer. Compare it to the independently generated raw baseline.
+    legacy_name = 'unheaded' if name == 'table-no-header' else 'mixed'
+    legacy_texts, legacy_markers = evidence(folder / f"row-plan-{legacy_name}-baseline.pdf")
+    control_texts, control_markers = evidence(folder / f"{name}-print-control.pdf")
+    if not geometry_matches or control_markers != legacy_markers or len(control_texts) != len(legacy_texts):
+        raise ValueError(f"The independent legacy control is not reproducible: {name}")
     flow_results[name] = {"unfragmentedGeometryMatches": geometry_matches,
         "printHtmlInColumns": sample["PrintMetrics"]["withoutColgroup"], "printControls": controls,
         "resolved": controls["print-control"]["matchesEditor"]}
@@ -129,6 +134,7 @@ expected_planned = {"text", "letterhead-last", "landscape", "simple-table", "lon
     "table-landscape", "table-letterhead-last", "long-paragraph"}
 planned_acceptance = set(planned_results) == expected_planned and all(result["pageCountsMatch"] and not result["differentMarkerPages"]
     and result["headingRepetitionMatches"] and result["templateFooterPolicyMatches"] for result in planned_results.values())
+product_acceptance = all(result.get('pageCountsMatch') is True and not result.get('differentMarkerPages') for name,result in results.items() if name != 'tall-cell')
 raw = json.loads((folder / "row-plan-probe.json").read_text(encoding="utf-8"))
 raw_results = {}
 for name in ["unheaded", "mixed", "headed"]:
@@ -144,14 +150,18 @@ report = {"samples": results, "tableHeaderFixAcceptancePassed": header_acceptanc
           "tableFlowInvestigation": flow_results, "directTableToolbarVerified": True,
           "plannedPdfResults": planned_results, "rawRowPlanControls": raw_results, "candidatePdfAcceptancePassed": planned_acceptance,
           "candidateRendererVersion": "native-table-row-plan-v1 (EXPERIMENT ONLY)",
+          "productionRendererParityPassed": product_acceptance,
           "knownPageBoundaryDifferences": [name for name, result in results.items() if result.get("pageCountsMatch") is False or result.get("markerPagesMatch") is False],
           "productionApproved": False, "wordImportTested": False,
           "scope": "One pinned Chromium build and synthetic inputs only; inspect PNG/PDF visual results and table header repetition separately."}
 (folder / "pdf-comparison.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 print(json.dumps({"candidatePdfAcceptancePassed": planned_acceptance, "plannedSamples": len(planned_results),
-    "rawRowPlanControls": raw_results, "oldRendererDifferences": report["knownPageBoundaryDifferences"],
+    "rawRowPlanControls": raw_results, "productionRendererParityPassed": product_acceptance,
+    "currentRendererDifferences": report["knownPageBoundaryDifferences"],
     "productionApproved": False, "report": str(folder / "pdf-comparison.json")}, ensure_ascii=False, indent=2))
 if not header_acceptance:
     raise SystemExit("Table heading acceptance failed; inspect the comparison report. No production approval.")
 if not planned_acceptance:
     raise SystemExit("Candidate PDF parity failed; inspect plannedPdfResults. No production approval.")
+if not product_acceptance:
+    raise SystemExit("Product renderer parity failed; no deployment approval.")

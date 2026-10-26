@@ -56,7 +56,12 @@ else if (Model.Document.CurrentDraftRevision == 0) {
     <button type="button" class="secondary" id="editor-focus-toggle" aria-pressed="false">@UiText.Get("EditorEnterFocus")</button>
     <label for="editor-zoom">@UiText.Get("EditorZoom")</label><select id="editor-zoom" aria-describedby="editor-paper-description"><option value="fit">@UiText.Get("EditorFitWidth")</option><option value="75">75%</option><option value="100">100%</option><option value="125">125%</option><option value="150">150%</option></select>
     <span id="editor-zoom-status" class="muted" role="status"></span>
+    <button type="button" class="secondary" id="editor-pages-toggle" aria-pressed="false">@UiText.Get("EditorEnablePages")</button>
 </div>
+<nav id="editor-pages-nav" class="editor-pagination-nav" aria-label="@UiText.Get("EditorPageNavigation")" hidden>
+    <button id="editor-page-prev" type="button">@UiText.Get("OncekiSayfa")</button><label for="editor-page-index">@UiText.Get("EditorGoToPage")</label><select id="editor-page-index"></select>
+    <button id="editor-page-next" type="button">@UiText.Get("SonrakiSayfa")</button><span id="editor-page-count" role="status"></span>
+</nav><p id="editor-pagination-status" class="muted" role="status"></p>
 <form asp-action="SaveDraft" method="post" id="draft-form"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="expectedRevision" value="@Model.ExpectedRevision" /><input type="hidden" name="mode" value="@(plain is null ? "json" : "text")" />
 <div id="rich-region" hidden><div class="editor-toolbar" role="toolbar" aria-label="@UiText.Get("CeviriBicimlendirme")">
     <button type="button" data-command="bold" aria-label="@UiText.Get("KalinMetin")" aria-pressed="false"><strong>B</strong></button>
