@@ -2,6 +2,8 @@
 
 Date: 2026-10-26
 
+Acceptance follow-up: the later [isolated SQL test](../testing/sql-editor-pagination.fa.md) exercises the real product executables and browser save/reload, archive identity and review locks. It also fixes compatibility with existing doc-root letterheads. The initial integration evidence and remaining boundaries below are retained; current customer databases were not upgraded or used by that test.
+
 ## Decision
 
 Integrate the native-column experiment into the existing editor as an optional view. Continuous paper view remains the default. `Sayfalı düzeni aç` enables physical sheet boundaries, page count, previous/next and direct page selection. Columns flow horizontally inside the editor viewport. The document stays one editable DOM: no remount, saved page nodes, spacer paragraphs, copied table rows or provider commands. View changes preserve selection, history and JSON; the view preference is not persisted across reloads.

@@ -9,7 +9,11 @@ export function supportedPaginationRegion(source, type) {
     if(source==null || source==='')return true;
     if(typeof source!=='string')return false;
     try {
-        const value=JSON.parse(source);if(value.type!==type)return false;
+        const value=JSON.parse(source);
+        // Existing simple letterheads use a doc root. Match the server's legacy fallback
+        // without granting template-only attributes to a doc-root body vocabulary.
+        if(value.type==='doc')return isRichDocument(value);
+        if(value.type!==type)return false;
         function normalize(node) {
             if(!node || typeof node!=='object' || Array.isArray(node))return node;
             const copy={...node};if(node.attrs){copy.attrs={...node.attrs};

@@ -20,7 +20,8 @@ public sealed class AccountController(BackendApi api) : Controller
         if (!ModelState.IsValid)
         {
             input.Password = "";
-            ModelState.Remove(nameof(input.Password));
+            // Clear the submitted secret while retaining its validation messages.
+            ModelState.SetModelValue(nameof(input.Password), null, null);
             return View("Login", input);
         }
         try
@@ -53,7 +54,7 @@ public sealed class AccountController(BackendApi api) : Controller
                 ? register ? UiText.Get("KayitYapilamadiGecerliEPostaVeBuyuk")
                     : UiText.Get("EPostaVeyaSifreHataliYenidenKontrol") : error.UserMessage);
             input.Password = "";
-            ModelState.Remove(nameof(input.Password));
+            ModelState.SetModelValue(nameof(input.Password), null, null);
             return View("Login", input);
         }
     }

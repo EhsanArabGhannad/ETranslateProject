@@ -574,6 +574,7 @@
   "TemplateRevisionName": "{0} · Sürüm {1}",
   "DecimalNumberRequired": "Geçerli bir sayı girin; ondalık ayırıcı olarak nokta kullanın.",
   "EditorEnablePages": "Sayfalı düzeni aç",
+  "FormValidationError": "Girilen bilgileri kontrol edin.",
   "EditorDisablePages": "Sürekli görünüme dön",
   "EditorPageNavigation": "Çeviri sayfaları",
   "EditorGoToPage": "Sayfaya git",

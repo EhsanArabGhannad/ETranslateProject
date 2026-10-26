@@ -11,6 +11,11 @@ test('production page geometry reserves the same measured template and number fo
 });
 test('template validation preserves supported alignment/banner while rejecting unknown data',()=>{
     assert.equal(supportedPaginationRegion('','header'),true);
+    const legacy={type:'doc',content:[{type:'paragraph',content:[{type:'text',text:'Eski üstbilgi'}]}]};
+    assert.equal(supportedPaginationRegion(JSON.stringify(legacy),'header'),true);
+    assert.equal(supportedPaginationRegion(JSON.stringify(legacy),'footer'),true);
+    legacy.content[0].attrs={textAlign:'right'};
+    assert.equal(supportedPaginationRegion(JSON.stringify(legacy),'header'),false);
     assert.equal(supportedPaginationRegion(JSON.stringify({type:'header',content:[{type:'paragraph',attrs:{textAlign:'right'},content:[{type:'text',text:'متن İstanbul'}]},
         {type:'image',attrs:{assetId:'11111111-1111-1111-1111-111111111111',align:'center',layout:'banner'}}]}),'header'),true);
     for(const value of ['null','[]','{}','{"type":"footer","content":[]}',

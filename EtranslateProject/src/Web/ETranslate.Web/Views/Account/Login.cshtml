@@ -4,7 +4,7 @@
     <div class="intro"><span class="eyebrow">@UiText.Get("ETranslateCALISMAALANI")</span><h1>@UiText.Get("CevirideNetBirYol")</h1><p>@UiText.Get("DosyalariOzelSablonlariVeCeviriSurumleriniKendi")</p><div class="steps"><span>@UiText.Get("1Hazirlik")</span><span>@UiText.Get("2Inceleme")</span><span>@UiText.Get("3ImzaSonrakiAsamada")</span></div><p class="muted">@UiText.Get("GelistirmeSurumuBuAsamadakiTaslaklarImzaliBelge")</p></div>
     <div class="card auth-card"><span class="eyebrow">@UiText.Get("Baslangic")</span><h2>@ViewData["Title"]</h2>
         <form asp-action="@(register ? "Register" : "Login")" method="post">
-            <div asp-validation-summary="All" class="alert" role="alert"></div>
+            <partial name="_ValidationSummary" model="ViewData.ModelState" />
             <label asp-for="Email">@UiText.Get("EPosta")</label><input asp-for="Email" type="email" autocomplete="username" dir="ltr" maxlength="254" required />
             <label asp-for="Password">@UiText.Get("Sifre")</label><input asp-for="Password" type="password" autocomplete="@(register ? "new-password" : "current-password")" dir="ltr" required maxlength="256" />
             @if (register) { <p class="muted">@UiText.Get("EnAz6KarakterBuyukVeKucuk")</p> }

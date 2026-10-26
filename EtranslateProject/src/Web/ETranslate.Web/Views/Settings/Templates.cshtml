@@ -25,7 +25,7 @@ else {
         @if (Model.Selected is { Revision.ContentDescriptor.IsSupported: false }) { <p class="notice">@UiText.Get("BelgeIcerikSurumuDesteklenmiyor")</p> }
         @if (Model.Selected is not null) { <p><a asp-action="Templates" asp-route-tenantId="@Model.Tenant.Id" asp-route-templateId="@Model.Selected.Id" asp-route-pendingAssetId="@Model.Form.PendingAssetId" target="_blank" rel="noopener">@UiText.Get("SonSurumuAyriSekmedeIncele")</a></p> }
         <form asp-action="SaveTemplate" method="post" enctype="multipart/form-data" id="template-edit-form" data-discard-confirm="@UiText.Get("DiscardTemplateChanges")" data-invalid-logo="@UiText.Get("InvalidLogo")">
-            <div asp-validation-summary="All" class="alert"></div>
+            <partial name="_ValidationSummary" model="ViewData.ModelState" />
             <input asp-for="Form.TenantId" type="hidden" /><input asp-for="Form.TemplateId" type="hidden" /><input asp-for="Form.ExpectedRevision" type="hidden" /><input asp-for="Form.PendingAssetId" type="hidden" />
             <input asp-for="Form.HeaderLineAlignmentsJson" id="header-alignments" type="hidden" /><input asp-for="Form.FooterLineAlignmentsJson" id="footer-alignments" type="hidden" />
             <fieldset disabled="@(!Model.CanSave)" class="subscription-lock">
