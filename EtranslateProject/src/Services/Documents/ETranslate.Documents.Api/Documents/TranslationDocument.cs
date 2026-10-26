@@ -125,7 +125,7 @@ public sealed class TranslationDocument
         var errors = ValidateDraft(editorContentJson, plainText);
         if (!descriptor.IsSupported)
             errors[nameof(DocumentDraftRevision.ContentFormat)] = ["Unsupported content format/version."];
-        else if (descriptor.IsRichV1)
+        else if (!descriptor.IsLegacy)
         {
             if (!descriptor.TryRead(editorContentJson, out var extracted))
                 errors[nameof(DocumentDraftRevision.EditorContentJson)] = ["Content does not conform to the declared rich-document schema."];

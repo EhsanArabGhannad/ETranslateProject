@@ -98,7 +98,7 @@ public sealed class TemplateSaveTests
 
     [Fact] public async Task A_future_template_cannot_be_edited_or_receive_an_upload_through_a_forged_form()
     {
-        var f = new Fixture(); f.DeclareContent(DocumentContentDescriptor.RichFormat, 2);
+        var f = new Fixture(); f.DeclareContent(DocumentContentDescriptor.RichFormat, 3);
         var page = Assert.IsType<SettingsPageView>(Assert.IsType<ViewResult>(await f.Controller.SaveTemplate(Form(), File())).Model);
         Assert.Equal(422, f.Context.Response.StatusCode); Assert.Empty(f.Writes); Assert.False(page.CanSave);
     }

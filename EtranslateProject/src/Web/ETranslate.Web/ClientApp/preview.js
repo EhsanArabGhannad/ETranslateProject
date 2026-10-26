@@ -1,7 +1,8 @@
 import ui from '../Resources/interface.tr.json' with { type: 'json' };
 import { guid, isRichDocument } from './document-schema.js';
 import { footerPolicy, showFooter } from './footer-policy.js';
-import { supportsStoredContent } from './editors/document-contract.js';
+import { supportsStoredContent, storedDocumentFormat } from './editors/document-contract.js';
+import { applyTypography } from './typography.js';
 
 export function assetUrl(workspace, assetId) {
     const { tenantId, templateId } = workspace.dataset;
@@ -10,7 +11,7 @@ export function assetUrl(workspace, assetId) {
 }
 export function createPreview(workspace, resolveImage = id => assetUrl(workspace, id)) {
     const find = id => document.getElementById(id);
-    let remaining, unsupported;
+    let remaining, unsupported, contentVersion;
     function render(node, parent, depth = 0) {
         if (node == null || depth > 32 || --remaining < 0) { unsupported = true; return; }
         if (Array.isArray(node)) { for (const child of node) render(child, parent, depth + 1); return; }
@@ -18,6 +19,11 @@ export function createPreview(workspace, resolveImage = id => assetUrl(workspace
         if (node.type === 'text') {
             let leaf = document.createTextNode(typeof node.text === 'string' ? node.text : '');
             for (const mark of (Array.isArray(node.marks) ? node.marks : [])) {
+                if(mark?.type==='typography'){
+                    if(contentVersion!==2){unsupported=true;continue;}
+                    const wrapper=document.createElement('span');if(!applyTypography(wrapper,mark.attrs)){unsupported=true;continue;}
+                    wrapper.append(leaf);leaf=wrapper;continue;
+                }
                 const tag = new Map([['bold', 'strong'], ['italic', 'em'], ['underline', 'u'], ['strike', 's']]).get(mark?.type);
                 if (!tag) { unsupported = true; continue; }
                 const wrapper = document.createElement(tag); wrapper.append(leaf); leaf = wrapper;
@@ -58,7 +64,9 @@ export function createPreview(workspace, resolveImage = id => assetUrl(workspace
             unsupported = true; target.append(document.createTextNode(ui.BelgeIcerikSurumuDesteklenmiyor)); return;
         }
         const root = JSON.parse(source);
-        if (id === 'preview-body' && !isRichDocument(root)) {
+        contentVersion=storedDocumentFormat(body?workspace.dataset.contentFormat:workspace.dataset.templateContentFormat,
+            body?workspace.dataset.contentSchemaVersion:workspace.dataset.templateContentSchemaVersion).version;
+        if (id === 'preview-body' && !isRichDocument(root,contentVersion)) {
             unsupported = true;
             target.append(document.createTextNode(ui.GovdeYapisiOnizlemeIcinDesteklenmiyorOzgunJSON));
             return;

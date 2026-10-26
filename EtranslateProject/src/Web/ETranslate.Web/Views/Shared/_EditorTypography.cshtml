@@ -1,0 +1,22 @@
+<div id="editor-typography" class="editor-typography" role="group" aria-label="@UiText.Get("EditorTypography")">
+    <label for="editor-font-family">@UiText.Get("EditorFontFamily")<select id="editor-font-family" data-style-command="fontFamily">
+        <option value="">@UiText.Get("EditorDefaultStyle")</option><option value="__mixed__" disabled>@UiText.Get("EditorMixedStyle")</option>
+        <option value="sans">Noto Sans</option><option value="serif">Noto Serif</option><option value="arabic">Noto Sans Arabic</option>
+    </select></label>
+    <label for="editor-font-size">@UiText.Get("EditorFontSize")<select id="editor-font-size" data-style-command="fontSize">
+        <option value="">@UiText.Get("EditorDefaultStyle")</option><option value="__mixed__" disabled>@UiText.Get("EditorMixedStyle")</option>
+        @foreach(var size in new[]{6,8,9,10,11,12,14,16,18,20,24,28,32,36,48,72}){<option value="@size">@size</option>}
+    </select></label>
+    <label for="editor-text-color">@UiText.Get("EditorTextColor")<select id="editor-text-color" data-style-command="textColor">
+        <option value="">@UiText.Get("EditorDefaultStyle")</option><option value="__mixed__" disabled>@UiText.Get("EditorMixedStyle")</option>
+        <option value="#000000">@UiText.Get("EditorBlack")</option><option value="#b91c1c">@UiText.Get("EditorRed")</option>
+        <option value="#1d4ed8">@UiText.Get("EditorBlue")</option><option value="#15803d">@UiText.Get("EditorGreen")</option>
+        <option value="#7e22ce">@UiText.Get("EditorPurple")</option><option value="#6b7280">@UiText.Get("EditorGray")</option>
+    </select></label>
+    <label for="editor-highlight">@UiText.Get("EditorHighlight")<select id="editor-highlight" data-style-command="highlight">
+        <option value="">@UiText.Get("EditorNoHighlight")</option><option value="__mixed__" disabled>@UiText.Get("EditorMixedStyle")</option>
+        <option value="#fef08a">@UiText.Get("EditorYellow")</option><option value="#bbf7d0">@UiText.Get("EditorGreen")</option>
+        <option value="#bfdbfe">@UiText.Get("EditorBlue")</option><option value="#fbcfe8">@UiText.Get("EditorPink")</option>
+    </select></label>
+    <button type="button" class="secondary" data-command="clearTextStyle">@UiText.Get("EditorClearTextStyle")</button>
+</div>

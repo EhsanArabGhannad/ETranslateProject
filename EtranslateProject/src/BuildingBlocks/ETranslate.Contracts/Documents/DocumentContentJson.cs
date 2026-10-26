@@ -6,7 +6,7 @@ namespace ETranslate.Contracts.Documents;
 // Versioned JSON stays the source of truth. The rich UI only edits this explicit vocabulary.
 public static class DocumentContentJson
 {
-    public static bool TryGetPlainText(string json, out string? plainText, string rootType = "doc")
+    public static bool TryGetPlainText(string json, out string? plainText, string rootType = "doc", int schemaVersion = 1)
     {
         plainText = null;
         if (json.Length > 2_000_000) return false;
@@ -14,7 +14,7 @@ public static class DocumentContentJson
         {
             using var document = JsonDocument.Parse(json);
             var remaining = 20_000;
-            if (rootType is not ("doc" or "header" or "footer") || !Validate(document.RootElement, null, 0, ref remaining, rootType)) return false;
+            if (schemaVersion is not (1 or 2) || rootType is not ("doc" or "header" or "footer") || !Validate(document.RootElement, null, 0, ref remaining, rootType, schemaVersion)) return false;
             var lines = new List<string>();
             Extract(document.RootElement, lines);
             plainText = string.Join('\n', lines);
@@ -23,7 +23,7 @@ public static class DocumentContentJson
         catch (Exception error) when (error is JsonException or InvalidOperationException) { return false; }
     }
 
-    private static bool Validate(JsonElement node, string? parent, int depth, ref int remaining, string rootType)
+    private static bool Validate(JsonElement node, string? parent, int depth, ref int remaining, string rootType, int version)
     {
         if (depth > 32 || --remaining < 0 || node.ValueKind != JsonValueKind.Object ||
             !node.TryGetProperty("type", out var kind) || kind.ValueKind != JsonValueKind.String) return false;
@@ -37,7 +37,7 @@ public static class DocumentContentJson
             if (!seen.Add(field.Name)) return false;
             if (field.Name is "type") continue;
             if (field.Name == "text" && type == "text" && field.Value.ValueKind == JsonValueKind.String) continue;
-            if (field.Name == "marks" && type == "text" && MarksValid(field.Value)) continue;
+            if (field.Name == "marks" && type == "text" && MarksValid(field.Value, version)) continue;
             if (field.Name == "attrs" && type != "text" && AttributesValid(type, field.Value, rootType != "doc")) continue;
             if (field.Name == "content" && type is not ("text" or "image" or "hardBreak") &&
                 field.Value.ValueKind == JsonValueKind.Array) continue;
@@ -54,7 +54,7 @@ public static class DocumentContentJson
         if (type is "bulletList" or "orderedList" or "listItem" or "blockquote" or "table" or "tableRow" or "tableCell" or "tableHeader" && children.GetArrayLength() == 0) return false;
         if (type == "listItem" && (!children[0].TryGetProperty("type", out var first) || first.GetString() != "paragraph")) return false;
         foreach (var child in children.EnumerateArray())
-            if (!Validate(child, type, depth + 1, ref remaining, rootType)) return false;
+            if (!Validate(child, type, depth + 1, ref remaining, rootType, version)) return false;
         if (type == "table")
         {
             if (children.GetArrayLength() > 50) return false;
@@ -103,15 +103,19 @@ public static class DocumentContentJson
         }
         return true;
     }
-    private static bool MarksValid(JsonElement marks)
+    private static bool MarksValid(JsonElement marks, int version)
     {
         if (marks.ValueKind != JsonValueKind.Array) return false;
         var seen = new HashSet<string>();
         foreach (var mark in marks.EnumerateArray())
         {
-            if (mark.ValueKind != JsonValueKind.Object || mark.EnumerateObject().Count() != 1 ||
-                !mark.TryGetProperty("type", out var type) || type.ValueKind != JsonValueKind.String ||
-                type.GetString() is not ("bold" or "italic" or "underline" or "strike") || !seen.Add(type.GetString()!)) return false;
+            if (mark.ValueKind != JsonValueKind.Object || !mark.TryGetProperty("type", out var type) ||
+                type.ValueKind != JsonValueKind.String || !seen.Add(type.GetString()!)) return false;
+            if (version == 2 && type.GetString() == "typography")
+            {
+                if (mark.EnumerateObject().Count()!=2 || !mark.TryGetProperty("attrs",out var attrs) || !DocumentTypography.ValidAttributes(attrs)) return false;
+            }
+            else if (mark.EnumerateObject().Count()!=1 || type.GetString() is not ("bold" or "italic" or "underline" or "strike")) return false;
         }
         return true;
     }

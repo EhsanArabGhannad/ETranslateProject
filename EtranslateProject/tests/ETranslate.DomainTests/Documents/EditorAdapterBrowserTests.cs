@@ -167,7 +167,7 @@ public sealed partial class EditorAdapterBrowserTests
             Assert.Equal(Initial, await page.Locator("#document-json").InputValueAsync());
             await Assertions.Expect(page.Locator("#rich-text [role=textbox]")).ToHaveAttributeAsync("contenteditable", "true");
         }
-        foreach (var pair in new[] { (DocumentContentDescriptor.RichFormat, "2"), ("sfdt", "1"), (DocumentContentDescriptor.RichFormat, "") })
+        foreach (var pair in new[] { (DocumentContentDescriptor.RichFormat, "3"), ("sfdt", "1"), (DocumentContentDescriptor.RichFormat, "") })
         {
             fixture.Format = pair.Item1; fixture.SchemaVersion = pair.Item2;
             await fixture.OpenAsync(rich: false);
@@ -179,7 +179,7 @@ public sealed partial class EditorAdapterBrowserTests
             await Assertions.Expect(page.Locator("#preview-body")).Not.ToContainTextAsync("İstanbul");
         }
         fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "1";
-        fixture.TemplateFormat = DocumentContentDescriptor.RichFormat; fixture.TemplateSchemaVersion = "2";
+        fixture.TemplateFormat = DocumentContentDescriptor.RichFormat; fixture.TemplateSchemaVersion = "3";
         await fixture.OpenAsync(rich: false);
         await Assertions.Expect(page.Locator("#draft-form button[type=submit]")).ToBeDisabledAsync();
         Assert.Equal(Initial, await page.Locator("#document-json").InputValueAsync());
@@ -463,7 +463,7 @@ public sealed partial class EditorAdapterBrowserTests
                 "/css/document-pagination.css" => ("wwwroot/css/document-pagination.css", "text/css"),
                 _ => default
             };
-            if(path?.StartsWith("/fonts/document-layout/") == true && new[]{"NotoSans-Regular.ttf","NotoSans-Bold.ttf","NotoSans-Italic.ttf","NotoSans-BoldItalic.ttf","NotoSansArabic-Regular.ttf","NotoSansArabic-Bold.ttf"}.Contains(Path.GetFileName(path)))
+            if(path?.StartsWith("/fonts/document-layout/") == true && new[]{"NotoSans-Regular.ttf","NotoSans-Bold.ttf","NotoSans-Italic.ttf","NotoSans-BoldItalic.ttf","NotoSansArabic-Regular.ttf","NotoSansArabic-Bold.ttf","NotoSerif-Variable.ttf","NotoSerif-Italic-Variable.ttf"}.Contains(Path.GetFileName(path)))
                 file=("wwwroot/fonts/document-layout/"+Path.GetFileName(path),"font/ttf");
             if (request.Request.Method == "GET" && file.Item1 is not null)
             {
@@ -479,6 +479,14 @@ public sealed partial class EditorAdapterBrowserTests
             var buttons = string.Join("", commands.Select((command, i) => $"<button type='button' data-command='{command}' aria-pressed='false' {(i == labels.Length ? "hidden" : "")}>{(i < 3 ? new[] { "<strong>B</strong>", "<em>I</em>", "<u>U</u>" }[i] : i < labels.Length ? UiText.Get(labels[i]) : command)}</button>"));
             var metadata = Format is null && SchemaVersion is null ? "" : $"data-content-format='{WebUtility.HtmlEncode(Format)}' data-content-schema-version='{WebUtility.HtmlEncode(SchemaVersion)}'";
             var templateMetadata = TemplateFormat is null && TemplateSchemaVersion is null ? "" : $"data-template-content-format='{WebUtility.HtmlEncode(TemplateFormat)}' data-template-content-schema-version='{WebUtility.HtmlEncode(TemplateSchemaVersion)}'";
+            var typography="""
+                <div id="editor-typography" class="editor-typography">
+                <label>Yazı tipi<select id="editor-font-family" data-style-command="fontFamily"><option value="">Varsayılan</option><option value="__mixed__" disabled>Karma</option><option value="sans">Noto Sans</option><option value="serif">Noto Serif</option><option value="arabic">Noto Sans Arabic</option></select></label>
+                <label>Boyut<select id="editor-font-size" data-style-command="fontSize"><option value="">Varsayılan</option><option value="__mixed__" disabled>Karma</option><option value="12">12</option><option value="18">18</option><option value="24">24</option></select></label>
+                <label>Metin rengi<select id="editor-text-color" data-style-command="textColor"><option value="">Varsayılan</option><option value="__mixed__" disabled>Karma</option><option value="#b91c1c">Kırmızı</option><option value="#1d4ed8">Mavi</option></select></label>
+                <label>Vurgu<select id="editor-highlight" data-style-command="highlight"><option value="">Yok</option><option value="__mixed__" disabled>Karma</option><option value="#fef08a">Sarı</option></select></label>
+                <button type="button" data-command="clearTextStyle">Yazı biçimini temizle</button></div>
+                """;
             return $$"""
                 <!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/site.css"><link rel="stylesheet" href="/css/document-pagination.css"></head><body>
                 <header class="topbar"><a href="/Workspace/Editor">ETranslate · Yerel test</a></header><main class="shell"><h1>Çeviri stüdyosu · Deneme belgesi</h1>
@@ -493,7 +501,7 @@ public sealed partial class EditorAdapterBrowserTests
                 </div>
                 <nav id="editor-pages-nav" class="editor-pagination-nav" hidden><button id="editor-page-prev" type="button">Önceki</button><select id="editor-page-index"></select><button id="editor-page-next" type="button">Sonraki</button><span id="editor-page-count"></span></nav><p id="editor-pagination-status"></p>
                 <form id="draft-form" action="/Workspace/SaveDraft" method="post"><input type="hidden" name="mode" value="{{(rich ? "text" : "json")}}">
-                <div id="rich-region" hidden><div class="editor-toolbar" role="toolbar" aria-label="{{UiText.Get("CeviriBicimlendirme")}}">{{buttons}}</div><p id="editor-paper-description" class="muted"></p>
+                <div id="rich-region" hidden>{{typography}}<div class="editor-toolbar" role="toolbar" aria-label="{{UiText.Get("CeviriBicimlendirme")}}">{{buttons}}</div><p id="editor-paper-description" class="muted"></p>
                 <div id="editor-viewport" class="editor-viewport" tabindex="0" role="region" aria-label="{{UiText.Get("EditorPaperRegion")}}" aria-describedby="editor-paper-description"><div id="editor-paper-stage"><div id="editor-paper"><div id="rich-text"></div></div></div></div></div>
                 <p id="editor-format-status"></p><label for="document-json">JSON</label>
                 <textarea id="document-json" name="editorContentJson">{{WebUtility.HtmlEncode(Source)}}</textarea>

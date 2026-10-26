@@ -25,5 +25,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Editor adapter browser tests failed.' }
     & $PythonPath (Join-Path $PSScriptRoot 'verify_product_pagination.py') $browserResults
     if ($LASTEXITCODE -ne 0) { throw 'Product editor/PDF marker pages differed.' }
+    & $PythonPath (Join-Path $PSScriptRoot 'verify_typography_pdf.py') (Join-Path $projectRoot 'tmp/pdfs/typography/selected-text.pdf')
+    if ($LASTEXITCODE -ne 0) { throw 'Typography PDF font, size, color or highlight differed.' }
     Write-Output 'Editor adapter and page-flow checks passed. Synthetic PDF comparison and temporary loopback host only; no SQL, AppHost or external services.'
 } finally { foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name,$previous[$name]) } }

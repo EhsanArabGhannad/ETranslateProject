@@ -10,6 +10,8 @@ $solution=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $output=Join-Path $solution 'tmp/sql-pagination'
 New-Item -ItemType Directory -Force $output | Out-Null
 foreach ($file in @($NodePath,$PythonPath)) { if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Executable missing: $file" } }
+& $PythonPath -c 'import pypdf, pdfplumber'
+if ($LASTEXITCODE -ne 0) { throw 'PDF verification requires pypdf and pdfplumber.' }
 Push-Location (Join-Path $solution 'src/Web/ETranslate.Web')
 try {
     & $NodePath ClientApp/build.mjs

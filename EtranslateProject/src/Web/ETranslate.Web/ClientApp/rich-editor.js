@@ -2,7 +2,7 @@ import ui from '../Resources/interface.tr.json' with { type: 'json' };
 import { assetUrl } from './preview.js';
 import { createEditorSession } from './editors/editor-session.js';
 import { defaultEditorProvider } from './editors/default-provider.js';
-import { supportsStoredContent } from './editors/document-contract.js';
+import { supportsStoredContent, storedDocumentFormat } from './editors/document-contract.js';
 import { startEditorView } from './editor-view.js';
 
 // DOM orchestration only. All vendor-specific editing/selection/history code belongs in its provider.
@@ -27,16 +27,27 @@ export function startRichEditor(workspace, onChanged, preview) {
         session = createEditorSession({
             provider: defaultEditorProvider, element: document.getElementById('rich-text'),
             contentJson: json.value, editable: workspace.dataset.editable === 'true',
+            contentFormat: storedDocumentFormat(workspace.dataset.contentFormat,workspace.dataset.contentSchemaVersion),
             resolveAsset: id => assetUrl(workspace, id),
             labels: { text: ui.CeviriMetni, image: ui.SablonGorseli, missingImage: ui.SablonGorseliKullanilamiyor },
             onRejectedChange: () => { status.textContent = ui.BuDegisiklikIzinVerilenYapininDisindadirTablo; }
         });
-        const buttons = Array.from(document.querySelectorAll('#rich-region .editor-toolbar button'));
+        const buttons = Array.from(document.querySelectorAll('#rich-region button[data-command]'));
+        const styles=Array.from(document.querySelectorAll('#editor-typography select[data-style-command]'));
         function updateToolbar() {
             for (const button of buttons) {
                 const state = session.getCommandState(button.dataset.command);
                 button.disabled = workspace.dataset.editable !== 'true' || !state.enabled;
                 if (button.hasAttribute('aria-pressed')) button.setAttribute('aria-pressed', String(state.active));
+            }
+            for(const control of styles){const state=session.getCommandState(control.dataset.styleCommand);
+                control.disabled=workspace.dataset.editable!=='true'||!state.enabled;
+                const value=state.mixed?'__mixed__':String(state.value??'');
+                let custom=control.querySelector('[data-custom-value]');custom?.remove();
+                if(value!==''&&![...control.options].some(option=>option.value===value)){
+                    custom=document.createElement('option');custom.dataset.customValue='true';custom.value=value;custom.textContent=value;control.append(custom);
+                }
+                control.value=value;
             }
         }
         cleanups.push(session.onDocumentChange(source => { json.value = source; onChanged(); preview(); }));
@@ -50,6 +61,11 @@ export function startRichEditor(workspace, onChanged, preview) {
             button.addEventListener('mousedown', keepSelection); button.addEventListener('click', execute);
             cleanups.push(() => { button.removeEventListener('mousedown', keepSelection); button.removeEventListener('click', execute); });
         }
+        for(const control of styles){const apply=()=>{
+            if(workspace.dataset.editable!=='true'||control.value==='__mixed__')return;
+            const value=control.value===''?null:control.dataset.styleCommand==='fontSize'?Number(control.value):control.value;
+            session.execute(control.dataset.styleCommand,value);updateToolbar();
+        };control.addEventListener('change',apply);cleanups.push(()=>control.removeEventListener('change',apply));}
         updateToolbar();
         for (const id of ['translation-text', 'legacy-format-notice']) {
             const element = document.getElementById(id); if (element) element.hidden = true;

@@ -10,11 +10,12 @@ test('persisted legacy and rich-v1 metadata are recognized without guessing from
     assert.equal(supportsStoredContent(legacyDocument.id, '0'), true);
     assert.equal(supportsStoredContent(richDocumentV1.id, 1), true);
     assert.equal(supportsStoredContent(richDocumentV1.id, '1'), true);
+    assert.equal(supportsStoredContent(richDocumentV1.id,2),true);
 });
 
 test('unknown, partial, empty, future and malformed metadata never falls back to legacy', () => {
     for (const [format, version] of [[undefined, 1], [richDocumentV1.id, undefined], ['', ''],
-        ['sfdt', 1], [richDocumentV1.id, 2], [richDocumentV1.id, 0], [richDocumentV1.id, -1],
+        ['sfdt', 1], [richDocumentV1.id, 3], [richDocumentV1.id, 0], [richDocumentV1.id, -1],
         [richDocumentV1.id, '01'], [richDocumentV1.id, '1.0'], [richDocumentV1.id, [1]],
         [richDocumentV1.id, { toString: () => '1' }], [legacyDocument.id, 1], ['etranslate.rich-document ', 1]])
         assert.equal(supportsStoredContent(format, version), false, `${format}/${version}`);

@@ -64,7 +64,8 @@ export function startEditorPagination(workspace, session, schedule) {
         loading = true; toggle.disabled = true; notice.textContent = ui.EditorPagesLoading;
         try {
             if(!geometry(find('template-layout')?.value))throw new Error();
-            await Promise.all(['11pt "Noto Sans"','bold 11pt "Noto Sans"','italic 11pt "Noto Sans"','bold italic 11pt "Noto Sans"','11pt "Noto Sans Arabic"','bold 11pt "Noto Sans Arabic"'].map(font=>document.fonts.load(font)));
+            await Promise.all(['11pt "Noto Sans"','bold 11pt "Noto Sans"','italic 11pt "Noto Sans"','bold italic 11pt "Noto Sans"','11pt "Noto Sans Arabic"','bold 11pt "Noto Sans Arabic"',
+                '11pt "Noto Serif"','bold 11pt "Noto Serif"','italic 11pt "Noto Serif"','bold italic 11pt "Noto Serif"'].map(font=>document.fonts.load(font)));
             if(disposed)return;
             if(root.querySelector('.missing-asset') || !supportedPaginationRegion(find('template-header')?.value,'header') ||
                 !supportedPaginationRegion(find('template-footer')?.value,'footer'))throw new Error();

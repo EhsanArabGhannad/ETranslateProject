@@ -10,7 +10,7 @@ await build({ entryPoints: [plannerSource], outfile: '../../Services/Documents/E
     banner: { js: `// Generated from shared table-row-plan.js; source-sha256:${plannerHash}` }, logLevel: 'info' });
 await mkdir('wwwroot/fonts/document-layout', { recursive: true });
 for (const name of ['NotoSans-Regular.ttf', 'NotoSans-Bold.ttf', 'NotoSans-Italic.ttf', 'NotoSans-BoldItalic.ttf',
-    'NotoSansArabic-Regular.ttf', 'NotoSansArabic-Bold.ttf', 'OFL.txt'])
+    'NotoSansArabic-Regular.ttf', 'NotoSansArabic-Bold.ttf', 'OFL.txt', 'NotoSerif-Variable.ttf', 'NotoSerif-Italic-Variable.ttf', 'NotoSerif-OFL.txt'])
     await cp(`../../Services/Documents/ETranslate.Documents.Api/Rendering/Fonts/${name}`, `wwwroot/fonts/document-layout/${name}`);
 await cp('ClientApp/document-pagination.css', 'wwwroot/css/document-pagination.css');
 

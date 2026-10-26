@@ -9,9 +9,11 @@ public sealed record DocumentContentDescriptor(string? Format, int? SchemaVersio
     public const string LegacyDisplayFormat = "etranslate.legacy-json";
     public static readonly DocumentContentDescriptor Legacy = new(null, null);
     public static readonly DocumentContentDescriptor RichV1 = new(RichFormat, RichSchemaVersion);
+    public static readonly DocumentContentDescriptor RichV2 = new(RichFormat, 2);
     public bool IsLegacy => Format is null && SchemaVersion is null;
     public bool IsRichV1 => Format == RichFormat && SchemaVersion == RichSchemaVersion;
-    public bool IsSupported => IsLegacy || IsRichV1;
+    public bool IsRichV2 => Format == RichFormat && SchemaVersion == 2;
+    public bool IsSupported => IsLegacy || IsRichV1 || IsRichV2;
     public string DisplayFormat => Format ?? LegacyDisplayFormat;
     public int DisplaySchemaVersion => SchemaVersion ?? 0;
 
@@ -22,7 +24,7 @@ public sealed record DocumentContentDescriptor(string? Format, int? SchemaVersio
         if (!current.IsSupported) return false;
         // Old clients may omit both fields. Never downgrade an already-declared rich revision to legacy.
         if (next.IsLegacy) { next = current; return true; }
-        return next.IsRichV1;
+        return (next.IsRichV1 || next.IsRichV2) && !(current.IsRichV2 && next.IsRichV1);
     }
 
     public bool TryRead(string? json, out string? plainText, string rootType = "doc")
@@ -30,11 +32,13 @@ public sealed record DocumentContentDescriptor(string? Format, int? SchemaVersio
         plainText = null;
         if (json is null || rootType is not ("doc" or "header" or "footer")) return false;
         // Explicit dispatch: legacy rendering remains a narrow, safe subset, not generic JSON flattening.
-        // Both paths currently share the unchanged v1 vocabulary. A v2 must add its own validator/renderer.
+        // v1 remains strict; v2 adds only bounded typography without relabelling old rows.
         return (Format, SchemaVersion) switch
         {
             (null, null) => ReadV1Vocabulary(json, out plainText, rootType),
             (RichFormat, RichSchemaVersion) => ReadV1Vocabulary(json, out plainText, rootType),
+            (RichFormat, 2) => DocumentContentJson.TryGetPlainText(json, out plainText, rootType, 2) ||
+                rootType != "doc" && DocumentContentJson.TryGetPlainText(json, out plainText, "doc", 2),
             _ => false
         };
     }

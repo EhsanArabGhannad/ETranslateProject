@@ -1,0 +1,20 @@
+[
+  {"name":"serif and size", "valid":true, "attrs":{"fontFamily":"serif","fontSize":18}},
+  {"name":"all four fields", "valid":true, "attrs":{"fontFamily":"arabic","fontSize":72,"color":"#1D4ED8","highlight":"#fef08a"}},
+  {"name":"minimum size", "valid":true, "attrs":{"fontSize":6}},
+  {"name":"sparse null values", "valid":true, "attrs":{"fontFamily":null,"fontSize":null,"color":"#000000","highlight":null}},
+  {"name":"empty style", "valid":false, "attrs":{}},
+  {"name":"all null", "valid":false, "attrs":{"fontFamily":null,"fontSize":null,"color":null,"highlight":null}},
+  {"name":"unknown font", "valid":false, "attrs":{"fontFamily":"Times New Roman"}},
+  {"name":"remote font", "valid":false, "attrs":{"fontFamily":"url(https://example.org/font.ttf)"}},
+  {"name":"tiny font", "valid":false, "attrs":{"fontSize":5}},
+  {"name":"huge font", "valid":false, "attrs":{"fontSize":73}},
+  {"name":"fractional font", "valid":false, "attrs":{"fontSize":12.5}},
+  {"name":"string font", "valid":false, "attrs":{"fontSize":"12pt"}},
+  {"name":"CSS color", "valid":false, "attrs":{"color":"red"}},
+  {"name":"short hex", "valid":false, "attrs":{"highlight":"#fff"}},
+  {"name":"CSS injection", "valid":false, "attrs":{"color":"#000000;background:url(https://example.org)"}},
+  {"name":"newline color", "valid":false, "attrs":{"color":"#000000\n"}},
+  {"name":"unknown property", "valid":false, "attrs":{"fontFamily":"sans","position":"fixed"}},
+  {"name":"unknown null property", "valid":false, "attrs":{"color":"#000000","unknown":null}}
+]

@@ -1,4 +1,5 @@
 import { assertDocumentFormat, editorCommands, readDocumentJson, writeDocumentJson } from './document-contract.js';
+import { typographyCommands, validTypographyValue } from '../typography.js';
 
 /**
  * Provider contract (trusted application code):
@@ -7,10 +8,12 @@ import { assertDocumentFormat, editorCommands, readDocumentJson, writeDocumentJs
  * subscribe emits { documentChanged: boolean }; selection/read-only changes must emit false.
  * No vendor instance, native selection, chain, HTML or native document leaks into the host.
  */
-export function createEditorSession({ provider, element, contentJson, editable = false,
+export function createEditorSession({ provider, element, contentJson, contentFormat = provider?.format, editable = false,
     resolveAsset = () => null, labels = {}, onRejectedChange = () => {} }) {
     assertDocumentFormat(provider?.format);
-    const content = readDocumentJson(contentJson, provider.format);
+    assertDocumentFormat(contentFormat);
+    if(contentFormat.version>provider.format.version)throw new Error('Provider cannot preserve the stored content version');
+    const content = readDocumentJson(contentJson, contentFormat);
     const canEdit = editable === true;
     const adapter = provider.create({ element, content, editable: canEdit, resolveAsset, labels, onRejectedChange });
     let destroyed = false, enabled = canEdit, failed = false;
@@ -39,8 +42,10 @@ export function createEditorSession({ provider, element, contentJson, editable =
     } catch (error) { adapter.destroy(); throw error; }
     function getCommandState(command) {
         if (destroyed || !editorCommands.includes(command)) return { enabled: false, active: false };
+        if(provider.format.version<2 && (Object.hasOwn(typographyCommands,command)||command==='clearTextStyle'))return {enabled:false,active:false};
         const state = adapter.getCommandState(command);
-        return { enabled: enabled && state.enabled === true, active: state.active === true };
+        return { enabled: enabled && state.enabled === true, active: state.active === true,
+            ...(Object.hasOwn(typographyCommands,command)?{value:state.value??null,mixed:state.mixed===true}:{}) };
     }
     function subscribe(listeners, listener) {
         assertAlive(); listeners.add(listener);
@@ -52,9 +57,10 @@ export function createEditorSession({ provider, element, contentJson, editable =
         capabilities: Object.freeze({ ...provider.capabilities }),
         getDocumentJson,
         getCommandState,
-        execute(command) {
+        execute(command, value) {
+            if(Object.hasOwn(typographyCommands,command)&&!validTypographyValue(typographyCommands[command],value))return false;
             if (!getCommandState(command).enabled) return false;
-            return adapter.execute(command) === true;
+            return adapter.execute(command, value) === true;
         },
         setEditable(value) {
             if (destroyed) return;

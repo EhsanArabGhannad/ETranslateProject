@@ -10,10 +10,11 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
 {
     private readonly SemaphoreSlim _slot = new(1, 1);
     private readonly Lazy<string> _fonts = new(LoadFonts);
+    private readonly Lazy<string> _typographyFonts = new(() => LoadFonts()+LoadTypographyFonts());
 
     public async Task<byte[]> RenderAsync(DraftPdfInput input, CancellationToken cancellationToken)
     {
-        var prepared = DraftPdfHtml.Prepare(input, _fonts.Value);
+        var prepared = DraftPdfHtml.Prepare(input, input.BodyDescriptor.IsRichV2||input.TemplateDescriptor.IsRichV2 ? _typographyFonts.Value : _fonts.Value);
         if (!await _slot.WaitAsync(TimeSpan.FromSeconds(1), cancellationToken)) throw new PdfRendererBusyException();
         try
         {
@@ -189,4 +190,10 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
             Font("Noto Sans Arabic", "NotoSansArabic-Regular.ttf", 400), Font("Noto Sans Arabic", "NotoSansArabic-Bold.ttf", 700));
     }
     public void Dispose() => _slot.Dispose();
+    private static string LoadTypographyFonts()
+    {
+        var path=Path.Combine(AppContext.BaseDirectory,"Rendering","Fonts");
+        string Face(string file,string style)=>$"@font-face{{font-family:'Noto Serif';font-weight:100 900;font-style:{style};src:url(data:font/ttf;base64,{Convert.ToBase64String(File.ReadAllBytes(Path.Combine(path,file)))}) format('truetype');}}";
+        return Face("NotoSerif-Variable.ttf","normal")+Face("NotoSerif-Italic-Variable.ttf","italic");
+    }
 }

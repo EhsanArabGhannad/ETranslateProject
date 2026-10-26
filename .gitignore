@@ -63,3 +63,4 @@ nunit-*.xml
 .local/
 EtranslateProject/tmp/
 EtranslateProject/output/
+**/__pycache__/

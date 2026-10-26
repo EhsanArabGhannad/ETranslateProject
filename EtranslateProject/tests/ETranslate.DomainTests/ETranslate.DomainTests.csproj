@@ -26,6 +26,7 @@
   <ItemGroup>
     <Using Include="Xunit" />
     <None Include="..\..\src\Web\ETranslate.Web\ClientApp\tests\document-cases.json" Link="document-cases.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\Web\ETranslate.Web\ClientApp\tests\typography-cases.json" Link="typography-cases.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

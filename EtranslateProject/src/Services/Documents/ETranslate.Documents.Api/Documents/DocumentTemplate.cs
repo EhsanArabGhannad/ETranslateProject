@@ -214,7 +214,7 @@ public sealed class DocumentTemplate
     {
         var errors = new Dictionary<string, string[]>();
         if (!descriptor.IsSupported) errors[nameof(DocumentTemplateRevision.ContentFormat)] = ["Unsupported content format/version."];
-        if (descriptor.IsRichV1)
+        if (!descriptor.IsLegacy)
         {
             if (!descriptor.TryRead(editorContentJson, out _)) errors[nameof(DocumentTemplateRevision.EditorContentJson)] = ["Body does not conform to the declared content schema."];
             if (!string.IsNullOrWhiteSpace(headerContentJson) && !descriptor.TryRead(headerContentJson, out _, "header")) errors[nameof(DocumentTemplateRevision.HeaderContentJson)] = ["Header does not conform to the declared content schema."];

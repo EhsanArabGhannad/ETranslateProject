@@ -95,6 +95,8 @@ public static class DraftPdfHtml
             var value = Encode(node.GetProperty("text").GetString()!);
             if (node.TryGetProperty("marks", out var marks)) foreach (var mark in marks.EnumerateArray())
             {
+                if(mark.GetProperty("type").GetString()=="typography")
+                { value=$"<span style=\"{Encode(DocumentTypography.Css(mark.GetProperty("attrs")))}\">{value}</span>";continue; }
                 var tag = mark.GetProperty("type").GetString() switch { "bold" => "strong", "italic" => "em", "underline" => "u", "strike" => "s", _ => throw new PdfRenderValidationException("Unsupported mark.") };
                 value = $"<{tag}>{value}</{tag}>";
             }

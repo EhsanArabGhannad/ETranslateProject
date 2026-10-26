@@ -164,7 +164,8 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
                 if (!RichDocument.TryGetPlainText(json, out _)) throw new BackendException(HttpStatusCode.BadRequest);
             }
             else if (mode != "json") throw new BackendException(HttpStatusCode.BadRequest);
-            var descriptor = mode is "rich" or "text" ? DocumentContentDescriptor.RichV1
+            var descriptor = mode == "rich" ? DocumentContentDescriptor.RichV2
+                : mode == "text" ? (original?.ContentDescriptor.IsRichV2 == true ? DocumentContentDescriptor.RichV2 : DocumentContentDescriptor.RichV1)
                 : original?.ContentDescriptor ?? DocumentContentDescriptor.Legacy;
             await api.PostAsync<DraftView>("documents", $"{DocumentsPath(tenantId, jobId)}/{document.Id}/draft-revisions", new
             { expectedCurrentRevision = expectedRevision, editorContentJson = json,
