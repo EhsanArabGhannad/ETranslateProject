@@ -1,0 +1,18 @@
+<div id="editor-paragraph" class="editor-typography editor-paragraph" role="group" aria-label="@UiText.Get("EditorParagraph")">
+    <label for="editor-text-align">@UiText.Get("EditorAlignment")<select id="editor-text-align" data-style-command="textAlign">
+        <option value="">@UiText.Get("EditorDefaultStyle")</option><option value="__mixed__" disabled>@UiText.Get("EditorMixedStyle")</option>
+        <option value="left">@UiText.Get("EditorAlignLeft")</option><option value="center">@UiText.Get("EditorAlignCenter")</option>
+        <option value="right">@UiText.Get("EditorAlignRight")</option><option value="justify">@UiText.Get("EditorAlignJustify")</option>
+    </select></label>
+    <label for="editor-line-height">@UiText.Get("EditorLineHeight")<select id="editor-line-height" data-style-command="lineHeight">
+        <option value="">@UiText.Get("EditorDefaultStyle")</option><option value="__mixed__" disabled>@UiText.Get("EditorMixedStyle")</option>
+        <option value="1">1</option><option value="1.15">1,15</option><option value="1.5">1,5</option><option value="1.65">1,65</option><option value="2">2</option><option value="2.5">2,5</option><option value="3">3</option>
+    </select></label>
+    <label for="editor-indent-level">@UiText.Get("EditorIndent")<select id="editor-indent-level" data-style-command="indentLevel">
+        <option value="">@UiText.Get("EditorDefaultStyle")</option><option value="__mixed__" disabled>@UiText.Get("EditorMixedStyle")</option>
+        @foreach(var level in Enumerable.Range(0,9)){<option value="@level">@(level*5) mm</option>}
+    </select></label>
+    <button type="button" class="secondary" data-command="decreaseIndent">@UiText.Get("EditorDecreaseIndent")</button>
+    <button type="button" class="secondary" data-command="increaseIndent">@UiText.Get("EditorIncreaseIndent")</button>
+    <button type="button" class="secondary" data-command="clearParagraphStyle">@UiText.Get("EditorClearParagraph")</button>
+</div>

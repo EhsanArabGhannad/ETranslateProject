@@ -1,5 +1,6 @@
 import { assertDocumentFormat, editorCommands, readDocumentJson, writeDocumentJson } from './document-contract.js';
 import { typographyCommands, validTypographyValue } from '../typography.js';
+import { paragraphCommands, paragraphActions, validParagraphValue } from '../paragraph.js';
 
 /**
  * Provider contract (trusted application code):
@@ -43,9 +44,10 @@ export function createEditorSession({ provider, element, contentJson, contentFor
     function getCommandState(command) {
         if (destroyed || !editorCommands.includes(command)) return { enabled: false, active: false };
         if(provider.format.version<2 && (Object.hasOwn(typographyCommands,command)||command==='clearTextStyle'))return {enabled:false,active:false};
+        if(provider.format.version<3 && (Object.hasOwn(paragraphCommands,command)||paragraphActions.includes(command)))return {enabled:false,active:false};
         const state = adapter.getCommandState(command);
         return { enabled: enabled && state.enabled === true, active: state.active === true,
-            ...(Object.hasOwn(typographyCommands,command)?{value:state.value??null,mixed:state.mixed===true}:{}) };
+            ...(Object.hasOwn(typographyCommands,command)||Object.hasOwn(paragraphCommands,command)?{value:state.value??null,mixed:state.mixed===true}:{}) };
     }
     function subscribe(listeners, listener) {
         assertAlive(); listeners.add(listener);
@@ -59,6 +61,7 @@ export function createEditorSession({ provider, element, contentJson, contentFor
         getCommandState,
         execute(command, value) {
             if(Object.hasOwn(typographyCommands,command)&&!validTypographyValue(typographyCommands[command],value))return false;
+            if(Object.hasOwn(paragraphCommands,command)&&!validParagraphValue(paragraphCommands[command],value))return false;
             if (!getCommandState(command).enabled) return false;
             return adapter.execute(command, value) === true;
         },

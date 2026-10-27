@@ -54,7 +54,7 @@ public sealed partial class EditorAdapterBrowserTests
             """);
         await textbox.Locator("td p").Filter(new(){HasText=marker}).First.ClickAsync();await page.Keyboard.PressAsync("End");await page.Keyboard.InsertTextAsync(" PAGE_EDIT");
         await Assertions.Expect(page.Locator("#document-json")).ToHaveValueAsync(new System.Text.RegularExpressions.Regex("PAGE_EDIT"));
-        var edited=await page.Locator("#document-json").InputValueAsync();Assert.True(DocumentContentJson.TryGetPlainText(edited,out _));
+        var edited=await page.Locator("#document-json").InputValueAsync();Assert.True(DocumentContentDescriptor.RichV3.TryRead(edited,out _));
         foreach(var zoom in new[]{"75","125","fit"}){
             await page.Locator("#editor-zoom").SelectOptionAsync(zoom);
             await Assertions.Expect(viewport).ToHaveAttributeAsync("data-page-index","2");
@@ -71,7 +71,7 @@ public sealed partial class EditorAdapterBrowserTests
         await AssertFrozenAsync(page);await page.Locator("#editor-page-index").SelectOptionAsync("2");await AssertFrozenAsync(page);
         Assert.Equal(edited,SubmittedJson(retry.Body));retry.Release.SetResult(503);await Assertions.Expect(textbox).ToHaveAttributeAsync("contenteditable","true");
         var save=fixture.Enqueue();await page.Locator("#draft-form button[type=submit]").ClickAsync();await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        fixture.Source=SubmittedJson(save.Body);save.Release.SetResult(303);await page.WaitForURLAsync("**after-save=1");
+        fixture.Source=SubmittedJson(save.Body);fixture.Format=DocumentContentDescriptor.RichFormat;fixture.SchemaVersion="3";save.Release.SetResult(303);await page.WaitForURLAsync("**after-save=1");
         Assert.Equal(edited,await page.Locator("#document-json").InputValueAsync());await Assertions.Expect(Command(page,"undo")).ToBeDisabledAsync();
         await page.Locator("#editor-pages-toggle").ClickAsync();await Assertions.Expect(viewport).ToHaveAttributeAsync("data-pagination","paged");
         await fixture.ScreenshotAsync("product-pagination.png");

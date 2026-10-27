@@ -33,7 +33,7 @@ export function startRichEditor(workspace, onChanged, preview) {
             onRejectedChange: () => { status.textContent = ui.BuDegisiklikIzinVerilenYapininDisindadirTablo; }
         });
         const buttons = Array.from(document.querySelectorAll('#rich-region button[data-command]'));
-        const styles=Array.from(document.querySelectorAll('#editor-typography select[data-style-command]'));
+        const styles=Array.from(document.querySelectorAll('#rich-region select[data-style-command]'));
         function updateToolbar() {
             for (const button of buttons) {
                 const state = session.getCommandState(button.dataset.command);
@@ -50,7 +50,13 @@ export function startRichEditor(workspace, onChanged, preview) {
                 control.value=value;
             }
         }
-        cleanups.push(session.onDocumentChange(source => { json.value = source; onChanged(); preview(); }));
+        cleanups.push(session.onDocumentChange(source => {
+            json.value=source;
+            // The working copy may be newer than the immutable revision shown on this page.
+            workspace.dataset.workingContentFormat=session.format.id;
+            workspace.dataset.workingContentSchemaVersion=String(session.format.version);
+            onChanged();preview();
+        }));
         cleanups.push(session.onStateChange(updateToolbar));
         for (const button of buttons) {
             const keepSelection = event => event.preventDefault();
@@ -63,7 +69,7 @@ export function startRichEditor(workspace, onChanged, preview) {
         }
         for(const control of styles){const apply=()=>{
             if(workspace.dataset.editable!=='true'||control.value==='__mixed__')return;
-            const value=control.value===''?null:control.dataset.styleCommand==='fontSize'?Number(control.value):control.value;
+            const value=control.value===''?null:['fontSize','lineHeight','indentLevel'].includes(control.dataset.styleCommand)?Number(control.value):control.value;
             session.execute(control.dataset.styleCommand,value);updateToolbar();
         };control.addEventListener('change',apply);cleanups.push(()=>control.removeEventListener('change',apply));}
         updateToolbar();

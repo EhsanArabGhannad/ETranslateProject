@@ -1,4 +1,5 @@
 import { validTypography } from './typography.js';
+import { validParagraphValue } from './paragraph.js';
 export const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const blocks = ['paragraph', 'heading', 'bulletList', 'orderedList', 'image', 'blockquote'];
@@ -6,7 +7,7 @@ const tableTypes = ['table', 'tableRow', 'tableCell', 'tableHeader'];
 const marks = ['bold', 'italic', 'underline', 'strike'];
 
 export function isRichDocument(root, version = 1) {
-    if(![1,2].includes(version))return false;
+    if(![1,2,3].includes(version))return false;
     let remaining = 20000;
     function visit(node, parent, depth) {
         if (depth > 32 || --remaining < 0 || !object(node) || typeof node.type !== 'string') return false;
@@ -24,8 +25,9 @@ export function isRichDocument(root, version = 1) {
             if (key === 'text' && type === 'text' && typeof value === 'string') continue;
             if (key === 'marks' && type === 'text' && Array.isArray(value) && new Set(value.map(mark => mark?.type)).size === value.length &&
                 value.every(mark => object(mark) && (Object.keys(mark).length === 1 && marks.includes(mark.type) ||
-                    version===2 && mark.type==='typography' && Object.keys(mark).length===2 && Object.hasOwn(mark,'attrs') && validTypography(mark.attrs)))) continue;
+                    version>=2 && mark.type==='typography' && Object.keys(mark).length===2 && Object.hasOwn(mark,'attrs') && validTypography(mark.attrs)))) continue;
             if (key === 'attrs' && type !== 'text' && object(value) && Object.entries(value).every(([attr, val]) =>
+                version>=3 && ['paragraph','heading'].includes(type) && validParagraphValue(attr,val) ||
                 attr === 'dir' && ['auto', 'rtl', 'ltr'].includes(val) ||
                 type === 'heading' && attr === 'level' && Number.isInteger(val) && val >= 1 && val <= 6 ||
                 type === 'orderedList' && attr === 'start' && Number.isInteger(val) && val >= 1 && val <= 10000 ||

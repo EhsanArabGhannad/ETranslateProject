@@ -2,6 +2,8 @@
 
 Date: 2026-10-27
 
+Continuation: this ADR records the v2 typography step. [ADR 0033](0033-versioned-paragraph-layout.md) adds v3 paragraph layout and renderer v13; current rich-editor saves use v3. V2 remains supported, and the next unknown version is v4. Historical boundaries and verification below describe the original v2 step.
+
 ## Scope and content contract
 
 Add font family, integer point size, text color, highlight and a reset for these four properties. Controls operate on the native editor selection or stored marks at the caret. They do not expose a vendor instance to the host. Mixed selection is represented in the toolbar; changing one field preserves the other properties on each text range. Reset removes the typography mark while preserving bold/italic/underline, direction, text and structural nodes. Each typography command starts a separate history group. Save/review/historical locks apply to all new controls through the existing session.

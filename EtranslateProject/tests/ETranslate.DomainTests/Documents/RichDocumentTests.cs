@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ETranslate.Contracts.Documents;
 using ETranslate.Web.Models;
 
 namespace ETranslate.DomainTests.Documents;
@@ -9,11 +10,16 @@ public sealed class RichDocumentTests
     {
         using var fixtures = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "document-cases.json")));
         foreach (var fixture in fixtures.RootElement.EnumerateArray())
-            yield return [fixture.GetProperty("name").GetString()!, fixture.GetProperty("document").GetRawText(), fixture.GetProperty("valid").GetBoolean()];
+            yield return [fixture.GetProperty("name").GetString()!, fixture.GetProperty("document").GetRawText(), fixture.GetProperty("valid").GetBoolean(),
+                fixture.TryGetProperty("validV3",out var current)?current.GetBoolean():fixture.GetProperty("valid").GetBoolean()];
     }
     [Theory, MemberData(nameof(Cases))]
-    public void SharedSchemaPreservationCases(string name, string json, bool expected)
-        => Assert.True(RichDocument.TryGetPlainText(json, out _) == expected, name);
+    public void SharedSchemaPreservationCases(string name, string json, bool expected, bool expectedCurrent)
+    {
+        Assert.True(DocumentContentDescriptor.RichV1.TryRead(json,out _)==expected,name);
+        Assert.True(DocumentContentDescriptor.RichV2.TryRead(json,out _)==expected,name);
+        Assert.True(RichDocument.TryGetPlainText(json,out _)==expectedCurrent,name);
+    }
 
     [Fact] public void ExtractsRichMultilingualPlainTextWithoutFlatteningStoredJson()
     {

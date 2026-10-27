@@ -14,7 +14,7 @@ public static class DocumentContentJson
         {
             using var document = JsonDocument.Parse(json);
             var remaining = 20_000;
-            if (schemaVersion is not (1 or 2) || rootType is not ("doc" or "header" or "footer") || !Validate(document.RootElement, null, 0, ref remaining, rootType, schemaVersion)) return false;
+            if (schemaVersion is not (1 or 2 or 3) || rootType is not ("doc" or "header" or "footer") || !Validate(document.RootElement, null, 0, ref remaining, rootType, schemaVersion)) return false;
             var lines = new List<string>();
             Extract(document.RootElement, lines);
             plainText = string.Join('\n', lines);
@@ -38,7 +38,7 @@ public static class DocumentContentJson
             if (field.Name is "type") continue;
             if (field.Name == "text" && type == "text" && field.Value.ValueKind == JsonValueKind.String) continue;
             if (field.Name == "marks" && type == "text" && MarksValid(field.Value, version)) continue;
-            if (field.Name == "attrs" && type != "text" && AttributesValid(type, field.Value, rootType != "doc")) continue;
+            if (field.Name == "attrs" && type != "text" && AttributesValid(type, field.Value, rootType != "doc", version)) continue;
             if (field.Name == "content" && type is not ("text" or "image" or "hardBreak") &&
                 field.Value.ValueKind == JsonValueKind.Array) continue;
             return false;
@@ -75,13 +75,14 @@ public static class DocumentContentJson
         "doc" or "header" or "footer" or "listItem" or "blockquote" => child is "paragraph" or "heading" or "bulletList" or "orderedList" or "image" or "blockquote",
         _ => false
     };
-    private static bool AttributesValid(string type, JsonElement attrs, bool letterhead)
+    private static bool AttributesValid(string type, JsonElement attrs, bool letterhead, int version)
     {
         if (attrs.ValueKind != JsonValueKind.Object) return false;
         var seen = new HashSet<string>();
         foreach (var field in attrs.EnumerateObject())
         {
             if (!seen.Add(field.Name)) return false;
+            if(version>=3 && type is "paragraph" or "heading" && DocumentParagraph.ValidValue(field.Name,field.Value))continue;
             if (letterhead && type is "paragraph" or "heading" && field.Name == "textAlign" &&
                 field.Value.ValueKind == JsonValueKind.String && field.Value.GetString() is "left" or "center" or "right") continue;
             if (letterhead && type == "image" && field.Value.ValueKind == JsonValueKind.String &&
@@ -111,7 +112,7 @@ public static class DocumentContentJson
         {
             if (mark.ValueKind != JsonValueKind.Object || !mark.TryGetProperty("type", out var type) ||
                 type.ValueKind != JsonValueKind.String || !seen.Add(type.GetString()!)) return false;
-            if (version == 2 && type.GetString() == "typography")
+            if (version >= 2 && type.GetString() == "typography")
             {
                 if (mark.EnumerateObject().Count()!=2 || !mark.TryGetProperty("attrs",out var attrs) || !DocumentTypography.ValidAttributes(attrs)) return false;
             }

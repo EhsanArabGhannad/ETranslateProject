@@ -1,0 +1,19 @@
+[
+  {"name":"left alignment","attrs":{"textAlign":"left"},"valid":true},
+  {"name":"center alignment","attrs":{"textAlign":"center"},"valid":true},
+  {"name":"right alignment","attrs":{"textAlign":"right"},"valid":true},
+  {"name":"justify and spacing","attrs":{"textAlign":"justify","lineHeight":1.15,"indentLevel":2},"valid":true},
+  {"name":"maximum indentation","attrs":{"indentLevel":8,"lineHeight":3},"valid":true},
+  {"name":"explicit zero","attrs":{"indentLevel":0,"lineHeight":1},"valid":true},
+  {"name":"default attributes","attrs":{"textAlign":null,"lineHeight":null,"indentLevel":null},"valid":true},
+  {"name":"CSS alignment injection","attrs":{"textAlign":"left;color:red"},"valid":false},
+  {"name":"unknown alignment","attrs":{"textAlign":"start"},"valid":false},
+  {"name":"zero spacing","attrs":{"lineHeight":0},"valid":false},
+  {"name":"unsupported ratio","attrs":{"lineHeight":1.3},"valid":false},
+  {"name":"CSS spacing string","attrs":{"lineHeight":"2em"},"valid":false},
+  {"name":"huge spacing","attrs":{"lineHeight":4},"valid":false},
+  {"name":"negative indentation","attrs":{"indentLevel":-1},"valid":false},
+  {"name":"huge indentation","attrs":{"indentLevel":9},"valid":false},
+  {"name":"fractional indentation","attrs":{"indentLevel":1.5},"valid":false},
+  {"name":"unknown CSS field","attrs":{"marginLeft":"20mm"},"valid":false}
+]

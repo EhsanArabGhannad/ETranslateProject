@@ -134,8 +134,11 @@ public static class DraftPdfHtml
             "tableRow" => "tr", "tableCell" => "td", "tableHeader" => "th", _ => "div"
         };
         html.Append($"<{tagName} dir=\"{direction}\"");
-        if (attrs.ValueKind == JsonValueKind.Object && attrs.TryGetProperty("textAlign", out var textAlign))
-            html.Append($" style=\"text-align:{textAlign.GetString()}\"");
+        if (type is "paragraph" or "heading" && attrs.ValueKind==JsonValueKind.Object)
+        {
+            var paragraphCss=DocumentParagraph.Css(attrs);
+            if(paragraphCss.Length>0)html.Append($" style=\"{Encode(paragraphCss)}\"");
+        }
         if (type == "orderedList" && attrs.ValueKind == JsonValueKind.Object)
         {
             if (attrs.TryGetProperty("start", out var start)) html.Append($" start=\"{start.GetInt32()}\"");

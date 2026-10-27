@@ -4,7 +4,11 @@ import assert from 'node:assert/strict';
 import { isRichDocument, normalizeEmptyText } from '../document-schema.js';
 
 const cases = JSON.parse(await readFile(new URL('./document-cases.json', import.meta.url), 'utf8'));
-for (const fixture of cases) test(fixture.name, () => assert.equal(isRichDocument(fixture.document), fixture.valid));
+for (const fixture of cases) test(fixture.name, () => {
+    assert.equal(isRichDocument(fixture.document), fixture.valid);
+    assert.equal(isRichDocument(fixture.document,2), fixture.valid);
+    assert.equal(isRichDocument(fixture.document,3), fixture.validV3??fixture.valid);
+});
 test('legacy normalization preserves marks and directions without mutating the source', () => {
     const source = { type: 'doc', content: [{ type: 'paragraph', attrs: { dir: 'rtl' }, content: [
         { type: 'text', text: '' }, { type: 'text', text: 'ترجمه', marks: [{ type: 'bold' }] }

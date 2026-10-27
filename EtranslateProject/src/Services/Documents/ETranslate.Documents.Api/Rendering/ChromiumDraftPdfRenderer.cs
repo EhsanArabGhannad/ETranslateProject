@@ -14,7 +14,7 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
 
     public async Task<byte[]> RenderAsync(DraftPdfInput input, CancellationToken cancellationToken)
     {
-        var prepared = DraftPdfHtml.Prepare(input, input.BodyDescriptor.IsRichV2||input.TemplateDescriptor.IsRichV2 ? _typographyFonts.Value : _fonts.Value);
+        var prepared = DraftPdfHtml.Prepare(input, input.BodyDescriptor.IsRichV2||input.BodyDescriptor.IsRichV3||input.TemplateDescriptor.IsRichV2||input.TemplateDescriptor.IsRichV3 ? _typographyFonts.Value : _fonts.Value);
         if (!await _slot.WaitAsync(TimeSpan.FromSeconds(1), cancellationToken)) throw new PdfRendererBusyException();
         try
         {

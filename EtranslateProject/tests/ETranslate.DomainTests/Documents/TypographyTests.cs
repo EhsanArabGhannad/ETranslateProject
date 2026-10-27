@@ -16,6 +16,7 @@ public sealed class TypographyTests
     [Theory,MemberData(nameof(Cases))]
     public void Client_and_server_share_bounded_typography_cases(string name,string json,bool valid)
     {
+        Assert.False(string.IsNullOrWhiteSpace(name));
         using var attrs=JsonDocument.Parse(json);var body=Body(attrs.RootElement);
         Assert.Equal(valid,DocumentTypography.ValidAttributes(attrs.RootElement));
         Assert.Equal(valid,DocumentContentDescriptor.RichV2.TryRead(body,out _));

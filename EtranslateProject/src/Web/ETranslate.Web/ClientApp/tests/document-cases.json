@@ -8,7 +8,7 @@
   { "name": "arbitrary URL image", "valid": false, "document": { "type": "doc", "content": [{ "type": "image", "attrs": { "src": "https://example.org/tracker.png" } }] } },
   { "name": "unknown root metadata", "valid": false, "document": { "type": "doc", "custom": true, "content": [] } },
   { "name": "empty table rejected", "valid": false, "document": { "type": "doc", "content": [{ "type": "table", "content": [] }] } },
-  { "name": "style cannot be discarded", "valid": false, "document": { "type": "doc", "content": [{ "type": "paragraph", "attrs": { "textAlign": "center" } }] } },
+  { "name": "alignment requires v3", "valid": false, "validV3": true, "document": { "type": "doc", "content": [{ "type": "paragraph", "attrs": { "textAlign": "center" } }] } },
   { "name": "link mark unsupported", "valid": false, "document": { "type": "doc", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "link", "marks": [{ "type": "link", "attrs": { "href": "javascript:alert(1)" } }] }] }] } },
   { "name": "invalid direction", "valid": false, "document": { "type": "doc", "attrs": { "dir": "sideways" }, "content": [] } },
   { "name": "empty list", "valid": false, "document": { "type": "doc", "content": [{ "type": "bulletList", "content": [] }] } },

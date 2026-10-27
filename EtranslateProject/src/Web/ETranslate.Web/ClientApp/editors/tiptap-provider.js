@@ -1,14 +1,17 @@
 import { Editor, Extension, Node, Mark } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { TableKit } from '@tiptap/extension-table';
+import Paragraph from '@tiptap/extension-paragraph';
+import Heading from '@tiptap/extension-heading';
 import { Plugin } from '@tiptap/pm/state';
 import { closeHistory } from '@tiptap/pm/history';
 import { guid, isRichDocument } from '../document-schema.js';
-import { editorCommands, richDocumentV2 } from './document-contract.js';
+import { editorCommands, richDocumentV3 } from './document-contract.js';
 import { typographyFields, typographyCommands, validTypography, validTypographyValue, applyTypography } from '../typography.js';
+import { paragraphFields, paragraphCommands, paragraphActions, validParagraphValue, applyParagraph } from '../paragraph.js';
 
 export const tiptapProvider = Object.freeze({
-    id: 'tiptap', format: richDocumentV2,
+    id: 'tiptap', format: richDocumentV3,
     capabilities: Object.freeze({ livePagination: false, docxImport: false, faithfulWordPaste: false, mergedCells: false }),
     create: createTiptapAdapter
 });
@@ -17,6 +20,17 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     let editor;
     const listeners = new Set();
     const notify = event => { for (const listener of listeners) listener(event); };
+    function textBlock(Base,tag){return Base.extend({
+        addAttributes(){return {...this.parent?.(),...Object.fromEntries(paragraphFields.map(field=>[field,{default:null,rendered:false,parseHTML:element=>{
+            try{const value=JSON.parse(element.getAttribute('data-et-paragraph'));return value&&typeof value==='object'&&!Array.isArray(value)&&Object.entries(value).every(([key,item])=>validParagraphValue(key,item))?value[field]??null:null;}catch{return null;}
+        }}]))};},
+        renderHTML({node}){
+            const element=document.createElement(tag??`h${node.attrs.level}`);element.dir=['auto','rtl','ltr'].includes(node.attrs.dir)?node.attrs.dir:'auto';
+            element.dataset.etParagraph=JSON.stringify(Object.fromEntries(paragraphFields.map(field=>[field,node.attrs[field]??null])));
+            applyParagraph(element,node.attrs);return {dom:element,contentDOM:element};
+        }
+    });}
+    const StyledParagraph=textBlock(Paragraph,'p'),StyledHeading=textBlock(Heading);
     const ManagedImage = Node.create({
         name: 'image', group: 'block', atom: true, draggable: false,
         addAttributes() {
@@ -45,7 +59,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         name: 'preservationPolicy',
         addProseMirrorPlugins() {
             return [new Plugin({ filterTransaction: transaction => {
-                if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),2)) return true;
+                if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),3)) return true;
                 onRejectedChange(); return false;
             } })];
         }
@@ -54,7 +68,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         editor = new Editor({
             element, injectCSS: false, editable, textDirection: 'auto',
             extensions: [StarterKit.configure({ code: false, codeBlock: false, link: false, horizontalRule: false,
-                dropcursor: false, trailingNode: false }), ManagedImage, Typography,
+                dropcursor: false, trailingNode: false, paragraph:false,heading:false }), StyledParagraph,StyledHeading,ManagedImage, Typography,
                 TableKit.configure({ table: { resizable: false, View: null } }), PreservationPolicy],
             content: { type: 'doc', content: [{ type: 'paragraph' }] },
             editorProps: { attributes: { role: 'textbox', 'aria-label': labels.text, 'aria-multiline': 'true', spellcheck: 'false' } }
@@ -104,8 +118,41 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
             if(node.isText&&mark&&!validTypography(mark.attrs))tr.removeMark(Math.max(from,pos),Math.min(to,pos+node.nodeSize),editor.schema.marks.typography);});
         return true;
     }
+    function selectedBlocks(state){
+        const blocks=new Map();
+        for(const range of state.selection.ranges){const from=range.$from.pos,to=range.$to.pos;
+            if(from===to){for(let depth=range.$from.depth;depth>0;depth--){const node=range.$from.node(depth);if(['paragraph','heading'].includes(node.type.name)){blocks.set(range.$from.before(depth),node);break;}}}
+            else state.doc.nodesBetween(from,to,(node,pos)=>{if(['paragraph','heading'].includes(node.type.name)&&pos<to&&pos+node.nodeSize>from)blocks.set(pos,node);});
+        }return [...blocks].map(([pos,node])=>({pos,node}));
+    }
+    function paragraphState(field){const values=new Set(selectedBlocks(editor.state).map(({node})=>node.attrs[field]??null));return {value:values.size===1?[...values][0]:null,mixed:values.size>1};}
+    function updateParagraph(command,value){return editor.chain().focus().command(({tr})=>{
+        const blocks=selectedBlocks({doc:tr.doc,selection:tr.selection});if(!blocks.length)return false;
+        closeHistory(tr);
+        for(const {pos,node} of blocks){const attrs={...node.attrs};
+            if(command==='clearParagraphStyle')for(const field of paragraphFields)attrs[field]=null;
+            else if(command==='increaseIndent'||command==='decreaseIndent')attrs.indentLevel=Math.max(0,Math.min(8,(attrs.indentLevel??0)+(command==='increaseIndent'?1:-1)));
+            else attrs[paragraphCommands[command]]=value;
+            if(!node.hasMarkup(node.type,attrs))tr.setNodeMarkup(pos,undefined,attrs);
+        }return true;
+    }).run();}
+    function changeBlock(command){return editor.chain().focus().command(({tr})=>{
+        const blocks=selectedBlocks({doc:tr.doc,selection:tr.selection});if(!blocks.length)return false;
+        const heading=command==='heading'&&!blocks.every(({node})=>node.type.name==='heading'&&node.attrs.level===2);
+        closeHistory(tr);
+        for(const {pos,node} of blocks){const attrs={...node.attrs};if(heading)attrs.level=2;else delete attrs.level;
+            const type=editor.schema.nodes[heading?'heading':'paragraph'];
+            if(!node.hasMarkup(type,attrs))tr.setNodeMarkup(pos,type,attrs);
+        }return true;
+    }).run();}
     function getCommandState(command) {
         if (!editorCommands.includes(command) || editor.isDestroyed) return { enabled: false, active: false };
+        if(Object.hasOwn(paragraphCommands,command)||paragraphActions.includes(command)){
+            const blocks=selectedBlocks(editor.state);let enabled=editor.isEditable&&blocks.length>0;
+            if(command==='increaseIndent')enabled&&=blocks.some(({node})=>(node.attrs.indentLevel??0)<8);
+            if(command==='decreaseIndent')enabled&&=blocks.some(({node})=>(node.attrs.indentLevel??0)>0);
+            return {enabled,active:false,...(Object.hasOwn(paragraphCommands,command)?paragraphState(paragraphCommands[command]):{})};
+        }
         if(Object.hasOwn(typographyCommands,command))return {enabled:editor.isEditable,active:false,...typographyState(typographyCommands[command])};
         if(command==='clearTextStyle')return {enabled:editor.isEditable,active:false};
         const active = ['rtl', 'ltr', 'auto'].includes(command)
@@ -121,6 +168,9 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         getCommandState,
         execute(command, value) {
             if (!getCommandState(command).enabled) return false;
+            if(command==='paragraph'||command==='heading')return changeBlock(command);
+            if(Object.hasOwn(paragraphCommands,command))return validParagraphValue(paragraphCommands[command],value)&&updateParagraph(command,value);
+            if(paragraphActions.includes(command))return updateParagraph(command);
             if(Object.hasOwn(typographyCommands,command)){
                 const field=typographyCommands[command];if(!validTypographyValue(field,value))return false;
                 return editor.chain().focus().command(({tr})=>{closeHistory(tr);return true;}).setMark('typography',{[field]:value}).command(removeEmptyTypography).run();
