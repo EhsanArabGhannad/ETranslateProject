@@ -1,0 +1,22 @@
+<p id="editor-statistics" class="editor-statistics muted" aria-live="off"></p>
+<details id="editor-search" class="editor-search">
+    <summary>@UiText.Get("EditorFindReplace")</summary>
+    <div class="editor-search-fields">
+        <label for="editor-search-query">@UiText.Get("EditorFindText")<input id="editor-search-query" type="text" dir="auto" maxlength="200" autocomplete="off" aria-describedby="editor-search-status editor-search-help" /></label>
+        <label for="editor-search-replacement">@UiText.Get("EditorReplaceText")<input id="editor-search-replacement" type="text" dir="auto" maxlength="2000" autocomplete="off" /></label>
+    </div>
+    <div class="editor-search-options">
+        <label><input id="editor-search-case" type="checkbox" />@UiText.Get("EditorMatchCase")</label>
+        <label><input id="editor-search-word" type="checkbox" />@UiText.Get("EditorWholeWord")</label>
+    </div>
+    <div class="editor-search-actions">
+        <button id="editor-search-prev" type="button" class="secondary">@UiText.Get("EditorPreviousMatch")</button>
+        <button id="editor-search-next" type="button" class="secondary">@UiText.Get("EditorNextMatch")</button>
+        <button id="editor-search-replace" type="button" class="secondary">@UiText.Get("EditorReplaceOne")</button>
+        <button id="editor-search-all" type="button" class="secondary">@UiText.Get("EditorReplaceAll")</button>
+        <button id="editor-search-clear" type="button" class="quiet">@UiText.Get("EditorClearSearch")</button>
+    </div>
+    <p id="editor-search-status" class="muted" role="status"></p>
+    <p id="editor-search-feedback" role="status"></p>
+    <p id="editor-search-help" class="muted">@UiText.Get("EditorSearchHelp")</p>
+</details>

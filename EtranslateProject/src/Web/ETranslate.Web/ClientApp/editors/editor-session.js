@@ -2,12 +2,15 @@ import { assertDocumentFormat, editorCommands, readDocumentJson, writeDocumentJs
 import { typographyCommands, validTypographyValue } from '../typography.js';
 import { paragraphCommands, paragraphActions, validParagraphValue } from '../paragraph.js';
 import { scriptMarks } from '../inline-script.js';
+import {validSearch,validReplacement} from '../document-text-tools.js';
 
 /**
  * Provider contract (trusted application code):
  * { id, format, capabilities, create({ element, content, editable, resolveAsset, labels, onRejectedChange }) }.
  * create returns { getDocument, getCommandState, execute, setEditable, subscribe, destroy }.
  * subscribe emits { documentChanged: boolean }; selection/read-only changes must emit false.
+ * Optional local search methods: setSearch, getSearchState, findMatch, replaceSearch.
+ * Search/navigation may operate on readonly content; replacement always requires the write lock.
  * No vendor instance, native selection, chain, HTML or native document leaks into the host.
  */
 export function createEditorSession({ provider, element, contentJson, contentFormat = provider?.format, editable = false,
@@ -60,6 +63,10 @@ export function createEditorSession({ provider, element, contentJson, contentFor
         format: Object.freeze({ ...provider.format }),
         capabilities: Object.freeze({ ...provider.capabilities }),
         getDocumentJson,
+        setSearch(options){return !destroyed&&validSearch(options)&&adapter.setSearch?.(options)===true;},
+        getSearchState(){const state=!destroyed?adapter.getSearchState?.():null;return state?.supported===true?{supported:true,total:state.total,index:state.index,truncated:state.truncated===true,editable:enabled,canReplace:enabled&&state.total>0}:{supported:false,total:0,index:0,truncated:false,editable:false,canReplace:false};},
+        findMatch(direction=1){return !destroyed&&[1,-1].includes(direction)&&adapter.findMatch?.(direction)===true;},
+        replaceSearch(value,all=false){return !destroyed&&enabled&&validReplacement(value)&&typeof all==='boolean'&&adapter.replaceSearch?.(value,all)===true;},
         getCommandState,
         execute(command, value) {
             if(Object.hasOwn(typographyCommands,command)&&!validTypographyValue(typographyCommands[command],value))return false;

@@ -10,15 +10,17 @@ import { editorCommands, richDocumentV4 } from './document-contract.js';
 import { typographyFields, typographyCommands, validTypography, validTypographyValue, applyTypography } from '../typography.js';
 import { paragraphFields, paragraphCommands, paragraphActions, validParagraphValue, applyParagraph } from '../paragraph.js';
 import { scriptMarks, applyInlineScript } from '../inline-script.js';
+import {createTiptapSearch} from './tiptap-search.js';
 
 export const tiptapProvider = Object.freeze({
     id: 'tiptap', format: richDocumentV4,
-    capabilities: Object.freeze({ livePagination: false, docxImport: false, faithfulWordPaste: false, mergedCells: false }),
+    capabilities: Object.freeze({ livePagination: false, docxImport: false, faithfulWordPaste: false, mergedCells: false, literalSearch:true }),
     create: createTiptapAdapter
 });
 
 function createTiptapAdapter({ element, content, editable, resolveAsset, labels, onRejectedChange }) {
     let editor;
+    const search=createTiptapSearch();
     const listeners = new Set();
     const notify = event => { for (const listener of listeners) listener(event); };
     function textBlock(Base,tag){return Base.extend({
@@ -64,7 +66,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     const PreservationPolicy = Extension.create({
         name: 'preservationPolicy',
         addProseMirrorPlugins() {
-            return [new Plugin({ filterTransaction: transaction => {
+            return [search.plugin,new Plugin({ filterTransaction: transaction => {
                 if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),4)) return true;
                 onRejectedChange(); return false;
             } })];
@@ -77,7 +79,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
                 dropcursor: false, trailingNode: false, paragraph:false,heading:false }), StyledParagraph,StyledHeading,ManagedImage, Typography,...scripts,
                 TableKit.configure({ table: { resizable: false, View: null } }), PreservationPolicy],
             content: { type: 'doc', content: [{ type: 'paragraph' }] },
-            editorProps: { attributes: { role: 'textbox', 'aria-label': labels.text, 'aria-multiline': 'true', spellcheck: 'false' } }
+            editorProps: { attributes: { role: 'textbox', tabindex:'0', 'aria-label': labels.text, 'aria-multiline': 'true', spellcheck: 'false' } }
         });
         const value = editor.schema.nodeFromJSON(content); value.check();
         // Initial content must not be undoable into an empty document or mark a mounted revision dirty.
@@ -177,6 +179,10 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     editor.on('transaction', transaction);
     return {
         getDocument: () => editor.getJSON(),
+        setSearch:options=>search.setSearch(editor,options),
+        getSearchState:()=>search.getState(editor),
+        findMatch:direction=>search.find(editor,direction),
+        replaceSearch:(value,all)=>search.replace(editor,value,all),
         getCommandState,
         execute(command, value) {
             if (!getCommandState(command).enabled) return false;

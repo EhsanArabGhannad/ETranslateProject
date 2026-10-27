@@ -21,6 +21,8 @@ for sample in report["samples"]:
     view = json.loads((directory / f"{name}-markers.json").read_text(encoding="utf-8"))
     pdf = PdfReader(directory / f"{name}.pdf")
     texts = [page.extract_text() for page in pdf.pages]
+    if sample["archiveVerified"]:
+        assert sample["searchReplaceVerified"] and "QA_REPLACED" in "\n".join(texts)
     typography = None
     inline_script = None
     markers = {}

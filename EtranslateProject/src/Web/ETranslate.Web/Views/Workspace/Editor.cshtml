@@ -63,7 +63,7 @@ else if (Model.Document.CurrentDraftRevision == 0) {
     <button id="editor-page-next" type="button">@UiText.Get("SonrakiSayfa")</button><span id="editor-page-count" role="status"></span>
 </nav><p id="editor-pagination-status" class="muted" role="status"></p>
 <form asp-action="SaveDraft" method="post" id="draft-form"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="expectedRevision" value="@Model.ExpectedRevision" /><input type="hidden" name="mode" value="@(plain is null ? "json" : "text")" />
-<div id="rich-region" hidden><partial name="_EditorTypography" /><partial name="_EditorParagraph" /><div class="editor-toolbar" role="toolbar" aria-label="@UiText.Get("CeviriBicimlendirme")">
+<div id="rich-region" hidden><partial name="_EditorTextTools" /><partial name="_EditorTypography" /><partial name="_EditorParagraph" /><div class="editor-toolbar" role="toolbar" aria-label="@UiText.Get("CeviriBicimlendirme")">
     <button type="button" data-command="bold" aria-label="@UiText.Get("KalinMetin")" aria-pressed="false"><strong>B</strong></button>
     <button type="button" data-command="italic" aria-label="@UiText.Get("ItalikMetin")" aria-pressed="false"><em>I</em></button>
     <button type="button" data-command="underline" aria-label="@UiText.Get("AltiCizili")" aria-pressed="false"><u>U</u></button>

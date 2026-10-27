@@ -474,6 +474,7 @@ public sealed partial class EditorAdapterBrowserTests
         }
         private string Html()
         {
+            var textTools=Regex.Replace(File.ReadAllText(Path.Combine(Environment.GetEnvironmentVariable("ETRANSLATE_EDITOR_ADAPTER_WEB_ROOT")!,"Views/Shared/_EditorTextTools.cshtml")),"@UiText\\.Get\\(\"([^\"]+)\"\\)",match=>WebUtility.HtmlEncode(UiText.Get(match.Groups[1].Value)));
             var commands = new[] { "bold", "italic", "underline", "strike", "superscript", "subscript", "paragraph", "heading", "bulletList", "orderedList", "rtl", "ltr", "auto", "undo", "redo", "insertTable", "addRowAfter", "addColumnAfter", "deleteRow", "deleteColumn", "deleteTable", "notSupported" };
             var labels = new[] { "KalinMetin", "ItalikMetin", "AltiCizili", "EditorStrike", "EditorSuperscript", "EditorSubscript", "Paragraf", "Baslik", "MaddeIsaretliListe", "NumaraliListe", "SagdanSola", "SoldanSaga", "OtomatikYon", "GeriAl", "Yinele", "Baslikli33Tablo", "SonrakiSatir", "SonrakiSutun", "SatiriSil", "SutunuSil", "TabloyuSil" };
             var buttons = string.Join("", commands.Select((command, i) => $"<button type='button' data-command='{command}' aria-pressed='false' {(i == labels.Length ? "hidden" : "")}>{(i < 3 ? new[] { "<strong>B</strong>", "<em>I</em>", "<u>U</u>" }[i] : i < labels.Length ? UiText.Get(labels[i]) : command)}</button>"));
@@ -508,7 +509,7 @@ public sealed partial class EditorAdapterBrowserTests
                 </div>
                 <nav id="editor-pages-nav" class="editor-pagination-nav" hidden><button id="editor-page-prev" type="button">Önceki</button><select id="editor-page-index"></select><button id="editor-page-next" type="button">Sonraki</button><span id="editor-page-count"></span></nav><p id="editor-pagination-status"></p>
                 <form id="draft-form" action="/Workspace/SaveDraft" method="post"><input type="hidden" name="mode" value="{{(rich ? "text" : "json")}}">
-                <div id="rich-region" hidden>{{typography}}{{paragraph}}<div class="editor-toolbar" role="toolbar" aria-label="{{UiText.Get("CeviriBicimlendirme")}}">{{buttons}}</div><p id="editor-paper-description" class="muted"></p>
+                <div id="rich-region" hidden>{{textTools}}{{typography}}{{paragraph}}<div class="editor-toolbar" role="toolbar" aria-label="{{UiText.Get("CeviriBicimlendirme")}}">{{buttons}}</div><p id="editor-paper-description" class="muted"></p>
                 <div id="editor-viewport" class="editor-viewport" tabindex="0" role="region" aria-label="{{UiText.Get("EditorPaperRegion")}}" aria-describedby="editor-paper-description"><div id="editor-paper-stage"><div id="editor-paper"><div id="rich-text"></div></div></div></div></div>
                 <p id="editor-format-status"></p><label for="document-json">JSON</label>
                 <textarea id="document-json" name="editorContentJson">{{WebUtility.HtmlEncode(Source)}}</textarea>
