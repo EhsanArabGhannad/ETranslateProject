@@ -14,7 +14,7 @@ public static class DocumentContentJson
         {
             using var document = JsonDocument.Parse(json);
             var remaining = 20_000;
-            if (schemaVersion is not (1 or 2 or 3) || rootType is not ("doc" or "header" or "footer") || !Validate(document.RootElement, null, 0, ref remaining, rootType, schemaVersion)) return false;
+            if (schemaVersion is not (1 or 2 or 3 or 4) || rootType is not ("doc" or "header" or "footer") || !Validate(document.RootElement, null, 0, ref remaining, rootType, schemaVersion)) return false;
             var lines = new List<string>();
             Extract(document.RootElement, lines);
             plainText = string.Join('\n', lines);
@@ -116,9 +116,9 @@ public static class DocumentContentJson
             {
                 if (mark.EnumerateObject().Count()!=2 || !mark.TryGetProperty("attrs",out var attrs) || !DocumentTypography.ValidAttributes(attrs)) return false;
             }
-            else if (mark.EnumerateObject().Count()!=1 || type.GetString() is not ("bold" or "italic" or "underline" or "strike")) return false;
+            else if (mark.EnumerateObject().Count()!=1 || !(type.GetString() is "bold" or "italic" or "underline" or "strike" || version>=4 && DocumentInlineScript.IsScript(type.GetString()))) return false;
         }
-        return true;
+        return !(seen.Contains("superscript") && seen.Contains("subscript"));
     }
     private static void Extract(JsonElement node, List<string> lines)
     {

@@ -27,7 +27,7 @@ if (workspace) {
         try {
             if (editor) json.value = editor.getDocumentJson();
             const document = JSON.parse(json.value);
-            if (!document || typeof document !== 'object' || json.value.length > 2000000 || mode === 'rich' && !isRichDocument(document,3)) throw new Error();
+            if (!document || typeof document !== 'object' || json.value.length > 2000000 || mode === 'rich' && !isRichDocument(document,4)) throw new Error();
         } catch { find('save-state').textContent = ui.BelgeYapisiGecersizVeyaKaydedilemiyorDegisikliklerKorunmustur; return; }
         const button = form.querySelector('button[type=submit]');
         saving = true; button.disabled = true; find('save-state').textContent = ui.Kaydediliyor;

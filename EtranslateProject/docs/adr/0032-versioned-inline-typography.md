@@ -2,7 +2,7 @@
 
 Date: 2026-10-27
 
-Continuation: this ADR records the v2 typography step. [ADR 0033](0033-versioned-paragraph-layout.md) adds v3 paragraph layout and renderer v13; current rich-editor saves use v3. V2 remains supported, and the next unknown version is v4. Historical boundaries and verification below describe the original v2 step.
+Continuation: this ADR records the v2 typography step. [ADR 0033](0033-versioned-paragraph-layout.md) adds v3 paragraph layout; [ADR 0034](0034-versioned-inline-scripts.md) adds v4 inline scripts and renderer v14. Current rich-editor saves use v4; older versions remain supported, and the next unknown version is v5. Historical boundaries and verification below describe the original v2 step.
 
 ## Scope and content contract
 

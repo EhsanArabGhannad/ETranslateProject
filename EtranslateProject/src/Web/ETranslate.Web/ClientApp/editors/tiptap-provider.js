@@ -6,12 +6,13 @@ import Heading from '@tiptap/extension-heading';
 import { Plugin } from '@tiptap/pm/state';
 import { closeHistory } from '@tiptap/pm/history';
 import { guid, isRichDocument } from '../document-schema.js';
-import { editorCommands, richDocumentV3 } from './document-contract.js';
+import { editorCommands, richDocumentV4 } from './document-contract.js';
 import { typographyFields, typographyCommands, validTypography, validTypographyValue, applyTypography } from '../typography.js';
 import { paragraphFields, paragraphCommands, paragraphActions, validParagraphValue, applyParagraph } from '../paragraph.js';
+import { scriptMarks, applyInlineScript } from '../inline-script.js';
 
 export const tiptapProvider = Object.freeze({
-    id: 'tiptap', format: richDocumentV3,
+    id: 'tiptap', format: richDocumentV4,
     capabilities: Object.freeze({ livePagination: false, docxImport: false, faithfulWordPaste: false, mergedCells: false }),
     create: createTiptapAdapter
 });
@@ -31,6 +32,11 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         }
     });}
     const StyledParagraph=textBlock(Paragraph,'p'),StyledHeading=textBlock(Heading);
+    const scripts=scriptMarks.map(name=>Mark.create({
+        name,priority:105,excludes:scriptMarks.join(' '),
+        parseHTML(){return [{tag:name==='superscript'?'sup':'sub'}];},
+        renderHTML(){const element=document.createElement(name==='superscript'?'sup':'sub');applyInlineScript(element,name);return {dom:element,contentDOM:element};}
+    }));
     const ManagedImage = Node.create({
         name: 'image', group: 'block', atom: true, draggable: false,
         addAttributes() {
@@ -59,7 +65,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         name: 'preservationPolicy',
         addProseMirrorPlugins() {
             return [new Plugin({ filterTransaction: transaction => {
-                if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),3)) return true;
+                if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),4)) return true;
                 onRejectedChange(); return false;
             } })];
         }
@@ -68,7 +74,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         editor = new Editor({
             element, injectCSS: false, editable, textDirection: 'auto',
             extensions: [StarterKit.configure({ code: false, codeBlock: false, link: false, horizontalRule: false,
-                dropcursor: false, trailingNode: false, paragraph:false,heading:false }), StyledParagraph,StyledHeading,ManagedImage, Typography,
+                dropcursor: false, trailingNode: false, paragraph:false,heading:false }), StyledParagraph,StyledHeading,ManagedImage, Typography,...scripts,
                 TableKit.configure({ table: { resizable: false, View: null } }), PreservationPolicy],
             content: { type: 'doc', content: [{ type: 'paragraph' }] },
             editorProps: { attributes: { role: 'textbox', 'aria-label': labels.text, 'aria-multiline': 'true', spellcheck: 'false' } }
@@ -95,6 +101,9 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     }
     const operations = {
         bold: chain => chain.toggleBold(), italic: chain => chain.toggleItalic(), underline: chain => chain.toggleUnderline(),
+        strike: chain => chain.toggleStrike(),
+        superscript: chain => chain.unsetMark('subscript').toggleMark('superscript'),
+        subscript: chain => chain.unsetMark('superscript').toggleMark('subscript'),
         paragraph: chain => chain.setParagraph(), heading: chain => chain.toggleHeading({ level: 2 }),
         bulletList: chain => chain.toggleBulletList(), orderedList: chain => chain.toggleOrderedList(),
         rtl: chain => chain.setTextDirection('rtl'), ltr: chain => chain.setTextDirection('ltr'), auto: chain => chain.setTextDirection('auto'),
@@ -147,6 +156,9 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     }).run();}
     function getCommandState(command) {
         if (!editorCommands.includes(command) || editor.isDestroyed) return { enabled: false, active: false };
+        // Tiptap's generic can().setMark rejects an opposite excluding mark. These commands
+        // deliberately replace that mark in the same transaction, including at the caret.
+        if(scriptMarks.includes(command))return {enabled:editor.isEditable&&selectedBlocks(editor.state).some(({node})=>node.type.allowsMarkType(editor.schema.marks[command])),active:editor.isActive(command)};
         if(Object.hasOwn(paragraphCommands,command)||paragraphActions.includes(command)){
             const blocks=selectedBlocks(editor.state);let enabled=editor.isEditable&&blocks.length>0;
             if(command==='increaseIndent')enabled&&=blocks.some(({node})=>(node.attrs.indentLevel??0)<8);
@@ -176,6 +188,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
                 return editor.chain().focus().command(({tr})=>{closeHistory(tr);return true;}).setMark('typography',{[field]:value}).command(removeEmptyTypography).run();
             }
             if(command==='clearTextStyle')return editor.chain().focus().command(({tr})=>{closeHistory(tr);return true;}).unsetMark('typography').run();
+            if(scriptMarks.includes(command)||command==='strike')return operations[command](editor.chain().focus().command(({tr})=>{closeHistory(tr);return true;})).run();
             return operations[command](editor.chain().focus()).run();
         },
         setEditable(value) { editor.setEditable(value, false); notify({ documentChanged: false }); },

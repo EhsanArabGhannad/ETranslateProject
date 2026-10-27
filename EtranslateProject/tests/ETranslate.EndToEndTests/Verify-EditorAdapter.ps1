@@ -29,5 +29,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Typography PDF font, size, color or highlight differed.' }
     & $PythonPath (Join-Path $PSScriptRoot 'verify_paragraph_pdf.py') (Join-Path $projectRoot 'tmp/pdfs/paragraph')
     if ($LASTEXITCODE -ne 0) { throw 'Paragraph PDF alignment, line spacing or logical indentation differed.' }
+    & $PythonPath (Join-Path $PSScriptRoot 'verify_inline_scripts_pdf.py') (Join-Path $projectRoot 'tmp/pdfs/inline-scripts')
+    if ($LASTEXITCODE -ne 0) { throw 'Inline script baselines, sizes or colored strike differed.' }
     Write-Output 'Editor adapter and page-flow checks passed. Synthetic PDF comparison and temporary loopback host only; no SQL, AppHost or external services.'
 } finally { foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name,$previous[$name]) } }

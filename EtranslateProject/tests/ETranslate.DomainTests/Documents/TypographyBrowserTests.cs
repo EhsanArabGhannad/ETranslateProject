@@ -42,7 +42,7 @@ public sealed partial class EditorAdapterBrowserTests
         Assert.Equal(styled,SubmittedJson(failed.Body));failed.Release.SetResult(503);
         await Assertions.Expect(page.Locator("#editor-font-size")).ToBeEnabledAsync();
         var save=fixture.Enqueue();await page.Locator("#draft-form button[type=submit]").ClickAsync();await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        fixture.Source=SubmittedJson(save.Body);fixture.SchemaVersion="3";save.Release.SetResult(303);await page.WaitForURLAsync("**after-save=1");
+        fixture.Source=SubmittedJson(save.Body);fixture.SchemaVersion="4";save.Release.SetResult(303);await page.WaitForURLAsync("**after-save=1");
         Assert.Equal(styled,await page.Locator("#document-json").InputValueAsync());await Assertions.Expect(Command(page,"undo")).ToBeDisabledAsync();
         await page.EvaluateAsync("()=>document.fonts.ready");
         var computed=await textbox.Locator("p").Nth(1).Locator("span[data-et-typography]").First.EvaluateAsync<string[]>("e=>{const style=getComputedStyle(e);return [style.fontFamily,style.fontSize,style.color,style.backgroundColor];}");

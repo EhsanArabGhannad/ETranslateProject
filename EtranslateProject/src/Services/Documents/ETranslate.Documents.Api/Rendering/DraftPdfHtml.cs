@@ -23,7 +23,7 @@ public static class DraftPdfHtml
             textLength += text.Length;
             if (textLength > DraftPdfPolicy.MaximumTextLength) throw new PdfRenderValidationException("Document exceeds the draft PDF text limit.");
             var html = new StringBuilder();
-            Render(document.RootElement, html, input.Images);
+            Render(document.RootElement, html, input.Images,(expected=="doc"?input.BodyDescriptor:input.TemplateDescriptor).SchemaVersion??1);
             return html.ToString();
         }
         var body = Part(input.BodyJson, "doc");
@@ -87,14 +87,20 @@ public static class DraftPdfHtml
         text = extracted!;
         return JsonDocument.Parse(json);
     }
-    private static void Render(JsonElement node, StringBuilder html, IReadOnlyDictionary<Guid, PdfImage> images)
+    private static void Render(JsonElement node, StringBuilder html, IReadOnlyDictionary<Guid, PdfImage> images,int version)
     {
         var type = node.GetProperty("type").GetString();
         if (type == "text")
         {
             var value = Encode(node.GetProperty("text").GetString()!);
-            if (node.TryGetProperty("marks", out var marks)) foreach (var mark in marks.EnumerateArray())
+            if (node.TryGetProperty("marks", out var marks)) foreach (var mark in marks.EnumerateArray().OrderBy(mark=>version>=4?DocumentInlineScript.RenderOrder(mark.GetProperty("type").GetString()):0))
             {
+                var markType=mark.GetProperty("type").GetString();
+                if(DocumentInlineScript.IsScript(markType))
+                {
+                    var scriptTag=markType=="superscript"?"sup":"sub";
+                    value=$"<{scriptTag} style=\"{DocumentInlineScript.Css(markType!)}\">{value}</{scriptTag}>";continue;
+                }
                 if(mark.GetProperty("type").GetString()=="typography")
                 { value=$"<span style=\"{Encode(DocumentTypography.Css(mark.GetProperty("attrs")))}\">{value}</span>";continue; }
                 var tag = mark.GetProperty("type").GetString() switch { "bold" => "strong", "italic" => "em", "underline" => "u", "strike" => "s", _ => throw new PdfRenderValidationException("Unsupported mark.") };
@@ -110,9 +116,9 @@ public static class DraftPdfHtml
             var rows = node.GetProperty("content").EnumerateArray().ToArray();
             var hasHeader = rows[0].GetProperty("content").EnumerateArray().All(cell => cell.GetProperty("type").GetString() == "tableHeader");
             html.Append($"<table dir=\"{direction}\">");
-            if (hasHeader) { html.Append("<thead>"); Render(rows[0], html, images); html.Append("</thead>"); }
+            if (hasHeader) { html.Append("<thead>"); Render(rows[0], html, images,version); html.Append("</thead>"); }
             html.Append("<tbody>");
-            foreach (var row in rows.Skip(hasHeader ? 1 : 0)) Render(row, html, images);
+            foreach (var row in rows.Skip(hasHeader ? 1 : 0)) Render(row, html, images,version);
             html.Append("</tbody></table>"); return;
         }
         if (type == "image")
@@ -145,7 +151,7 @@ public static class DraftPdfHtml
             if (attrs.TryGetProperty("type", out var listType) && listType.ValueKind == JsonValueKind.String) html.Append($" type=\"{listType.GetString()}\"");
         }
         html.Append('>');
-        if (node.TryGetProperty("content", out var content)) foreach (var child in content.EnumerateArray()) Render(child, html, images);
+        if (node.TryGetProperty("content", out var content)) foreach (var child in content.EnumerateArray()) Render(child, html, images,version);
         html.Append($"</{tagName}>");
     }
     private static string Watermark(string? json)

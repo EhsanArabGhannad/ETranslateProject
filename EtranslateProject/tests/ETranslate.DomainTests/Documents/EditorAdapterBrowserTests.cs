@@ -82,7 +82,7 @@ public sealed partial class EditorAdapterBrowserTests
         var success = fixture.Enqueue();
         await page.Locator("#draft-form button[type=submit]").ClickAsync();
         await success.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        fixture.Source = SubmittedJson(success.Body); fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "3"; success.Release.SetResult(303);
+        fixture.Source = SubmittedJson(success.Body); fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "4"; success.Release.SetResult(303);
         try { await page.WaitForURLAsync("**/Workspace/Editor?after-save=1", new() { Timeout = 10000 }); }
         catch (TimeoutException error) { throw new InvalidOperationException("Save redirect: " + await page.Locator("#save-state").InnerTextAsync() +
             "; responses=" + string.Join(",", fixture.Responses) + "; unexpected=" + string.Join(",", fixture.Unexpected), error); }
@@ -167,7 +167,7 @@ public sealed partial class EditorAdapterBrowserTests
             Assert.Equal(Initial, await page.Locator("#document-json").InputValueAsync());
             await Assertions.Expect(page.Locator("#rich-text [role=textbox]")).ToHaveAttributeAsync("contenteditable", "true");
         }
-        foreach (var pair in new[] { (DocumentContentDescriptor.RichFormat, "4"), ("sfdt", "1"), (DocumentContentDescriptor.RichFormat, "") })
+        foreach (var pair in new[] { (DocumentContentDescriptor.RichFormat, "5"), ("sfdt", "1"), (DocumentContentDescriptor.RichFormat, "") })
         {
             fixture.Format = pair.Item1; fixture.SchemaVersion = pair.Item2;
             await fixture.OpenAsync(rich: false);
@@ -179,7 +179,7 @@ public sealed partial class EditorAdapterBrowserTests
             await Assertions.Expect(page.Locator("#preview-body")).Not.ToContainTextAsync("İstanbul");
         }
         fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "1";
-        fixture.TemplateFormat = DocumentContentDescriptor.RichFormat; fixture.TemplateSchemaVersion = "4";
+        fixture.TemplateFormat = DocumentContentDescriptor.RichFormat; fixture.TemplateSchemaVersion = "5";
         await fixture.OpenAsync(rich: false);
         await Assertions.Expect(page.Locator("#draft-form button[type=submit]")).ToBeDisabledAsync();
         Assert.Equal(Initial, await page.Locator("#document-json").InputValueAsync());
@@ -474,8 +474,8 @@ public sealed partial class EditorAdapterBrowserTests
         }
         private string Html()
         {
-            var commands = new[] { "bold", "italic", "underline", "paragraph", "heading", "bulletList", "orderedList", "rtl", "ltr", "auto", "undo", "redo", "insertTable", "addRowAfter", "addColumnAfter", "deleteRow", "deleteColumn", "deleteTable", "notSupported" };
-            var labels = new[] { "KalinMetin", "ItalikMetin", "AltiCizili", "Paragraf", "Baslik", "MaddeIsaretliListe", "NumaraliListe", "SagdanSola", "SoldanSaga", "OtomatikYon", "GeriAl", "Yinele", "Baslikli33Tablo", "SonrakiSatir", "SonrakiSutun", "SatiriSil", "SutunuSil", "TabloyuSil" };
+            var commands = new[] { "bold", "italic", "underline", "strike", "superscript", "subscript", "paragraph", "heading", "bulletList", "orderedList", "rtl", "ltr", "auto", "undo", "redo", "insertTable", "addRowAfter", "addColumnAfter", "deleteRow", "deleteColumn", "deleteTable", "notSupported" };
+            var labels = new[] { "KalinMetin", "ItalikMetin", "AltiCizili", "EditorStrike", "EditorSuperscript", "EditorSubscript", "Paragraf", "Baslik", "MaddeIsaretliListe", "NumaraliListe", "SagdanSola", "SoldanSaga", "OtomatikYon", "GeriAl", "Yinele", "Baslikli33Tablo", "SonrakiSatir", "SonrakiSutun", "SatiriSil", "SutunuSil", "TabloyuSil" };
             var buttons = string.Join("", commands.Select((command, i) => $"<button type='button' data-command='{command}' aria-pressed='false' {(i == labels.Length ? "hidden" : "")}>{(i < 3 ? new[] { "<strong>B</strong>", "<em>I</em>", "<u>U</u>" }[i] : i < labels.Length ? UiText.Get(labels[i]) : command)}</button>"));
             var metadata = Format is null && SchemaVersion is null ? "" : $"data-content-format='{WebUtility.HtmlEncode(Format)}' data-content-schema-version='{WebUtility.HtmlEncode(SchemaVersion)}'";
             var templateMetadata = TemplateFormat is null && TemplateSchemaVersion is null ? "" : $"data-template-content-format='{WebUtility.HtmlEncode(TemplateFormat)}' data-template-content-schema-version='{WebUtility.HtmlEncode(TemplateSchemaVersion)}'";
@@ -483,7 +483,7 @@ public sealed partial class EditorAdapterBrowserTests
                 <div id="editor-typography" class="editor-typography">
                 <label>Yazı tipi<select id="editor-font-family" data-style-command="fontFamily"><option value="">Varsayılan</option><option value="__mixed__" disabled>Karma</option><option value="sans">Noto Sans</option><option value="serif">Noto Serif</option><option value="arabic">Noto Sans Arabic</option></select></label>
                 <label>Boyut<select id="editor-font-size" data-style-command="fontSize"><option value="">Varsayılan</option><option value="__mixed__" disabled>Karma</option><option value="12">12</option><option value="18">18</option><option value="24">24</option></select></label>
-                <label>Metin rengi<select id="editor-text-color" data-style-command="textColor"><option value="">Varsayılan</option><option value="__mixed__" disabled>Karma</option><option value="#b91c1c">Kırmızı</option><option value="#1d4ed8">Mavi</option></select></label>
+                <label>Metin rengi<select id="editor-text-color" data-style-command="textColor"><option value="">Varsayılan</option><option value="__mixed__" disabled>Karma</option><option value="#b91c1c">Kırmızı</option><option value="#1d4ed8">Mavi</option><option value="#15803d">Yeşil</option></select></label>
                 <label>Vurgu<select id="editor-highlight" data-style-command="highlight"><option value="">Yok</option><option value="__mixed__" disabled>Karma</option><option value="#fef08a">Sarı</option></select></label>
                 <button type="button" data-command="clearTextStyle">Yazı biçimini temizle</button></div>
                 """;

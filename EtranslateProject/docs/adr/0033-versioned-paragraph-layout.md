@@ -2,6 +2,8 @@
 
 Date: 2026-10-27
 
+Continuation: this ADR records the v3 paragraph step. [ADR 0034](0034-versioned-inline-scripts.md) adds v4 inline scripts and renderer v14; current rich-editor saves use v4, and the next unknown version is v5. The original v3 vocabulary and historical boundaries below remain unchanged.
+
 ## Contract and compatibility
 
 Introduce `etranslate.rich-document / 3`. It retains v2 typography and adds the following optional attributes to body paragraphs and headings:

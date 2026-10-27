@@ -1,6 +1,7 @@
 import { assertDocumentFormat, editorCommands, readDocumentJson, writeDocumentJson } from './document-contract.js';
 import { typographyCommands, validTypographyValue } from '../typography.js';
 import { paragraphCommands, paragraphActions, validParagraphValue } from '../paragraph.js';
+import { scriptMarks } from '../inline-script.js';
 
 /**
  * Provider contract (trusted application code):
@@ -43,6 +44,7 @@ export function createEditorSession({ provider, element, contentJson, contentFor
     } catch (error) { adapter.destroy(); throw error; }
     function getCommandState(command) {
         if (destroyed || !editorCommands.includes(command)) return { enabled: false, active: false };
+        if(provider.format.version<4 && scriptMarks.includes(command))return {enabled:false,active:false};
         if(provider.format.version<2 && (Object.hasOwn(typographyCommands,command)||command==='clearTextStyle'))return {enabled:false,active:false};
         if(provider.format.version<3 && (Object.hasOwn(paragraphCommands,command)||paragraphActions.includes(command)))return {enabled:false,active:false};
         const state = adapter.getCommandState(command);

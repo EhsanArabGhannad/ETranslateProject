@@ -1,0 +1,14 @@
+[
+  {"name":"superscript","marks":[{"type":"superscript"}],"valid":true},
+  {"name":"subscript","marks":[{"type":"subscript"}],"valid":true},
+  {"name":"superscript with typography","marks":[{"type":"typography","attrs":{"fontSize":18}},{"type":"superscript"}],"valid":true},
+  {"name":"subscript with reverse input order","marks":[{"type":"subscript"},{"type":"typography","attrs":{"fontSize":18}}],"valid":true},
+  {"name":"script and ordinary marks","marks":[{"type":"superscript"},{"type":"strike"},{"type":"bold"},{"type":"underline"}],"valid":true},
+  {"name":"conflicting scripts","marks":[{"type":"superscript"},{"type":"subscript"}],"valid":false},
+  {"name":"duplicate script","marks":[{"type":"superscript"},{"type":"superscript"}],"valid":false},
+  {"name":"empty script attributes rejected","marks":[{"type":"superscript","attrs":{}}],"valid":false},
+  {"name":"CSS attributes rejected","marks":[{"type":"subscript","attrs":{"style":"position:fixed"}}],"valid":false},
+  {"name":"unknown script field rejected","marks":[{"type":"superscript","extra":true}],"valid":false},
+  {"name":"unknown mark rejected","marks":[{"type":"sup"}],"valid":false},
+  {"name":"invalid typography retained as error","marks":[{"type":"subscript"},{"type":"typography","attrs":{"fontSize":99}}],"valid":false}
+]

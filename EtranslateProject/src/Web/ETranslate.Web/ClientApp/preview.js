@@ -4,6 +4,7 @@ import { footerPolicy, showFooter } from './footer-policy.js';
 import { supportsStoredContent, storedDocumentFormat } from './editors/document-contract.js';
 import { applyTypography } from './typography.js';
 import { applyParagraph } from './paragraph.js';
+import { scriptMarks, applyInlineScript, orderedInlineMarks } from './inline-script.js';
 
 export function assetUrl(workspace, assetId) {
     const { tenantId, templateId } = workspace.dataset;
@@ -19,7 +20,13 @@ export function createPreview(workspace, resolveImage = id => assetUrl(workspace
         if (typeof node !== 'object') { unsupported = true; return; }
         if (node.type === 'text') {
             let leaf = document.createTextNode(typeof node.text === 'string' ? node.text : '');
-            for (const mark of (Array.isArray(node.marks) ? node.marks : [])) {
+            const marks=Array.isArray(node.marks)?node.marks:[];
+            for (const mark of contentVersion>=4?orderedInlineMarks(marks):marks) {
+                if(scriptMarks.includes(mark?.type)){
+                    if(contentVersion<4){unsupported=true;continue;}
+                    const wrapper=document.createElement(mark.type==='superscript'?'sup':'sub');applyInlineScript(wrapper,mark.type);
+                    wrapper.append(leaf);leaf=wrapper;continue;
+                }
                 if(mark?.type==='typography'){
                     if(contentVersion<2){unsupported=true;continue;}
                     const wrapper=document.createElement('span');if(!applyTypography(wrapper,mark.attrs)){unsupported=true;continue;}

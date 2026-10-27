@@ -6,6 +6,7 @@ import re
 import sys
 from pypdf import PdfReader
 from verify_typography_pdf import assert_typography
+from verify_inline_scripts_pdf import assert_sql_script
 
 directory = Path(sys.argv[1])
 report = json.loads((directory / "browser-report.json").read_text(encoding="utf-8"))
@@ -21,6 +22,7 @@ for sample in report["samples"]:
     pdf = PdfReader(directory / f"{name}.pdf")
     texts = [page.extract_text() for page in pdf.pages]
     typography = None
+    inline_script = None
     markers = {}
     for number, text in enumerate(texts,1):
         for marker in re.findall(r"MARK_\d{3}|END_MARKER",text):
@@ -36,10 +38,12 @@ for sample in report["samples"]:
         assert "QA_LAST_FOOTER" in texts[-1]
         assert sample["typographyVerified"]
         typography = assert_typography(directory / f"{name}.pdf")
+        assert sample["paragraphSettingsVerified"] and sample["inlineScriptVerified"]
+        inline_script = assert_sql_script(directory / f"{name}.pdf")
     elif sample["hasTemplate"]:
         assert all("QA_LEGACY_HEADER" in text and "QA_LEGACY_FOOTER" in text for text in texts)
     results.append({"name":name,"pages":len(texts),"markers":len(markers),"passed":True,
-                    "sha256":hashlib.sha256((directory/f"{name}.pdf").read_bytes()).hexdigest(),"typography":typography})
+                    "sha256":hashlib.sha256((directory/f"{name}.pdf").read_bytes()).hexdigest(),"typography":typography,"inlineScript":inline_script})
 summary = {"passed":True,"cases":results,"markers":sum(item["markers"] for item in results),
            "realServices":6,"sqlCleanupSucceeded":True,"archiveFixture":report["archiveFixture"]}
 (directory / "pdf-comparison.json").write_text(json.dumps(summary,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
