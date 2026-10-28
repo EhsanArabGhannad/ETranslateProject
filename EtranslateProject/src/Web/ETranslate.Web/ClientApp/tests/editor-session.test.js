@@ -42,7 +42,7 @@ test('application format round-trips supported Unicode, marks and directions wit
 });
 
 test('unsupported formats, native payloads and malformed data fail before the provider mounts', () => {
-    for (const format of [{ id: 'sfdt', version: 1 }, { ...richDocumentV1, version: 5 }, null]) {
+    for (const format of [{ id: 'sfdt', version: 1 }, { ...richDocumentV1, version: 6 }, null]) {
         const engine = fakeProvider(); engine.provider.format = format;
         assert.throws(() => createEditorSession({ provider: engine.provider, contentJson: source }));
         assert.equal(engine.calls.length, 0);

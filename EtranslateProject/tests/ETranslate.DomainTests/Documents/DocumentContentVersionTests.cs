@@ -41,7 +41,7 @@ public sealed class DocumentContentVersionTests
     }
 
     [Theory]
-    [InlineData("etranslate.rich-document", 5)] [InlineData("sfdt", 1)]
+    [InlineData("etranslate.rich-document", 6)] [InlineData("sfdt", 1)]
     [InlineData(null, 1)] [InlineData("etranslate.rich-document", null)]
     [InlineData("", 1)] [InlineData("etranslate.rich-document", 0)] [InlineData("etranslate.legacy-json", 0)]
     public void Unsupported_or_partial_write_metadata_is_rejected_before_state_changes(string? format, int? version)
@@ -85,7 +85,7 @@ public sealed class DocumentContentVersionTests
     {
         var document = Document(); var original = document.AddDraftRevision(0, Body, null, Guid.NewGuid(), Now, DocumentContentDescriptor.RichFormat, 1);
         // Simulate a revision read from a database written by a future release, not a supported write path.
-        Set(original, nameof(original.ContentSchemaVersion), 5);
+        Set(original, nameof(original.ContentSchemaVersion), 6);
         Assert.False(original.ContentDescriptor.TryRead(Body, out _));
         Assert.Throws<DocumentValidationException>(() => document.AddDraftRevision(1, Body, null, Guid.NewGuid(), Now));
         Assert.Throws<DocumentValidationException>(() => document.AddDraftRevision(1, Body, null, Guid.NewGuid(), Now, DocumentContentDescriptor.RichFormat, 1));
@@ -105,7 +105,7 @@ public sealed class DocumentContentVersionTests
         var nextTemplate = template.AddRevision(1, Body, "{\"type\":\"header\",\"content\":[]}", null, "{}", null, Guid.NewGuid(), Now);
         Assert.Equal(DocumentContentDescriptor.RichV1, nextTemplate.ContentDescriptor);
         Assert.Throws<DocumentTemplateValidationException>(() => template.AddRevision(2, Opaque, null, null, "{}", null, Guid.NewGuid(), Now));
-        Set(nextTemplate, nameof(nextTemplate.ContentSchemaVersion), 5);
+        Set(nextTemplate, nameof(nextTemplate.ContentSchemaVersion), 6);
         Assert.Throws<DocumentTemplateValidationException>(() => template.AddRevision(2, Body, null, null, "{}", null, Guid.NewGuid(), Now));
         Assert.Throws<DocumentValidationException>(() => Document(document.TenantId).ApplyTemplate(template, nextTemplate, Guid.NewGuid(), Now));
     }
@@ -123,7 +123,7 @@ public sealed class DocumentContentVersionTests
         var legacyHtml = DraftPdfHtml.Prepare(input, "").Html;
         var rich = input with { ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 1 };
         Assert.Equal(legacyHtml, DraftPdfHtml.Prepare(rich, "").Html);
-        Assert.Throws<PdfRenderValidationException>(() => DraftPdfHtml.Prepare(rich with { ContentSchemaVersion = 5 }, ""));
+        Assert.Throws<PdfRenderValidationException>(() => DraftPdfHtml.Prepare(rich with { ContentSchemaVersion = 6 }, ""));
         Assert.Throws<PdfRenderValidationException>(() => DraftPdfHtml.Prepare(rich with { TemplateContentFormat = "sfdt", TemplateContentSchemaVersion = 1 }, ""));
         Assert.Throws<PdfRenderValidationException>(() => DraftPdfHtml.ImageReferences(null, "doc", new("sfdt", 1)));
         // No PDF file is generated in this test; only deterministic preparation/dispatch is checked.
@@ -133,9 +133,9 @@ public sealed class DocumentContentVersionTests
     {
         var draft = JsonSerializer.Deserialize<DraftView>("""{"RevisionNumber":1,"EditorContentJson":"{}","PlainText":null}""")!;
         Assert.True(draft.ContentDescriptor.IsLegacy);
-        var editor = new EditorView { EditorContentJson = Body, ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 5 };
+        var editor = new EditorView { EditorContentJson = Body, ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 6 };
         Assert.False(editor.ContentIsSupported);
-        var template = new TemplateRevision(Guid.NewGuid(), Guid.NewGuid(), 1, Body, null, null, "{}", null, DocumentContentDescriptor.RichFormat, 5);
+        var template = new TemplateRevision(Guid.NewGuid(), Guid.NewGuid(), 1, Body, null, null, "{}", null, DocumentContentDescriptor.RichFormat, 6);
         var detail = new TemplateDetail(template.TemplateId, "Fixture", null, true, 1, template);
         var projection = TemplateProjection.From(detail, Guid.NewGuid(), out _);
         Assert.False(projection.BodyEditable); Assert.False(projection.HeaderEditable); Assert.False(projection.CanAppendLogo);

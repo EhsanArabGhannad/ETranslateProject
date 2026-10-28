@@ -12,12 +12,14 @@ public sealed record DocumentContentDescriptor(string? Format, int? SchemaVersio
     public static readonly DocumentContentDescriptor RichV2 = new(RichFormat, 2);
     public static readonly DocumentContentDescriptor RichV3 = new(RichFormat, 3);
     public static readonly DocumentContentDescriptor RichV4 = new(RichFormat, 4);
+    public static readonly DocumentContentDescriptor RichV5 = new(RichFormat, 5);
     public bool IsLegacy => Format is null && SchemaVersion is null;
     public bool IsRichV1 => Format == RichFormat && SchemaVersion == RichSchemaVersion;
     public bool IsRichV2 => Format == RichFormat && SchemaVersion == 2;
     public bool IsRichV3 => Format == RichFormat && SchemaVersion == 3;
     public bool IsRichV4 => Format == RichFormat && SchemaVersion == 4;
-    public bool IsSupported => IsLegacy || IsRichV1 || IsRichV2 || IsRichV3 || IsRichV4;
+    public bool IsRichV5 => Format == RichFormat && SchemaVersion == 5;
+    public bool IsSupported => IsLegacy || IsRichV1 || IsRichV2 || IsRichV3 || IsRichV4 || IsRichV5;
     public string DisplayFormat => Format ?? LegacyDisplayFormat;
     public int DisplaySchemaVersion => SchemaVersion ?? 0;
 
@@ -36,7 +38,7 @@ public sealed record DocumentContentDescriptor(string? Format, int? SchemaVersio
         plainText = null;
         if (json is null || rootType is not ("doc" or "header" or "footer")) return false;
         // Explicit dispatch: legacy rendering remains a narrow, safe subset, not generic JSON flattening.
-        // Each version retains its vocabulary: v2 typography, v3 paragraph layout, v4 inline scripts.
+        // Each version retains its vocabulary; v5 extends v4 with bounded paragraph spacing.
         return (Format, SchemaVersion) switch
         {
             (null, null) => ReadV1Vocabulary(json, out plainText, rootType),
@@ -47,6 +49,8 @@ public sealed record DocumentContentDescriptor(string? Format, int? SchemaVersio
                 rootType != "doc" && DocumentContentJson.TryGetPlainText(json, out plainText, "doc", 3),
             (RichFormat, 4) => DocumentContentJson.TryGetPlainText(json, out plainText, rootType, 4) ||
                 rootType != "doc" && DocumentContentJson.TryGetPlainText(json, out plainText, "doc", 4),
+            (RichFormat, 5) => DocumentContentJson.TryGetPlainText(json, out plainText, rootType, 5) ||
+                rootType != "doc" && DocumentContentJson.TryGetPlainText(json, out plainText, "doc", 5),
             _ => false
         };
     }

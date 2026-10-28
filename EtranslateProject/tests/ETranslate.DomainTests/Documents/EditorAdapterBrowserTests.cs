@@ -64,7 +64,7 @@ public sealed partial class EditorAdapterBrowserTests
         Assert.Equal(1, await page.Locator("#preview-body table").CountAsync());
 
         var edited = await page.Locator("#document-json").InputValueAsync();
-        Assert.True(DocumentContentDescriptor.RichV3.TryRead(edited, out var plain));
+        Assert.True(DocumentContentDescriptor.RichV5.TryRead(edited, out var plain));
         Assert.Contains("نیم‌فاصله", plain); Assert.Contains("İstanbul şĞı", plain); Assert.Contains("ADAPTER_EDIT", plain);
         Assert.Contains("\"bold\"", edited);
         var retry = fixture.Enqueue();
@@ -82,7 +82,7 @@ public sealed partial class EditorAdapterBrowserTests
         var success = fixture.Enqueue();
         await page.Locator("#draft-form button[type=submit]").ClickAsync();
         await success.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        fixture.Source = SubmittedJson(success.Body); fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "4"; success.Release.SetResult(303);
+        fixture.Source = SubmittedJson(success.Body); fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "5"; success.Release.SetResult(303);
         try { await page.WaitForURLAsync("**/Workspace/Editor?after-save=1", new() { Timeout = 10000 }); }
         catch (TimeoutException error) { throw new InvalidOperationException("Save redirect: " + await page.Locator("#save-state").InnerTextAsync() +
             "; responses=" + string.Join(",", fixture.Responses) + "; unexpected=" + string.Join(",", fixture.Unexpected), error); }
@@ -167,7 +167,7 @@ public sealed partial class EditorAdapterBrowserTests
             Assert.Equal(Initial, await page.Locator("#document-json").InputValueAsync());
             await Assertions.Expect(page.Locator("#rich-text [role=textbox]")).ToHaveAttributeAsync("contenteditable", "true");
         }
-        foreach (var pair in new[] { (DocumentContentDescriptor.RichFormat, "5"), ("sfdt", "1"), (DocumentContentDescriptor.RichFormat, "") })
+        foreach (var pair in new[] { (DocumentContentDescriptor.RichFormat, "6"), ("sfdt", "1"), (DocumentContentDescriptor.RichFormat, "") })
         {
             fixture.Format = pair.Item1; fixture.SchemaVersion = pair.Item2;
             await fixture.OpenAsync(rich: false);
@@ -179,7 +179,7 @@ public sealed partial class EditorAdapterBrowserTests
             await Assertions.Expect(page.Locator("#preview-body")).Not.ToContainTextAsync("İstanbul");
         }
         fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "1";
-        fixture.TemplateFormat = DocumentContentDescriptor.RichFormat; fixture.TemplateSchemaVersion = "5";
+        fixture.TemplateFormat = DocumentContentDescriptor.RichFormat; fixture.TemplateSchemaVersion = "6";
         await fixture.OpenAsync(rich: false);
         await Assertions.Expect(page.Locator("#draft-form button[type=submit]")).ToBeDisabledAsync();
         Assert.Equal(Initial, await page.Locator("#document-json").InputValueAsync());
@@ -488,12 +488,16 @@ public sealed partial class EditorAdapterBrowserTests
                 <label>Vurgu<select id="editor-highlight" data-style-command="highlight"><option value="">Yok</option><option value="__mixed__" disabled>Karma</option><option value="#fef08a">Sarı</option></select></label>
                 <button type="button" data-command="clearTextStyle">Yazı biçimini temizle</button></div>
                 """;
-            var paragraph="""
+            var advancedFields=new[]{("editor-space-before","spaceBeforePt","EditorSpaceBefore"),("editor-space-after","spaceAfterPt","EditorSpaceAfter"),("editor-first-line-indent","firstLineIndentMm","EditorFirstLineIndent")};
+            var advanced=string.Join("",advancedFields.Select(field=>"<label>"+WebUtility.HtmlEncode(UiText.Get(field.Item3))+"<select id='"+field.Item1+"' data-style-command='"+field.Item2+"'><option value=''>Varsayılan</option><option value='__mixed__' disabled>Karma</option>"+
+                string.Join("",(field.Item2=="firstLineIndentMm"?new[]{0d,5,10,12.5,15,20,25,30,35,40}:new[]{0d,3,6,8,12,18,24,36,48,72}).Select(value=>"<option value='"+value.ToString(System.Globalization.CultureInfo.InvariantCulture)+"'>"+value.ToString(System.Globalization.CultureInfo.GetCultureInfo("tr-TR"))+"</option>"))+"</select></label>"));
+            var paragraph=$$"""
                 <div id="editor-paragraph" class="editor-typography">
                 <label>Hizalama<select id="editor-text-align" data-style-command="textAlign"><option value="">Varsayılan</option><option value="__mixed__" disabled>Karma</option><option value="left">Sola</option><option value="center">Ortala</option><option value="right">Sağa</option><option value="justify">İki yana yasla</option></select></label>
                 <label>Satır aralığı<select id="editor-line-height" data-style-command="lineHeight"><option value="">Varsayılan</option><option value="__mixed__" disabled>Karma</option><option value="1">1</option><option value="1.15">1,15</option><option value="1.5">1,5</option><option value="1.65">1,65</option><option value="2">2</option><option value="2.5">2,5</option><option value="3">3</option></select></label>
                 <label>Girinti<select id="editor-indent-level" data-style-command="indentLevel"><option value="">Varsayılan</option><option value="__mixed__" disabled>Karma</option><option value="0">0</option><option value="1">5</option><option value="2">10</option><option value="8">40</option></select></label>
-                <button type="button" data-command="decreaseIndent">Azalt</button><button type="button" data-command="increaseIndent">Artır</button><button type="button" data-command="clearParagraphStyle">Sıfırla</button></div>
+                <button type="button" data-command="decreaseIndent">Azalt</button><button type="button" data-command="increaseIndent">Artır</button><button type="button" data-command="clearParagraphStyle">Sıfırla</button>
+                <details id="editor-paragraph-advanced" class="editor-paragraph-advanced"><summary>{{UiText.Get("EditorParagraphSpacing")}}</summary><div class="editor-paragraph-spacing">{{advanced}}</div></details></div>
                 """;
             return $$"""
                 <!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/site.css"><link rel="stylesheet" href="/css/document-pagination.css"></head><body>

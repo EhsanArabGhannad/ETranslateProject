@@ -8,7 +8,7 @@ const tableTypes = ['table', 'tableRow', 'tableCell', 'tableHeader'];
 const marks = ['bold', 'italic', 'underline', 'strike'];
 
 export function isRichDocument(root, version = 1) {
-    if(![1,2,3,4].includes(version))return false;
+    if(![1,2,3,4,5].includes(version))return false;
     let remaining = 20000;
     function visit(node, parent, depth) {
         if (depth > 32 || --remaining < 0 || !object(node) || typeof node.type !== 'string') return false;
@@ -29,7 +29,7 @@ export function isRichDocument(root, version = 1) {
                 value.every(mark => object(mark) && (Object.keys(mark).length === 1 && (marks.includes(mark.type)||version>=4&&scriptMarks.includes(mark.type)) ||
                     version>=2 && mark.type==='typography' && Object.keys(mark).length===2 && Object.hasOwn(mark,'attrs') && validTypography(mark.attrs)))) continue;
             if (key === 'attrs' && type !== 'text' && object(value) && Object.entries(value).every(([attr, val]) =>
-                version>=3 && ['paragraph','heading'].includes(type) && validParagraphValue(attr,val) ||
+                version>=3 && ['paragraph','heading'].includes(type) && validParagraphValue(attr,val,version) ||
                 attr === 'dir' && ['auto', 'rtl', 'ltr'].includes(val) ||
                 type === 'heading' && attr === 'level' && Number.isInteger(val) && val >= 1 && val <= 6 ||
                 type === 'orderedList' && attr === 'start' && Number.isInteger(val) && val >= 1 && val <= 10000 ||

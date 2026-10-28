@@ -1,0 +1,19 @@
+[
+  {"name":"before six points","attrs":{"spaceBeforePt":6},"valid":true},
+  {"name":"after eighteen points","attrs":{"spaceAfterPt":18},"valid":true},
+  {"name":"explicit zeros","attrs":{"spaceBeforePt":0,"spaceAfterPt":0,"firstLineIndentMm":0},"valid":true},
+  {"name":"half millimeter first line","attrs":{"firstLineIndentMm":12.5},"valid":true},
+  {"name":"maximum values","attrs":{"spaceBeforePt":72,"spaceAfterPt":72,"firstLineIndentMm":40},"valid":true},
+  {"name":"defaults","attrs":{"spaceBeforePt":null,"spaceAfterPt":null,"firstLineIndentMm":null},"valid":true},
+  {"name":"combined base and advanced","attrs":{"textAlign":"right","indentLevel":2,"lineHeight":2,"spaceBeforePt":3,"spaceAfterPt":12,"firstLineIndentMm":5},"valid":true},
+  {"name":"negative before","attrs":{"spaceBeforePt":-1},"valid":false},
+  {"name":"negative after","attrs":{"spaceAfterPt":-1},"valid":false},
+  {"name":"too much spacing","attrs":{"spaceAfterPt":73},"valid":false},
+  {"name":"fractional points rejected","attrs":{"spaceBeforePt":6.5},"valid":false},
+  {"name":"numeric string rejected","attrs":{"spaceAfterPt":"12"},"valid":false},
+  {"name":"CSS string rejected","attrs":{"firstLineIndentMm":"12mm;color:red"},"valid":false},
+  {"name":"hanging indentation out of scope","attrs":{"firstLineIndentMm":-5},"valid":false},
+  {"name":"too much first line","attrs":{"firstLineIndentMm":40.5},"valid":false},
+  {"name":"unsupported millimeter fraction","attrs":{"firstLineIndentMm":12.2},"valid":false},
+  {"name":"arbitrary margin rejected","attrs":{"marginTop":"12pt"},"valid":false}
+]

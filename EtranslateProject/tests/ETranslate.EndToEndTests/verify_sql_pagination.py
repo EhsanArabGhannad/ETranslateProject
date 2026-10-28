@@ -40,7 +40,7 @@ for sample in report["samples"]:
         assert "QA_LAST_FOOTER" in texts[-1]
         assert sample["typographyVerified"]
         typography = assert_typography(directory / f"{name}.pdf")
-        assert sample["paragraphSettingsVerified"] and sample["inlineScriptVerified"]
+        assert sample["paragraphSettingsVerified"] and sample["paragraphSpacingVerified"] and sample["inlineScriptVerified"]
         inline_script = assert_sql_script(directory / f"{name}.pdf")
     elif sample["hasTemplate"]:
         assert all("QA_LEGACY_HEADER" in text and "QA_LEGACY_FOOTER" in text for text in texts)

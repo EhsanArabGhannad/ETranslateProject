@@ -70,7 +70,7 @@ export function startRichEditor(workspace, onChanged, preview) {
         }
         for(const control of styles){const apply=()=>{
             if(workspace.dataset.editable!=='true'||control.value==='__mixed__')return;
-            const value=control.value===''?null:['fontSize','lineHeight','indentLevel'].includes(control.dataset.styleCommand)?Number(control.value):control.value;
+            const value=control.value===''?null:['fontSize','lineHeight','indentLevel','spaceBeforePt','spaceAfterPt','firstLineIndentMm'].includes(control.dataset.styleCommand)?Number(control.value):control.value;
             session.execute(control.dataset.styleCommand,value);updateToolbar();
         };control.addEventListener('change',apply);cleanups.push(()=>control.removeEventListener('change',apply));}
         updateToolbar();

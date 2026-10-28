@@ -15,4 +15,19 @@
     <button type="button" class="secondary" data-command="decreaseIndent">@UiText.Get("EditorDecreaseIndent")</button>
     <button type="button" class="secondary" data-command="increaseIndent">@UiText.Get("EditorIncreaseIndent")</button>
     <button type="button" class="secondary" data-command="clearParagraphStyle">@UiText.Get("EditorClearParagraph")</button>
+    <details id="editor-paragraph-advanced" class="editor-paragraph-advanced">
+        <summary>@UiText.Get("EditorParagraphSpacing")</summary>
+        <div class="editor-paragraph-spacing">
+        @foreach(var setting in new[]{("editor-space-before","spaceBeforePt","EditorSpaceBefore"),("editor-space-after","spaceAfterPt","EditorSpaceAfter")}){
+            <label for="@setting.Item1">@UiText.Get(setting.Item3)<select id="@setting.Item1" data-style-command="@setting.Item2">
+                <option value="">@UiText.Get("EditorDefaultStyle")</option><option value="__mixed__" disabled>@UiText.Get("EditorMixedStyle")</option>
+                @foreach(var space in new[]{0,3,6,8,12,18,24,36,48,72}){<option value="@space">@space pt</option>}
+            </select></label>
+        }
+        <label for="editor-first-line-indent">@UiText.Get("EditorFirstLineIndent")<select id="editor-first-line-indent" data-style-command="firstLineIndentMm">
+            <option value="">@UiText.Get("EditorDefaultStyle")</option><option value="__mixed__" disabled>@UiText.Get("EditorMixedStyle")</option>
+            @foreach(var indent in new[]{0d,5,10,12.5,15,20,25,30,35,40}){<option value="@indent.ToString(System.Globalization.CultureInfo.InvariantCulture)">@indent.ToString("0.#",System.Globalization.CultureInfo.GetCultureInfo("tr-TR")) mm</option>}
+        </select></label>
+        </div>
+    </details>
 </div>

@@ -52,7 +52,7 @@ export function createTiptapSearch(){
             }
             if(!tr.docChanged)return false;
             const document=tr.doc.toJSON();
-            if(!isRichDocument(document,4)||JSON.stringify(document).length>2000000||bodyTextBlocks(document).join('\n').length>1000000)return false;
+            if(!isRichDocument(document,5)||JSON.stringify(document).length>2000000||bodyTextBlocks(document).join('\n').length>1000000)return false;
             closeHistory(tr);editor.view.dispatch(tr);editor.view.dispatch(closeHistory(editor.state.tr));return true;
         }
     };

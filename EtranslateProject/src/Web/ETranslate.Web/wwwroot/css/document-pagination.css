@@ -10,6 +10,8 @@
 .editor-typography label{flex:1 1 120px;margin:0;font-size:.85rem;min-width:0}
 .editor-typography select{margin:4px 0 0;width:100%;padding:7px;min-width:0}
 .editor-controls .editor-typography button{width:auto;margin:0;padding:8px 10px}
+.editor-controls .editor-paragraph-advanced{flex:1 1 100%;border:0;padding-top:4px}
+.editor-paragraph-spacing{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
 :is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow{font:11pt/1.65 'Noto Sans','Noto Sans Arabic',sans-serif;color:#20282b;white-space:pre-wrap;overflow-wrap:anywhere;direction:ltr;box-sizing:border-box}
 #rich-text [role=textbox].document-flow{min-height:0;padding:0;border:0;border-radius:0;background:transparent;outline:none}
 :is(#rich-text,#editor-flow-measure,#editor-page-sheets) .document-flow p{margin:0 0 3mm;min-height:1.65em;white-space:pre-wrap;overflow-wrap:anywhere;orphans:3;widows:3}

@@ -6,14 +6,14 @@ import Heading from '@tiptap/extension-heading';
 import { Plugin } from '@tiptap/pm/state';
 import { closeHistory } from '@tiptap/pm/history';
 import { guid, isRichDocument } from '../document-schema.js';
-import { editorCommands, richDocumentV4 } from './document-contract.js';
+import { editorCommands, richDocumentV5 } from './document-contract.js';
 import { typographyFields, typographyCommands, validTypography, validTypographyValue, applyTypography } from '../typography.js';
 import { paragraphFields, paragraphCommands, paragraphActions, validParagraphValue, applyParagraph } from '../paragraph.js';
 import { scriptMarks, applyInlineScript } from '../inline-script.js';
 import {createTiptapSearch} from './tiptap-search.js';
 
 export const tiptapProvider = Object.freeze({
-    id: 'tiptap', format: richDocumentV4,
+    id: 'tiptap', format: richDocumentV5,
     capabilities: Object.freeze({ livePagination: false, docxImport: false, faithfulWordPaste: false, mergedCells: false, literalSearch:true }),
     create: createTiptapAdapter
 });
@@ -25,7 +25,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     const notify = event => { for (const listener of listeners) listener(event); };
     function textBlock(Base,tag){return Base.extend({
         addAttributes(){return {...this.parent?.(),...Object.fromEntries(paragraphFields.map(field=>[field,{default:null,rendered:false,parseHTML:element=>{
-            try{const value=JSON.parse(element.getAttribute('data-et-paragraph'));return value&&typeof value==='object'&&!Array.isArray(value)&&Object.entries(value).every(([key,item])=>validParagraphValue(key,item))?value[field]??null:null;}catch{return null;}
+            try{const value=JSON.parse(element.getAttribute('data-et-paragraph'));return value&&typeof value==='object'&&!Array.isArray(value)&&Object.entries(value).every(([key,item])=>validParagraphValue(key,item,5))?value[field]??null:null;}catch{return null;}
         }}]))};},
         renderHTML({node}){
             const element=document.createElement(tag??`h${node.attrs.level}`);element.dir=['auto','rtl','ltr'].includes(node.attrs.dir)?node.attrs.dir:'auto';
@@ -67,7 +67,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         name: 'preservationPolicy',
         addProseMirrorPlugins() {
             return [search.plugin,new Plugin({ filterTransaction: transaction => {
-                if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),4)) return true;
+                if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),5)) return true;
                 onRejectedChange(); return false;
             } })];
         }
@@ -187,7 +187,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         execute(command, value) {
             if (!getCommandState(command).enabled) return false;
             if(command==='paragraph'||command==='heading')return changeBlock(command);
-            if(Object.hasOwn(paragraphCommands,command))return validParagraphValue(paragraphCommands[command],value)&&updateParagraph(command,value);
+            if(Object.hasOwn(paragraphCommands,command))return validParagraphValue(paragraphCommands[command],value,5)&&updateParagraph(command,value);
             if(paragraphActions.includes(command))return updateParagraph(command);
             if(Object.hasOwn(typographyCommands,command)){
                 const field=typographyCommands[command];if(!validTypographyValue(field,value))return false;

@@ -161,6 +161,8 @@ public sealed class SqlPaginationAcceptanceTests
             await page.Locator("#editor-font-family").SelectOptionAsync("serif");await page.Locator("#editor-font-size").SelectOptionAsync("18");
             await page.Locator("#editor-text-color").SelectOptionAsync("#b91c1c");await page.Locator("#editor-highlight").SelectOptionAsync("#fef08a");
             await page.Locator("#editor-text-align").SelectOptionAsync("right");await page.Locator("#editor-line-height").SelectOptionAsync("2");await page.Locator("#editor-indent-level").SelectOptionAsync("1");
+            await page.Locator("#editor-paragraph-advanced").EvaluateAsync("e=>e.open=true");
+            await page.Locator("#editor-space-before").SelectOptionAsync("6");await page.Locator("#editor-space-after").SelectOptionAsync("12");await page.Locator("#editor-first-line-indent").SelectOptionAsync("5");
             Assert.Equal(marker,await page.EvaluateAsync<string>("()=>getSelection().toString()"));
         }
         await page.Keyboard.PressAsync("End"); await page.Keyboard.InsertTextAsync(" QA_EDIT");
@@ -188,12 +190,13 @@ public sealed class SqlPaginationAcceptanceTests
         Assert.Equal(edited, persisted.GetProperty("editorContentJson").GetString());
         if(archive){Assert.Contains("QA_REPLACED",edited);Assert.DoesNotContain("editor-search",edited);}
         Assert.Equal(DocumentContentDescriptor.RichFormat, persisted.GetProperty("contentFormat").GetString());
-        Assert.Equal(4,persisted.GetProperty("contentSchemaVersion").GetInt32());
+        Assert.Equal(5,persisted.GetProperty("contentSchemaVersion").GetInt32());
         if(lastFooter){Assert.Contains("typography",edited);Assert.Contains("serif",edited);Assert.Contains("#b91c1c",edited);
             using var styled=JsonDocument.Parse(edited);var target=styled.RootElement.GetProperty("content")[0].GetProperty("content").EnumerateArray()
                 .SelectMany(row=>row.GetProperty("content").EnumerateArray()).SelectMany(cell=>cell.GetProperty("content").EnumerateArray())
                 .Single(p=>p.GetProperty("content").EnumerateArray().Any(text=>text.TryGetProperty("text",out var value)&&value.GetString()!.Contains("QA_EDIT")));
             var settings=target.GetProperty("attrs");Assert.Equal("right",settings.GetProperty("textAlign").GetString());Assert.Equal(2,settings.GetProperty("lineHeight").GetDecimal());Assert.Equal(1,settings.GetProperty("indentLevel").GetInt32());
+            Assert.Equal(6,settings.GetProperty("spaceBeforePt").GetInt32());Assert.Equal(12,settings.GetProperty("spaceAfterPt").GetInt32());Assert.Equal(5,settings.GetProperty("firstLineIndentMm").GetDecimal());
             var script=target.GetProperty("content").EnumerateArray().Single(text=>text.GetProperty("text").GetString()=="QA_EDIT");
             var marks=script.GetProperty("marks").EnumerateArray().Select(mark=>mark.GetProperty("type").GetString()).ToArray();
             Assert.Contains("superscript",marks);Assert.Contains("strike",marks);Assert.DoesNotContain("subscript",marks);
@@ -217,7 +220,7 @@ public sealed class SqlPaginationAcceptanceTests
             await page.Locator("#editor-pages-toggle").ClickAsync(); await Assertions.Expect(viewport).ToHaveAttributeAsync("data-pagination", "paged");
             await page.Locator("#editor-page-index").SelectOptionAsync("2"); await AssertLocked(page);
             await Api(host, "documents", HttpMethod.Post, path + "/draft-revisions", new {
-                expectedCurrentRevision = revision, editorContentJson = edited, contentFormat = DocumentContentDescriptor.RichFormat, contentSchemaVersion = 4
+                expectedCurrentRevision = revision, editorContentJson = edited, contentFormat = DocumentContentDescriptor.RichFormat, contentSchemaVersion = 5
             }, HttpStatusCode.Conflict);
         }
         var map = await MarkerMap(page);
@@ -264,7 +267,7 @@ public sealed class SqlPaginationAcceptanceTests
         await AssertLocked(page); await page.Locator("#editor-pages-toggle").ClickAsync(); await Assertions.Expect(viewport).ToHaveAttributeAsync("data-pagination", "paged");
         await page.Locator("#editor-page-index").SelectOptionAsync("2"); await AssertLocked(page);
         Assert.Equal(body, await page.Locator("#document-json").InputValueAsync());
-        samples.Add(new { name, revision, pages = map.GetProperty("pageCount").GetInt32(), markers = 47, lastFooter, hasTemplate = template.HasValue, archiveVerified = old is not null, typographyVerified=lastFooter,paragraphSettingsVerified=lastFooter,inlineScriptVerified=lastFooter,searchReplaceVerified=archive });
+        samples.Add(new { name, revision, pages = map.GetProperty("pageCount").GetInt32(), markers = 47, lastFooter, hasTemplate = template.HasValue, archiveVerified = old is not null, typographyVerified=lastFooter,paragraphSettingsVerified=lastFooter,paragraphSpacingVerified=lastFooter,inlineScriptVerified=lastFooter,searchReplaceVerified=archive });
     }
 
     private async Task<JsonElement> Api(IsolatedSqlProductHost host, string service, HttpMethod method, string path, object? body, HttpStatusCode expected)
