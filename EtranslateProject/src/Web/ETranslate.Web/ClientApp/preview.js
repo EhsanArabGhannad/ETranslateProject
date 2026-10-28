@@ -5,6 +5,7 @@ import { supportsStoredContent, storedDocumentFormat } from './editors/document-
 import { applyTypography } from './typography.js';
 import { applyParagraph } from './paragraph.js';
 import { scriptMarks, applyInlineScript, orderedInlineMarks } from './inline-script.js';
+import { appendColumnGroup } from './table-widths.js';
 
 export function assetUrl(workspace, assetId) {
     const { tenantId, templateId } = workspace.dataset;
@@ -56,6 +57,8 @@ export function createPreview(workspace, resolveImage = id => assetUrl(workspace
             target = document.createElement(tag); parent.append(target);
         } else if (!['doc', 'header', 'footer'].includes(node.type)) unsupported = true;
         if (['auto', 'rtl', 'ltr'].includes(node.attrs?.dir)) target.dir = node.attrs.dir;
+        if (node.type === 'table' && contentVersion >= 6) { appendColumnGroup(target, node.attrs?.columnWidths);
+            if (Array.isArray(node.attrs?.columnWidths)) target.dataset.etColumnWidths = JSON.stringify(node.attrs.columnWidths); }
         if (['paragraph', 'heading'].includes(node.type) && ['left', 'center', 'right'].includes(node.attrs?.textAlign)) target.style.textAlign = node.attrs.textAlign;
         if(contentVersion>=3&&['paragraph','heading'].includes(node.type))applyParagraph(target,node.attrs);
         if (node.type === 'orderedList') {

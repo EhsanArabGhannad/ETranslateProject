@@ -25,7 +25,8 @@ function contentFingerprint(root) {
     // Stale-layout guard only, not a cryptographic hash or an authenticity/security boundary.
     let hash = 2166136261;
     const value = root.textContent + [...root.querySelectorAll('table')].map(table =>
-        [...table.rows].map(row => [...row.cells].map(cell => cell.tagName).join(',')).join(';')).join('|');
+        [...table.rows].map(row => [...row.cells].map(cell => cell.tagName).join(',')).join(';') +
+        (table.dataset.etColumnWidths ? `:${table.dataset.etColumnWidths}` : '')).join('|');
     for (let i = 0; i < value.length; i++) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
     return `${value.length}:${hash >>> 0}`;
 }

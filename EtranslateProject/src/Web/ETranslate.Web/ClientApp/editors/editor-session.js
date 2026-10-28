@@ -4,6 +4,7 @@ import { paragraphCommands, paragraphActions, advancedParagraphFields, validPara
 import { scriptMarks } from '../inline-script.js';
 import {validSearch,validReplacement} from '../document-text-tools.js';
 import { tableOptions } from '../table-options.js';
+import { validColumnWidths } from '../table-widths.js';
 
 /**
  * Provider contract (trusted application code):
@@ -52,7 +53,14 @@ export function createEditorSession({ provider, element, contentJson, contentFor
         if(provider.format.version<2 && (Object.hasOwn(typographyCommands,command)||command==='clearTextStyle'))return {enabled:false,active:false};
         if(provider.format.version<3 && (Object.hasOwn(paragraphCommands,command)||paragraphActions.includes(command)))return {enabled:false,active:false};
         if(provider.format.version<5 && advancedParagraphFields.includes(command))return {enabled:false,active:false};
+        if(provider.format.version<6 && command==='tableColumnWidths')return {enabled:false,active:false,columns:0,value:null};
         const state = adapter.getCommandState(command);
+        if (command === 'tableColumnWidths') {
+            const columns = Number.isInteger(state.columns) && state.columns >= 1 && state.columns <= 12 ? state.columns : 0;
+            return { enabled: enabled && state.enabled === true && columns > 0, active: state.active === true, columns,
+                value: validColumnWidths(state.value, columns) && Array.isArray(state.value) ? [...state.value] : null,
+                context: typeof state.context === 'string' ? state.context : null };
+        }
         return { enabled: enabled && state.enabled === true, active: state.active === true,
             ...(Object.hasOwn(typographyCommands,command)||Object.hasOwn(paragraphCommands,command)?{value:state.value??null,mixed:state.mixed===true}:{}) };
     }
@@ -74,7 +82,8 @@ export function createEditorSession({ provider, element, contentJson, contentFor
             if (command === 'insertTable') { value = tableOptions(value); if (!value) return false; }
             if(Object.hasOwn(typographyCommands,command)&&!validTypographyValue(typographyCommands[command],value))return false;
             if(Object.hasOwn(paragraphCommands,command)&&!validParagraphValue(paragraphCommands[command],value,provider.format.version))return false;
-            if (!getCommandState(command).enabled) return false;
+            const state = getCommandState(command); if (!state.enabled) return false;
+            if (command === 'tableColumnWidths') { if (!validColumnWidths(value, state.columns)) return false; value = value?.slice() ?? null; }
             return adapter.execute(command, value) === true;
         },
         setEditable(value) {

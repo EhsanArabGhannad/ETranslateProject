@@ -1,6 +1,7 @@
 import { validTypography } from './typography.js';
 import { validParagraphValue } from './paragraph.js';
 import { scriptMarks } from './inline-script.js';
+import { validColumnWidths } from './table-widths.js';
 export const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const blocks = ['paragraph', 'heading', 'bulletList', 'orderedList', 'image', 'blockquote'];
@@ -8,7 +9,7 @@ const tableTypes = ['table', 'tableRow', 'tableCell', 'tableHeader'];
 const marks = ['bold', 'italic', 'underline', 'strike'];
 
 export function isRichDocument(root, version = 1) {
-    if(![1,2,3,4,5].includes(version))return false;
+    if(![1,2,3,4,5,6].includes(version))return false;
     let remaining = 20000;
     function visit(node, parent, depth) {
         if (depth > 32 || --remaining < 0 || !object(node) || typeof node.type !== 'string') return false;
@@ -30,6 +31,7 @@ export function isRichDocument(root, version = 1) {
                     version>=2 && mark.type==='typography' && Object.keys(mark).length===2 && Object.hasOwn(mark,'attrs') && validTypography(mark.attrs)))) continue;
             if (key === 'attrs' && type !== 'text' && object(value) && Object.entries(value).every(([attr, val]) =>
                 version>=3 && ['paragraph','heading'].includes(type) && validParagraphValue(attr,val,version) ||
+                version>=6 && type==='table' && attr==='columnWidths' && validColumnWidths(val) ||
                 attr === 'dir' && ['auto', 'rtl', 'ltr'].includes(val) ||
                 type === 'heading' && attr === 'level' && Number.isInteger(val) && val >= 1 && val <= 6 ||
                 type === 'orderedList' && attr === 'start' && Number.isInteger(val) && val >= 1 && val <= 10000 ||
@@ -49,6 +51,7 @@ export function isRichDocument(root, version = 1) {
         if (!node.content.every(child => visit(child, type, depth + 1))) return false;
         if (type === 'tableRow' && node.content.length > 12) return false;
         if (type === 'table' && (node.content.length > 50 || !node.content.every(row => row.content.length === node.content[0].content.length))) return false;
+        if (type === 'table' && node.attrs?.columnWidths != null && !validColumnWidths(node.attrs.columnWidths, node.content[0].content.length)) return false;
         return true;
     }
     return visit(root, null, 0);

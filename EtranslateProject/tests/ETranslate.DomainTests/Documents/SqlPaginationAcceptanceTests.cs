@@ -181,6 +181,10 @@ public sealed class SqlPaginationAcceptanceTests
             await Assertions.Expect(textbox).ToContainTextAsync("QA_REPLACED");
             await page.Locator("button[data-command=undo]").ClickAsync();await Assertions.Expect(textbox).ToContainTextAsync("QA_EDIT");
             await page.Locator("button[data-command=redo]").ClickAsync();await Assertions.Expect(textbox).ToContainTextAsync("QA_REPLACED");
+            await page.Locator("#editor-table-widths").EvaluateAsync("e=>e.open=true");
+            await page.Locator("#editor-column-inputs input").Nth(0).FillAsync("35");
+            await page.Locator("#editor-column-inputs input").Nth(1).FillAsync("65");
+            await page.Locator("#editor-column-apply").ClickAsync();
         }
         var edited = await page.Locator("#document-json").InputValueAsync();
         await page.Locator("#draft-form button[type=submit]").ClickAsync();
@@ -190,7 +194,11 @@ public sealed class SqlPaginationAcceptanceTests
         Assert.Equal(edited, persisted.GetProperty("editorContentJson").GetString());
         if(archive){Assert.Contains("QA_REPLACED",edited);Assert.DoesNotContain("editor-search",edited);}
         Assert.Equal(DocumentContentDescriptor.RichFormat, persisted.GetProperty("contentFormat").GetString());
-        Assert.Equal(5,persisted.GetProperty("contentSchemaVersion").GetInt32());
+        Assert.Equal(6,persisted.GetProperty("contentSchemaVersion").GetInt32());
+        if (archive) {
+            using var widthBody = JsonDocument.Parse(edited);
+            Assert.Equal(new[] { 35, 65 }, widthBody.RootElement.GetProperty("content")[0].GetProperty("attrs").GetProperty("columnWidths").EnumerateArray().Select(width => width.GetInt32()).ToArray());
+        }
         if(lastFooter){Assert.Contains("typography",edited);Assert.Contains("serif",edited);Assert.Contains("#b91c1c",edited);
             using var styled=JsonDocument.Parse(edited);var target=styled.RootElement.GetProperty("content")[0].GetProperty("content").EnumerateArray()
                 .SelectMany(row=>row.GetProperty("content").EnumerateArray()).SelectMany(cell=>cell.GetProperty("content").EnumerateArray())
@@ -220,7 +228,7 @@ public sealed class SqlPaginationAcceptanceTests
             await page.Locator("#editor-pages-toggle").ClickAsync(); await Assertions.Expect(viewport).ToHaveAttributeAsync("data-pagination", "paged");
             await page.Locator("#editor-page-index").SelectOptionAsync("2"); await AssertLocked(page);
             await Api(host, "documents", HttpMethod.Post, path + "/draft-revisions", new {
-                expectedCurrentRevision = revision, editorContentJson = edited, contentFormat = DocumentContentDescriptor.RichFormat, contentSchemaVersion = 5
+                expectedCurrentRevision = revision, editorContentJson = edited, contentFormat = DocumentContentDescriptor.RichFormat, contentSchemaVersion = 6
             }, HttpStatusCode.Conflict);
         }
         var map = await MarkerMap(page);
@@ -267,7 +275,7 @@ public sealed class SqlPaginationAcceptanceTests
         await AssertLocked(page); await page.Locator("#editor-pages-toggle").ClickAsync(); await Assertions.Expect(viewport).ToHaveAttributeAsync("data-pagination", "paged");
         await page.Locator("#editor-page-index").SelectOptionAsync("2"); await AssertLocked(page);
         Assert.Equal(body, await page.Locator("#document-json").InputValueAsync());
-        samples.Add(new { name, revision, pages = map.GetProperty("pageCount").GetInt32(), markers = 47, lastFooter, hasTemplate = template.HasValue, archiveVerified = old is not null, typographyVerified=lastFooter,paragraphSettingsVerified=lastFooter,paragraphSpacingVerified=lastFooter,inlineScriptVerified=lastFooter,searchReplaceVerified=archive });
+        samples.Add(new { name, revision, pages = map.GetProperty("pageCount").GetInt32(), markers = 47, lastFooter, hasTemplate = template.HasValue, archiveVerified = old is not null, typographyVerified=lastFooter,paragraphSettingsVerified=lastFooter,paragraphSpacingVerified=lastFooter,inlineScriptVerified=lastFooter,searchReplaceVerified=archive,columnWidthsVerified=archive });
     }
 
     private async Task<JsonElement> Api(IsolatedSqlProductHost host, string service, HttpMethod method, string path, object? body, HttpStatusCode expected)

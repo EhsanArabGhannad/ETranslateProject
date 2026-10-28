@@ -1,4 +1,4 @@
-// Generated from shared table-row-plan.js; source-sha256:bae0249442b1a09ea0566cd7ea568f39cc2b0a99e40dd3e17f04beacd1f9f82d
+// Generated from shared table-row-plan.js; source-sha256:2723ef4d3c61d43894ae33064de03a9a54a0624a852f29bf26d7dff7524eea0a
 var NativeTableRows = (() => {
   var __defProp = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -50,7 +50,7 @@ var NativeTableRows = (() => {
   }
   function contentFingerprint(root) {
     let hash = 2166136261;
-    const value = root.textContent + [...root.querySelectorAll("table")].map((table) => [...table.rows].map((row) => [...row.cells].map((cell) => cell.tagName).join(",")).join(";")).join("|");
+    const value = root.textContent + [...root.querySelectorAll("table")].map((table) => [...table.rows].map((row) => [...row.cells].map((cell) => cell.tagName).join(",")).join(";") + (table.dataset.etColumnWidths ? `:${table.dataset.etColumnWidths}` : "")).join("|");
     for (let i = 0; i < value.length; i++) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
     return `${value.length}:${hash >>> 0}`;
   }

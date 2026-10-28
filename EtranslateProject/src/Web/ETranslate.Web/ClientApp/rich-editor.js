@@ -6,6 +6,7 @@ import { supportsStoredContent, storedDocumentFormat } from './editors/document-
 import { startEditorView } from './editor-view.js';
 import {startEditorTextTools} from './editor-text-tools.js';
 import { startEditorTableTools } from './editor-table-tools.js';
+import { startEditorTableWidths } from './editor-table-widths.js';
 
 // DOM orchestration only. All vendor-specific editing/selection/history code belongs in its provider.
 export function startRichEditor(workspace, onChanged, preview) {
@@ -93,6 +94,7 @@ export function startRichEditor(workspace, onChanged, preview) {
         document.getElementById('rich-region').hidden = false;
         cleanups.push(startEditorView(workspace, session));
         cleanups.push(startEditorTextTools(workspace,session,json.value));
+        cleanups.push(startEditorTableWidths(workspace, session));
         status.textContent = workspace.dataset.editable === 'true'
             ? ui.MetinBicimlendirmesiHerSurumleBirlikteKaydedilir : ui.SaltOkunurSurumDuzenlemeKapalidir;
         return Object.freeze({ ...session, destroy });

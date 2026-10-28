@@ -1,21 +1,24 @@
 import { Editor, Extension, Node, Mark } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import { TableKit } from '@tiptap/extension-table';
+import { TableKit, Table } from '@tiptap/extension-table';
 import Paragraph from '@tiptap/extension-paragraph';
 import Heading from '@tiptap/extension-heading';
 import { Plugin } from '@tiptap/pm/state';
 import { closeHistory } from '@tiptap/pm/history';
 import { guid, isRichDocument } from '../document-schema.js';
-import { editorCommands, richDocumentV5 } from './document-contract.js';
+import { editorCommands, richDocumentV6 } from './document-contract.js';
 import { typographyFields, typographyCommands, validTypography, validTypographyValue, applyTypography } from '../typography.js';
 import { paragraphFields, paragraphCommands, paragraphActions, validParagraphValue, applyParagraph } from '../paragraph.js';
 import { scriptMarks, applyInlineScript } from '../inline-script.js';
 import {createTiptapSearch} from './tiptap-search.js';
 import { tableOptions, tableLimits } from '../table-options.js';
 import { firstTableRow, toggleFirstTableRow } from './tiptap-table-header.js';
+import { selectedTable } from './tiptap-table-context.js';
+import { setTableColumnWidths, resetChangedColumnCounts } from './tiptap-table-widths.js';
+import { validColumnWidths, appendColumnGroup } from '../table-widths.js';
 
 export const tiptapProvider = Object.freeze({
-    id: 'tiptap', format: richDocumentV5,
+    id: 'tiptap', format: richDocumentV6,
     capabilities: Object.freeze({ livePagination: false, docxImport: false, faithfulWordPaste: false, mergedCells: false, literalSearch:true }),
     create: createTiptapAdapter
 });
@@ -23,6 +26,20 @@ export const tiptapProvider = Object.freeze({
 function createTiptapAdapter({ element, content, editable, resolveAsset, labels, onRejectedChange }) {
     let editor;
     const search=createTiptapSearch();
+    const widthContexts = new WeakMap(); let nextWidthContext = 0;
+    const WidthTable = Table.extend({
+        addAttributes() { return { ...this.parent?.(), columnWidths: { default: null, rendered: false, parseHTML: element => {
+            try { const widths = JSON.parse(element.getAttribute('data-et-column-widths')); return validColumnWidths(widths) ? widths : null; } catch { return null; }
+        } } }; },
+        renderHTML(properties) {
+            const widths = properties.node.attrs.columnWidths;
+            if (widths == null) return this.parent(properties);
+            const table = document.createElement('table'), body = document.createElement('tbody');
+            table.dir = properties.node.attrs.dir ?? 'auto'; table.style.width = '100%';
+            table.dataset.etColumnWidths = JSON.stringify(widths); appendColumnGroup(table, widths); table.append(body);
+            return { dom: table, contentDOM: body };
+        }
+    });
     const listeners = new Set();
     const notify = event => { for (const listener of listeners) listener(event); };
     function textBlock(Base,tag){return Base.extend({
@@ -69,7 +86,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         name: 'preservationPolicy',
         addProseMirrorPlugins() {
             return [search.plugin,new Plugin({ filterTransaction: transaction => {
-                if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),5)) return true;
+                if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),6)) return true;
                 onRejectedChange(); return false;
             } })];
         }
@@ -79,7 +96,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
             element, injectCSS: false, editable, textDirection: 'auto',
             extensions: [StarterKit.configure({ code: false, codeBlock: false, link: false, horizontalRule: false,
                 dropcursor: false, trailingNode: false, paragraph:false,heading:false }), StyledParagraph,StyledHeading,ManagedImage, Typography,...scripts,
-                TableKit.configure({ table: { resizable: false, View: null } }), PreservationPolicy],
+                TableKit.configure({ table: false }), WidthTable.configure({ resizable: false, View: null }), PreservationPolicy],
             content: { type: 'doc', content: [{ type: 'paragraph' }] },
             editorProps: { attributes: { role: 'textbox', tabindex:'0', 'aria-label': labels.text, 'aria-multiline': 'true', spellcheck: 'false' } }
         });
@@ -113,8 +130,8 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         rtl: chain => chain.setTextDirection('rtl'), ltr: chain => chain.setTextDirection('ltr'), auto: chain => chain.setTextDirection('auto'),
         undo: chain => chain.undo(), redo: chain => chain.redo(),
         insertTable: chain => chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }),
-        addRowAfter: chain => chain.addRowAfter(), addColumnAfter: chain => chain.addColumnAfter(),
-        deleteRow: chain => chain.deleteRow(), deleteColumn: chain => chain.deleteColumn(), deleteTable: chain => chain.deleteTable()
+        addRowAfter: chain => chain.addRowAfter(), addColumnAfter: chain => chain.addColumnAfter().command(resetChangedColumnCounts),
+        deleteRow: chain => chain.deleteRow(), deleteColumn: chain => chain.deleteColumn().command(resetChangedColumnCounts), deleteTable: chain => chain.deleteTable()
     };
     function typographyState(field){
         const {from,to,$from}=editor.state.selection,values=new Set();
@@ -160,6 +177,12 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     }).run();}
     function getCommandState(command) {
         if (!editorCommands.includes(command) || editor.isDestroyed) return { enabled: false, active: false };
+        if (command === 'tableColumnWidths') {
+            const table = selectedTable(editor.state), widths = table?.node.attrs.columnWidths ?? null;
+            if (table && !widthContexts.has(table.node)) widthContexts.set(table.node, `table-${++nextWidthContext}`);
+            return { enabled: editor.isEditable && table !== null, active: widths !== null, columns: table?.node.firstChild.childCount ?? 0, value: widths?.slice() ?? null,
+                context: table ? widthContexts.get(table.node) : null };
+        }
         if (command === 'toggleTableHeaderRow') {
             const row = firstTableRow(editor.state);
             return { enabled: editor.isEditable && row !== null, active: row?.active === true };
@@ -192,6 +215,11 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         getCommandState,
         execute(command, value) {
             if (!getCommandState(command).enabled) return false;
+            if (command === 'tableColumnWidths') {
+                editor.view.focus();
+                const tr = setTableColumnWidths(editor.state, value); if (!tr) return false;
+                editor.view.dispatch(tr.scrollIntoView()); editor.view.dispatch(closeHistory(editor.state.tr)); return true;
+            }
             if (command === 'toggleTableHeaderRow') {
                 editor.view.focus();
                 const tr = toggleFirstTableRow(editor.state); if (!tr) return false;

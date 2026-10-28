@@ -115,7 +115,15 @@ public static class DraftPdfHtml
         {
             var rows = node.GetProperty("content").EnumerateArray().ToArray();
             var hasHeader = rows[0].GetProperty("content").EnumerateArray().All(cell => cell.GetProperty("type").GetString() == "tableHeader");
-            html.Append($"<table dir=\"{direction}\">");
+            var widthAttribute = version >= 6 && attrs.ValueKind == JsonValueKind.Object && attrs.TryGetProperty("columnWidths", out var declaredWidths) && declaredWidths.ValueKind == JsonValueKind.Array
+                ? $" data-et-column-widths=\"{Encode(declaredWidths.GetRawText())}\"" : "";
+            html.Append($"<table dir=\"{direction}\"{widthAttribute}>");
+            if (version >= 6 && attrs.ValueKind == JsonValueKind.Object && attrs.TryGetProperty("columnWidths", out var widths) && widths.ValueKind == JsonValueKind.Array)
+            {
+                html.Append("<colgroup>");
+                foreach (var width in widths.EnumerateArray()) html.Append($"<col style=\"width:{Number(width.GetDecimal())}%\">");
+                html.Append("</colgroup>");
+            }
             if (hasHeader) { html.Append("<thead>"); Render(rows[0], html, images,version); html.Append("</thead>"); }
             html.Append("<tbody>");
             foreach (var row in rows.Skip(hasHeader ? 1 : 0)) Render(row, html, images,version);

@@ -1,17 +1,10 @@
 import { closeHistory } from '@tiptap/pm/history';
+import { selectedTable } from './tiptap-table-context.js';
 
 // This command always targets the first row of one table, not the selected row.
 // A selection extending outside that table must not silently modify either table.
 export function firstTableRow(state) {
-    function containingTable(position) {
-        for (let depth = position.depth; depth > 0; depth--) {
-            const node = position.node(depth);
-            if (node.type.name === 'table') return depth === 1 ? { node, pos: position.before(depth) } : null;
-        }
-        return null;
-    }
-    const from = containingTable(state.selection.$from), to = containingTable(state.selection.$to);
-    if (!from || !to || from.pos !== to.pos) return null;
+    const from = selectedTable(state); if (!from) return null;
     const row = from.node.firstChild;
     if (row?.type.name !== 'tableRow' || !row.childCount) return null;
     const cells = [];

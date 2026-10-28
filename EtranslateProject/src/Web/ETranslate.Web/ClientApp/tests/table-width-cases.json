@@ -1,0 +1,20 @@
+[
+  {"name":"default null","columns":3,"widths":null,"valid":true},
+  {"name":"one column","columns":1,"widths":[100],"valid":true},
+  {"name":"unequal three","columns":3,"widths":[25,50,25],"valid":true},
+  {"name":"integer decimals","columns":2,"widths":[25.0,75.0],"valid":true},
+  {"name":"narrow boundary","columns":2,"widths":[1,99],"valid":true},
+  {"name":"twelve columns","columns":12,"widths":[8,8,8,8,8,8,8,8,9,9,9,9],"valid":true},
+  {"name":"too few","columns":3,"widths":[50,50],"valid":false},
+  {"name":"too many","columns":2,"widths":[25,50,25],"valid":false},
+  {"name":"under sum","columns":3,"widths":[33,33,33],"valid":false},
+  {"name":"over sum","columns":2,"widths":[50,51],"valid":false},
+  {"name":"zero","columns":2,"widths":[0,100],"valid":false},
+  {"name":"negative","columns":2,"widths":[-1,101],"valid":false},
+  {"name":"fraction","columns":2,"widths":[25.5,74.5],"valid":false},
+  {"name":"string number","columns":2,"widths":["25",75],"valid":false},
+  {"name":"empty","columns":2,"widths":[],"valid":false},
+  {"name":"css injection","columns":2,"widths":"width:50%;color:red","valid":false},
+  {"name":"object","columns":2,"widths":{"0":50,"1":50},"valid":false},
+  {"name":"null element","columns":2,"widths":[null,100],"valid":false}
+]

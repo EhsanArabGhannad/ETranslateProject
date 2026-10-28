@@ -64,7 +64,7 @@ public sealed partial class EditorAdapterBrowserTests
         Assert.Equal(1, await page.Locator("#preview-body table").CountAsync());
 
         var edited = await page.Locator("#document-json").InputValueAsync();
-        Assert.True(DocumentContentDescriptor.RichV5.TryRead(edited, out var plain));
+        Assert.True(DocumentContentDescriptor.RichV6.TryRead(edited, out var plain));
         Assert.Contains("نیم‌فاصله", plain); Assert.Contains("İstanbul şĞı", plain); Assert.Contains("ADAPTER_EDIT", plain);
         Assert.Contains("\"bold\"", edited);
         var retry = fixture.Enqueue();
@@ -82,7 +82,7 @@ public sealed partial class EditorAdapterBrowserTests
         var success = fixture.Enqueue();
         await page.Locator("#draft-form button[type=submit]").ClickAsync();
         await success.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        fixture.Source = SubmittedJson(success.Body); fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "5"; success.Release.SetResult(303);
+        fixture.Source = SubmittedJson(success.Body); fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "6"; success.Release.SetResult(303);
         try { await page.WaitForURLAsync("**/Workspace/Editor?after-save=1", new() { Timeout = 10000 }); }
         catch (TimeoutException error) { throw new InvalidOperationException("Save redirect: " + await page.Locator("#save-state").InnerTextAsync() +
             "; responses=" + string.Join(",", fixture.Responses) + "; unexpected=" + string.Join(",", fixture.Unexpected), error); }
@@ -167,7 +167,7 @@ public sealed partial class EditorAdapterBrowserTests
             Assert.Equal(Initial, await page.Locator("#document-json").InputValueAsync());
             await Assertions.Expect(page.Locator("#rich-text [role=textbox]")).ToHaveAttributeAsync("contenteditable", "true");
         }
-        foreach (var pair in new[] { (DocumentContentDescriptor.RichFormat, "6"), ("sfdt", "1"), (DocumentContentDescriptor.RichFormat, "") })
+        foreach (var pair in new[] { (DocumentContentDescriptor.RichFormat, "7"), ("sfdt", "1"), (DocumentContentDescriptor.RichFormat, "") })
         {
             fixture.Format = pair.Item1; fixture.SchemaVersion = pair.Item2;
             await fixture.OpenAsync(rich: false);
@@ -179,7 +179,7 @@ public sealed partial class EditorAdapterBrowserTests
             await Assertions.Expect(page.Locator("#preview-body")).Not.ToContainTextAsync("İstanbul");
         }
         fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "1";
-        fixture.TemplateFormat = DocumentContentDescriptor.RichFormat; fixture.TemplateSchemaVersion = "6";
+        fixture.TemplateFormat = DocumentContentDescriptor.RichFormat; fixture.TemplateSchemaVersion = "7";
         await fixture.OpenAsync(rich: false);
         await Assertions.Expect(page.Locator("#draft-form button[type=submit]")).ToBeDisabledAsync();
         Assert.Equal(Initial, await page.Locator("#document-json").InputValueAsync());
@@ -476,6 +476,7 @@ public sealed partial class EditorAdapterBrowserTests
         {
             var textTools=Regex.Replace(File.ReadAllText(Path.Combine(Environment.GetEnvironmentVariable("ETRANSLATE_EDITOR_ADAPTER_WEB_ROOT")!,"Views/Shared/_EditorTextTools.cshtml")),"@UiText\\.Get\\(\"([^\"]+)\"\\)",match=>WebUtility.HtmlEncode(UiText.Get(match.Groups[1].Value)));
             var tableTools=Regex.Replace(File.ReadAllText(Path.Combine(Environment.GetEnvironmentVariable("ETRANSLATE_EDITOR_ADAPTER_WEB_ROOT")!,"Views/Shared/_EditorTable.cshtml")),"@UiText\\.Get\\(\"([^\"]+)\"\\)",match=>WebUtility.HtmlEncode(UiText.Get(match.Groups[1].Value)));
+            var widthsTools=Regex.Replace(File.ReadAllText(Path.Combine(Environment.GetEnvironmentVariable("ETRANSLATE_EDITOR_ADAPTER_WEB_ROOT")!,"Views/Shared/_EditorTableWidths.cshtml")),"@UiText\\.Get\\(\"([^\"]+)\"\\)",match=>WebUtility.HtmlEncode(UiText.Get(match.Groups[1].Value)));
             var commands = new[] { "bold", "italic", "underline", "strike", "superscript", "subscript", "paragraph", "heading", "bulletList", "orderedList", "rtl", "ltr", "auto", "undo", "redo", "insertTable", "addRowAfter", "addColumnAfter", "deleteRow", "deleteColumn", "deleteTable", "toggleTableHeaderRow", "notSupported" };
             var labels = new[] { "KalinMetin", "ItalikMetin", "AltiCizili", "EditorStrike", "EditorSuperscript", "EditorSubscript", "Paragraf", "Baslik", "MaddeIsaretliListe", "NumaraliListe", "SagdanSola", "SoldanSaga", "OtomatikYon", "GeriAl", "Yinele", "Baslikli33Tablo", "SonrakiSatir", "SonrakiSutun", "SatiriSil", "SutunuSil", "TabloyuSil", "EditorToggleTableHeader" };
             var buttons = string.Join("", commands.Select((command, i) => $"<button type='button' data-command='{command}' aria-pressed='false' {(i == labels.Length ? "hidden" : "")}>{(i < 3 ? new[] { "<strong>B</strong>", "<em>I</em>", "<u>U</u>" }[i] : i < labels.Length ? UiText.Get(labels[i]) : command)}</button>"));
@@ -514,7 +515,7 @@ public sealed partial class EditorAdapterBrowserTests
                 </div>
                 <nav id="editor-pages-nav" class="editor-pagination-nav" hidden><button id="editor-page-prev" type="button">Önceki</button><select id="editor-page-index"></select><button id="editor-page-next" type="button">Sonraki</button><span id="editor-page-count"></span></nav><p id="editor-pagination-status"></p>
                 <form id="draft-form" action="/Workspace/SaveDraft" method="post"><input type="hidden" name="mode" value="{{(rich ? "text" : "json")}}">
-                <div id="rich-region" hidden>{{textTools}}{{typography}}{{paragraph}}<div class="editor-toolbar" role="toolbar" aria-label="{{UiText.Get("CeviriBicimlendirme")}}">{{buttons}}{{tableTools}}</div><p id="editor-paper-description" class="muted"></p>
+                <div id="rich-region" hidden>{{textTools}}{{typography}}{{paragraph}}<div class="editor-toolbar" role="toolbar" aria-label="{{UiText.Get("CeviriBicimlendirme")}}">{{buttons}}{{tableTools}}{{widthsTools}}</div><p id="editor-paper-description" class="muted"></p>
                 <div id="editor-viewport" class="editor-viewport" tabindex="0" role="region" aria-label="{{UiText.Get("EditorPaperRegion")}}" aria-describedby="editor-paper-description"><div id="editor-paper-stage"><div id="editor-paper"><div id="rich-text"></div></div></div></div></div>
                 <p id="editor-format-status"></p><label for="document-json">JSON</label>
                 <textarea id="document-json" name="editorContentJson">{{WebUtility.HtmlEncode(Source)}}</textarea>

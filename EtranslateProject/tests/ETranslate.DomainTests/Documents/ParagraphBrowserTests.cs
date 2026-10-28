@@ -50,12 +50,12 @@ public sealed partial class EditorAdapterBrowserTests
         await Command(page,"paragraph").ClickAsync();await Assertions.Expect(page.Locator("#editor-text-align")).ToHaveValueAsync("center");await Assertions.Expect(page.Locator("#editor-line-height")).ToHaveValueAsync("1.15");
         await Command(page,"heading").ClickAsync();await Assertions.Expect(page.Locator("#editor-text-align")).ToHaveValueAsync("center");
         await blocks.Nth(3).Locator("span").First.ClickAsync(new(){Position=new(){X=5,Y=5}});await Assertions.Expect(page.Locator("#editor-text-align")).ToHaveValueAsync("");await page.Locator("#editor-text-align").SelectOptionAsync("justify");await page.Locator("#editor-line-height").SelectOptionAsync("2.5");await page.Locator("#editor-indent-level").SelectOptionAsync("1");
-        var styled=await page.Locator("#document-json").InputValueAsync();Assert.True(DocumentContentDescriptor.RichV5.TryRead(styled,out _));Assert.False(DocumentContentDescriptor.RichV2.TryRead(styled,out _));
+        var styled=await page.Locator("#document-json").InputValueAsync();Assert.True(DocumentContentDescriptor.RichV6.TryRead(styled,out _));Assert.False(DocumentContentDescriptor.RichV2.TryRead(styled,out _));
         var fail=fixture.Enqueue();await page.Locator("#draft-form button[type=submit]").ClickAsync();await fail.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
         Assert.True(await page.Locator("#editor-paragraph :is(select,button)").EvaluateAllAsync<bool>("nodes=>nodes.every(node=>node.disabled)"));
         fail.Release.SetResult(503);await Assertions.Expect(page.Locator("#editor-text-align")).ToBeEnabledAsync();
         var save=fixture.Enqueue();await page.Locator("#draft-form button[type=submit]").ClickAsync();await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        fixture.Source=SubmittedJson(save.Body);fixture.SchemaVersion="5";save.Release.SetResult(303);await page.WaitForURLAsync("**after-save=1");
+        fixture.Source=SubmittedJson(save.Body);fixture.SchemaVersion="6";save.Release.SetResult(303);await page.WaitForURLAsync("**after-save=1");
         Assert.Equal(styled,await page.Locator("#document-json").InputValueAsync());await Assertions.Expect(Command(page,"undo")).ToBeDisabledAsync();
         await page.Locator("#editor-pages-toggle").ClickAsync();await Assertions.Expect(page.Locator("#editor-viewport")).ToHaveAttributeAsync("data-pagination","paged");
         var pageCount=int.Parse((await page.Locator("#editor-viewport").GetAttributeAsync("data-page-count"))!);
@@ -69,7 +69,7 @@ public sealed partial class EditorAdapterBrowserTests
             """);
         await File.WriteAllTextAsync(Path.Combine(directory,"paragraph-markers.json"),markers);
         using(var renderer=new ChromiumDraftPdfRenderer()){
-            var bytes=await renderer.RenderAsync(new(Guid.NewGuid(),1,null,styled,null,null,null,null,new Dictionary<Guid,PdfImage>()){ContentFormat=DocumentContentDescriptor.RichFormat,ContentSchemaVersion=5},CancellationToken.None);
+            var bytes=await renderer.RenderAsync(new(Guid.NewGuid(),1,null,styled,null,null,null,null,new Dictionary<Guid,PdfImage>()){ContentFormat=DocumentContentDescriptor.RichFormat,ContentSchemaVersion=6},CancellationToken.None);
             using var stream=new MemoryStream(bytes);using var pdf=PdfReader.Open(stream,PdfDocumentOpenMode.Import);Assert.Equal(pageCount,pdf.PageCount);
             await File.WriteAllBytesAsync(Path.Combine(directory,"paragraph-layout.pdf"),bytes);
         }

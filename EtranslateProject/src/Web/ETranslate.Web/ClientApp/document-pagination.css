@@ -64,3 +64,8 @@
 .editor-controls .editor-table-grid button[aria-pressed=true]{outline:2px solid #176f65;outline-offset:0}
 .editor-controls .editor-table-grid button:focus-visible{outline:3px solid #283c83;outline-offset:1px}
 .editor-controls .editor-table-fields input[aria-invalid=true]{border-color:#b91c1c}
+.editor-controls .editor-table-widths{flex:1 1 100%;width:100%;border:0;margin:4px 0}
+.editor-column-inputs{display:flex;gap:12px;flex-wrap:wrap}
+.editor-controls .editor-column-inputs label{margin:0;font-weight:500}
+.editor-controls .editor-column-inputs input{width:100px;margin-top:5px;padding:7px 10px}
+.editor-controls .editor-column-inputs input[aria-invalid=true]{border-color:#b91c1c}
