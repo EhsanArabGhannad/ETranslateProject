@@ -46,7 +46,7 @@ public sealed partial class EditorAdapterBrowserTests
     public async Task Existing_first_row_toggle_preserves_formatted_cells_history_save_retry_and_readonly_locks()
     {
         var source = HeaderRowDocument(); await using var fixture = await BrowserFixture.CreateAsync(source);
-        fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "7";
+        fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "8";
         var page = fixture.Page; await page.SetViewportSizeAsync(1600, 1250); await fixture.OpenAsync();
         var textbox = page.Locator("#rich-text [role=textbox]"); var json = page.Locator("#document-json");
         var command = Command(page, "toggleTableHeaderRow"); var table = textbox.Locator("table").First;
@@ -63,7 +63,7 @@ public sealed partial class EditorAdapterBrowserTests
         Assert.Equal(cellContent, await table.Locator("tr").First.Locator("th,td").EvaluateAllAsync<string[]>("nodes=>nodes.map(node=>node.innerHTML)"));
         Assert.Equal(bodyRows, await table.Locator("tr").EvaluateAllAsync<string[]>("rows=>rows.slice(1).map(row=>row.innerHTML)"));
         Assert.Equal(otherTable, await textbox.Locator("table").Last.InnerHTMLAsync());
-        var headed = await json.InputValueAsync(); Assert.True(DocumentContentDescriptor.RichV7.TryRead(headed, out _));
+        var headed = await json.InputValueAsync(); Assert.True(DocumentContentDescriptor.RichV8.TryRead(headed, out _));
         await command.ClickAsync(); Assert.Equal(0, await table.Locator("tr").First.Locator("th").CountAsync());
         var ordinary = await json.InputValueAsync();
         await Command(page, "undo").ClickAsync(); Assert.Equal(headed, await json.InputValueAsync());
@@ -100,7 +100,7 @@ public sealed partial class EditorAdapterBrowserTests
     public async Task Existing_header_changes_reflow_live_pages_and_repeat_only_enabled_first_rows_in_pdf()
     {
         await using var fixture = await BrowserFixture.CreateAsync(HeaderRowDocument(42));
-        fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "7";
+        fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "8";
         var page = fixture.Page; await page.SetViewportSizeAsync(1600, 1250); await fixture.OpenAsync();
         var json = page.Locator("#document-json"); var command = Command(page, "toggleTableHeaderRow");
         await page.Locator("#editor-pages-toggle").ClickAsync();
@@ -122,7 +122,7 @@ public sealed partial class EditorAdapterBrowserTests
             await File.WriteAllTextAsync(Path.Combine(directory, mode + "-markers.json"), markers);
             using (var renderer = new ChromiumDraftPdfRenderer())
             {
-                var bytes = await renderer.RenderAsync(new(Guid.NewGuid(), 1, null, source, null, null, null, null, new Dictionary<Guid, PdfImage>()) { ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 7 }, CancellationToken.None);
+                var bytes = await renderer.RenderAsync(new(Guid.NewGuid(), 1, null, source, null, null, null, null, new Dictionary<Guid, PdfImage>()) { ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 8 }, CancellationToken.None);
                 using var stream = new MemoryStream(bytes); using var pdf = PdfReader.Open(stream, PdfDocumentOpenMode.Import);
                 Assert.Equal(int.Parse((await page.Locator("#editor-viewport").GetAttributeAsync("data-page-count"))!), pdf.PageCount); Assert.True(pdf.PageCount > 1);
                 await File.WriteAllBytesAsync(Path.Combine(directory, mode + ".pdf"), bytes);

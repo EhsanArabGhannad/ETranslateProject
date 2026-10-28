@@ -25,7 +25,7 @@ public sealed partial class EditorAdapterBrowserTests
         Assert.Equal(source, await json.InputValueAsync()); await SelectHeaderMarker(page, "HRT_003");
         var text = await table.InnerTextAsync(); var widths = await table.Locator("col").EvaluateAllAsync<string[]>("cols=>cols.map(col=>col.style.width)");
         await CellField(page, "#editor-cell-background", "#bfdbfe");
-        var single = await json.InputValueAsync(); Assert.True(DocumentContentDescriptor.RichV7.TryRead(single, out _)); Assert.False(DocumentContentDescriptor.RichV6.TryRead(single, out _));
+        var single = await json.InputValueAsync(); Assert.True(DocumentContentDescriptor.RichV8.TryRead(single, out _)); Assert.False(DocumentContentDescriptor.RichV6.TryRead(single, out _));
         Assert.Equal("HRT_003", await page.EvaluateAsync<string>("()=>getSelection().toString()"));
         Assert.Equal(1, await table.Locator("td").EvaluateAllAsync<int>("cells=>cells.filter(cell=>cell.style.backgroundColor==='rgb(191, 219, 254)').length"));
         await page.Locator("#editor-cell-scope").SelectOptionAsync("table"); await Assertions.Expect(page.Locator("#editor-cell-background")).ToHaveValueAsync("__mixed__");
@@ -44,7 +44,7 @@ public sealed partial class EditorAdapterBrowserTests
         var retry = fixture.Enqueue(); await page.Locator("#draft-form button[type=submit]").ClickAsync(); await retry.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
         await Assertions.Expect(page.Locator("#editor-cell-reset")).ToBeDisabledAsync(); await page.Locator("#editor-cell-reset").DispatchEventAsync("click"); Assert.Equal(styled, await json.InputValueAsync());
         retry.Release.SetResult(503); await Assertions.Expect(page.Locator("#editor-cell-reset")).ToBeEnabledAsync();
-        var save = fixture.Enqueue(); await page.Locator("#draft-form button[type=submit]").ClickAsync(); await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10)); fixture.Source = SubmittedJson(save.Body); fixture.SchemaVersion = "7";
+        var save = fixture.Enqueue(); await page.Locator("#draft-form button[type=submit]").ClickAsync(); await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10)); fixture.Source = SubmittedJson(save.Body); fixture.SchemaVersion = "8";
         save.Release.SetResult(303); await page.WaitForURLAsync("**after-save=1"); Assert.Equal(styled, await json.InputValueAsync());
         await SelectHeaderMarker(page, "HRT_003"); await Assertions.Expect(Command(page, "undo")).ToBeDisabledAsync();
         await page.Locator("#editor-cell-style").EvaluateAsync("e=>e.open=true"); await Assertions.Expect(page.Locator("#editor-cell-background")).ToHaveValueAsync("#bfdbfe");
@@ -71,7 +71,7 @@ public sealed partial class EditorAdapterBrowserTests
         await SelectHeaderMarker(page, "CW_A_000"); await CellField(page, "#editor-cell-background", "#fef08a");
         await SelectHeaderMarker(page, "CS_HIDE"); await CellField(page, "#editor-cell-border-width", "0", "table");
         var source = await page.Locator("#document-json").InputValueAsync(); var save = fixture.Enqueue();
-        await page.Locator("#draft-form button[type=submit]").ClickAsync(); await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10)); fixture.Source = SubmittedJson(save.Body); fixture.SchemaVersion = "7";
+        await page.Locator("#draft-form button[type=submit]").ClickAsync(); await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10)); fixture.Source = SubmittedJson(save.Body); fixture.SchemaVersion = "8";
         save.Release.SetResult(303); await page.WaitForURLAsync("**after-save=1"); Assert.Equal(source, await page.Locator("#document-json").InputValueAsync());
         await page.Locator("#editor-pages-toggle").ClickAsync(); await Assertions.Expect(page.Locator("#editor-viewport")).ToHaveAttributeAsync("data-pagination", "paged");
         var directory = Path.GetFullPath(Path.Combine(Environment.GetEnvironmentVariable("ETRANSLATE_EDITOR_ADAPTER_WEB_ROOT")!, "../../../tmp/pdfs/cell-style")); Directory.CreateDirectory(directory);
@@ -85,7 +85,7 @@ public sealed partial class EditorAdapterBrowserTests
         await File.WriteAllTextAsync(Path.Combine(directory, "cell-markers.json"), markers);
         using (var renderer = new ChromiumDraftPdfRenderer())
         {
-            var bytes = await renderer.RenderAsync(new(Guid.NewGuid(), 1, null, source, null, null, null, null, new Dictionary<Guid, PdfImage>()) { ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 7 }, CancellationToken.None);
+            var bytes = await renderer.RenderAsync(new(Guid.NewGuid(), 1, null, source, null, null, null, null, new Dictionary<Guid, PdfImage>()) { ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 8 }, CancellationToken.None);
             using var stream = new MemoryStream(bytes); using var pdf = PdfReader.Open(stream, PdfDocumentOpenMode.Import);
             Assert.Equal(int.Parse((await page.Locator("#editor-viewport").GetAttributeAsync("data-page-count"))!), pdf.PageCount); Assert.True(pdf.PageCount > 2);
             await File.WriteAllBytesAsync(Path.Combine(directory, "cell-style.pdf"), bytes);

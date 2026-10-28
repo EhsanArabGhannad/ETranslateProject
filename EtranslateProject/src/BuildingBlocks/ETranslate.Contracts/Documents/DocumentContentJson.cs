@@ -14,7 +14,7 @@ public static class DocumentContentJson
         {
             using var document = JsonDocument.Parse(json);
             var remaining = 20_000;
-            if (schemaVersion is not (1 or 2 or 3 or 4 or 5 or 6 or 7) || rootType is not ("doc" or "header" or "footer") || !Validate(document.RootElement, null, 0, ref remaining, rootType, schemaVersion)) return false;
+            if (schemaVersion is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8) || rootType is not ("doc" or "header" or "footer") || !Validate(document.RootElement, null, 0, ref remaining, rootType, schemaVersion)) return false;
             var lines = new List<string>();
             Extract(document.RootElement, lines);
             plainText = string.Join('\n', lines);
@@ -58,8 +58,8 @@ public static class DocumentContentJson
         if (type == "table")
         {
             if (children.GetArrayLength() > 50) return false;
-            var columns = children[0].GetProperty("content").GetArrayLength();
-            if (columns is < 1 or > 12 || children.EnumerateArray().Any(row => row.GetProperty("content").GetArrayLength() != columns)) return false;
+            var columns = DocumentTableShape.Columns(children[0]);
+            if (columns is < 1 or > 12 || children.EnumerateArray().Any(row => DocumentTableShape.Columns(row) != columns)) return false;
             if (node.TryGetProperty("attrs", out var tableAttrs) && tableAttrs.TryGetProperty("columnWidths", out var widths) && !DocumentTableWidths.IsValid(widths, columns)) return false;
         }
         if (type == "tableRow" && children.GetArrayLength() > 12) return false;
@@ -100,6 +100,7 @@ public static class DocumentContentJson
             if (type is "tableCell" or "tableHeader")
             {
                 if (version >= 7 && DocumentCellStyle.ValidValue(field.Name, field.Value)) continue;
+                if (version >= 8 && field.Name == "colspan" && field.Value.ValueKind == JsonValueKind.Number && field.Value.TryGetDecimal(out var columns) && columns is >= 1 and <= 12 && decimal.Truncate(columns) == columns) continue;
                 if (field.Name is "colspan" or "rowspan" && field.Value.ValueKind == JsonValueKind.Number && field.Value.TryGetInt32(out var span) && span == 1) continue;
                 if (field.Name is "colwidth" or "align" && field.Value.ValueKind == JsonValueKind.Null) continue;
             }

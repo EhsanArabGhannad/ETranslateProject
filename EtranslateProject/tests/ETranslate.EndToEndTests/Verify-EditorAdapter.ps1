@@ -41,5 +41,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Column percentages, direction or editor/PDF geometry differed.' }
     & $PythonPath (Join-Path $PSScriptRoot 'verify_cell_style_pdf.py') (Join-Path $projectRoot 'tmp/pdfs/cell-style')
     if ($LASTEXITCODE -ne 0) { throw 'Cell paint, borders, hidden edges or editor/PDF pages differed.' }
+    & $PythonPath (Join-Path $PSScriptRoot 'verify_horizontal_merge_pdf.py') (Join-Path $projectRoot 'tmp/pdfs/horizontal-merge')
+    if ($LASTEXITCODE -ne 0) { throw 'Horizontal spans, repeated headers or editor/PDF geometry differed.' }
     Write-Output 'Editor adapter and page-flow checks passed. Synthetic PDF comparison and temporary loopback host only; no SQL, AppHost or external services.'
 } finally { foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name,$previous[$name]) } }

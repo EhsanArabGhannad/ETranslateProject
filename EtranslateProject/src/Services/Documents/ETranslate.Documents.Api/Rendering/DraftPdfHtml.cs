@@ -148,6 +148,8 @@ public static class DraftPdfHtml
             "tableRow" => "tr", "tableCell" => "td", "tableHeader" => "th", _ => "div"
         };
         html.Append($"<{tagName} dir=\"{direction}\"");
+        if (version >= 8 && type is "tableCell" or "tableHeader" && attrs.ValueKind == JsonValueKind.Object && attrs.TryGetProperty("colspan", out var span) && span.GetDecimal() > 1)
+            html.Append($" colspan=\"{(int)span.GetDecimal()}\"");
         if (version >= 7 && type is "tableCell" or "tableHeader" && attrs.ValueKind == JsonValueKind.Object)
         {
             var cellCss = DocumentCellStyle.Css(attrs);

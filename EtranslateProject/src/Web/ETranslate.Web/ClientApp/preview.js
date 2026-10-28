@@ -59,6 +59,7 @@ export function createPreview(workspace, resolveImage = id => assetUrl(workspace
         } else if (!['doc', 'header', 'footer'].includes(node.type)) unsupported = true;
         if (['auto', 'rtl', 'ltr'].includes(node.attrs?.dir)) target.dir = node.attrs.dir;
         if (contentVersion >= 7 && ['tableCell', 'tableHeader'].includes(node.type)) applyCellStyle(target, node.attrs);
+        if (contentVersion >= 8 && ['tableCell', 'tableHeader'].includes(node.type)) target.colSpan = node.attrs?.colspan ?? 1;
         if (node.type === 'table' && contentVersion >= 6) { appendColumnGroup(target, node.attrs?.columnWidths);
             if (Array.isArray(node.attrs?.columnWidths)) target.dataset.etColumnWidths = JSON.stringify(node.attrs.columnWidths); }
         if (['paragraph', 'heading'].includes(node.type) && ['left', 'center', 'right'].includes(node.attrs?.textAlign)) target.style.textAlign = node.attrs.textAlign;

@@ -6,7 +6,7 @@ import Heading from '@tiptap/extension-heading';
 import { Plugin } from '@tiptap/pm/state';
 import { closeHistory } from '@tiptap/pm/history';
 import { guid, isRichDocument } from '../document-schema.js';
-import { editorCommands, richDocumentV7 } from './document-contract.js';
+import { editorCommands, richDocumentV8 } from './document-contract.js';
 import { typographyFields, typographyCommands, validTypography, validTypographyValue, applyTypography } from '../typography.js';
 import { paragraphFields, paragraphCommands, paragraphActions, validParagraphValue, applyParagraph } from '../paragraph.js';
 import { scriptMarks, applyInlineScript } from '../inline-script.js';
@@ -17,11 +17,13 @@ import { selectedTable } from './tiptap-table-context.js';
 import { setTableColumnWidths, resetChangedColumnCounts } from './tiptap-table-widths.js';
 import { validColumnWidths, appendColumnGroup } from '../table-widths.js';
 import { cellStyleFields, validCellStyleValue, applyCellStyle } from '../cell-style.js';
-import { cellStyleState, changeCellStyle } from './tiptap-cell-style.js';
+import { cellStyleState, changeCellStyle, selectedCells } from './tiptap-cell-style.js';
+import { columnCount } from '../table-spans.js';
+import { horizontalCells, changeHorizontalCells } from './tiptap-horizontal-merge.js';
 
 export const tiptapProvider = Object.freeze({
-    id: 'tiptap', format: richDocumentV7,
-    capabilities: Object.freeze({ livePagination: false, docxImport: false, faithfulWordPaste: false, mergedCells: false, literalSearch:true }),
+    id: 'tiptap', format: richDocumentV8,
+    capabilities: Object.freeze({ livePagination: false, docxImport: false, faithfulWordPaste: false, mergedCells: false, horizontalCellMerge: true, literalSearch:true }),
     create: createTiptapAdapter
 });
 
@@ -36,7 +38,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         renderHTML(properties) {
             const attrs = properties.node.attrs;
             if (!cellStyleFields.some(field => attrs[field] != null)) return this.parent(properties);
-            const cell = document.createElement(tag); cell.dir = attrs.dir ?? 'auto'; cell.colSpan = 1; cell.rowSpan = 1;
+            const cell = document.createElement(tag); cell.dir = attrs.dir ?? 'auto'; cell.colSpan = attrs.colspan ?? 1; cell.rowSpan = 1;
             cell.dataset.etCellStyle = JSON.stringify(Object.fromEntries(cellStyleFields.map(field => [field, attrs[field] ?? null])));
             applyCellStyle(cell, attrs); return { dom: cell, contentDOM: cell };
         }
@@ -101,7 +103,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         name: 'preservationPolicy',
         addProseMirrorPlugins() {
             return [search.plugin,new Plugin({ filterTransaction: transaction => {
-                if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),7)) return true;
+                if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),8)) return true;
                 onRejectedChange(); return false;
             } })];
         }
@@ -126,13 +128,14 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         const position = editor.state.selection.$from;
         for (let depth = position.depth; depth > 0; depth--) {
             const node = position.node(depth);
-            if (node.type.name === 'table') return { rows: node.childCount, columns: node.firstChild.childCount };
+            if (node.type.name === 'table') return { rows: node.childCount, columns: columnCount(node.firstChild.content.content) };
         }
         return null;
     }
     function allowedTable(command) {
         const size = tableSize();
         if (command === 'insertTable') return !size && editor.state.selection.$from.depth === 1;
+        if (command === 'deleteColumn' && selectedCells(editor.state).some(({node})=>node.attrs.colspan>1)) return false;
         return !!size && (command !== 'addRowAfter' || size.rows < tableLimits.rows) && (command !== 'addColumnAfter' || size.columns < tableLimits.columns);
     }
     const operations = {
@@ -192,6 +195,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     }).run();}
     function getCommandState(command) {
         if (!editorCommands.includes(command) || editor.isDestroyed) return { enabled: false, active: false };
+        if (['mergeNextCell', 'mergeCellsInRow', 'splitCellInRow'].includes(command)) return { enabled: editor.isEditable && horizontalCells(editor.state, command) !== null, active: false };
         if (command === 'tableCellStyle') {
             const selection = cellStyleState(editor.state, 'selection'), table = cellStyleState(editor.state, 'table');
             return { enabled: editor.isEditable && selection.count > 0, active: selection.custom, selection, table };
@@ -199,7 +203,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         if (command === 'tableColumnWidths') {
             const table = selectedTable(editor.state), widths = table?.node.attrs.columnWidths ?? null;
             if (table && !widthContexts.has(table.node)) widthContexts.set(table.node, `table-${++nextWidthContext}`);
-            return { enabled: editor.isEditable && table !== null, active: widths !== null, columns: table?.node.firstChild.childCount ?? 0, value: widths?.slice() ?? null,
+            return { enabled: editor.isEditable && table !== null, active: widths !== null, columns: table ? columnCount(table.node.firstChild.content.content) : 0, value: widths?.slice() ?? null,
                 context: table ? widthContexts.get(table.node) : null };
         }
         if (command === 'toggleTableHeaderRow') {
@@ -234,6 +238,10 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         getCommandState,
         execute(command, value) {
             if (!getCommandState(command).enabled) return false;
+            if (['mergeNextCell', 'mergeCellsInRow', 'splitCellInRow'].includes(command)) {
+                editor.view.focus(); const tr = changeHorizontalCells(editor.state, command); if (!tr) return false;
+                editor.view.dispatch(tr); editor.view.dispatch(closeHistory(editor.state.tr)); return true;
+            }
             if (command === 'tableCellStyle') {
                 editor.view.focus(); const tr = changeCellStyle(editor.state, value); if (!tr) return false;
                 editor.view.dispatch(tr.scrollIntoView()); editor.view.dispatch(closeHistory(editor.state.tr)); return true;

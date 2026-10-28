@@ -56,6 +56,7 @@ export function createEditorSession({ provider, element, contentJson, contentFor
         if(provider.format.version<5 && advancedParagraphFields.includes(command))return {enabled:false,active:false};
         if(provider.format.version<6 && command==='tableColumnWidths')return {enabled:false,active:false,columns:0,value:null};
         if(provider.format.version<7 && command==='tableCellStyle')return {enabled:false,active:false};
+        if(provider.format.version<8 && ['mergeNextCell','mergeCellsInRow','splitCellInRow'].includes(command))return {enabled:false,active:false};
         const state = adapter.getCommandState(command);
         if (command === 'tableCellStyle') {
             const group = source => ({ count: Number.isInteger(source?.count) && source.count >= 0 && source.count <= 600 ? source.count : 0,

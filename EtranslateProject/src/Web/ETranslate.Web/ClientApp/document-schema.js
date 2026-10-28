@@ -3,6 +3,7 @@ import { validParagraphValue } from './paragraph.js';
 import { scriptMarks } from './inline-script.js';
 import { validColumnWidths } from './table-widths.js';
 import { validCellStyleValue } from './cell-style.js';
+import { columnCount } from './table-spans.js';
 export const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const blocks = ['paragraph', 'heading', 'bulletList', 'orderedList', 'image', 'blockquote'];
@@ -10,7 +11,7 @@ const tableTypes = ['table', 'tableRow', 'tableCell', 'tableHeader'];
 const marks = ['bold', 'italic', 'underline', 'strike'];
 
 export function isRichDocument(root, version = 1) {
-    if(![1,2,3,4,5,6,7].includes(version))return false;
+    if(![1,2,3,4,5,6,7,8].includes(version))return false;
     let remaining = 20000;
     function visit(node, parent, depth) {
         if (depth > 32 || --remaining < 0 || !object(node) || typeof node.type !== 'string') return false;
@@ -39,7 +40,7 @@ export function isRichDocument(root, version = 1) {
                 type === 'orderedList' && attr === 'start' && Number.isInteger(val) && val >= 1 && val <= 10000 ||
                 type === 'orderedList' && attr === 'type' && [null, '1', 'a', 'A', 'i', 'I'].includes(val) ||
                 type === 'image' && attr === 'assetId' && typeof val === 'string' && guid.test(val) ||
-                ['tableCell', 'tableHeader'].includes(type) && (['colspan', 'rowspan'].includes(attr) && val === 1 || ['colwidth', 'align'].includes(attr) && val === null))) continue;
+                ['tableCell', 'tableHeader'].includes(type) && (attr==='colspan' && Number.isInteger(val) && val>=1 && val<=(version>=8?12:1) || attr==='rowspan' && val===1 || ['colwidth', 'align'].includes(attr) && val === null))) continue;
             if (key === 'content' && !['text', 'image', 'hardBreak'].includes(type) && Array.isArray(value)) continue;
             return false;
         }
@@ -52,8 +53,11 @@ export function isRichDocument(root, version = 1) {
         if (type === 'listItem' && node.content[0]?.type !== 'paragraph') return false;
         if (!node.content.every(child => visit(child, type, depth + 1))) return false;
         if (type === 'tableRow' && node.content.length > 12) return false;
-        if (type === 'table' && (node.content.length > 50 || !node.content.every(row => row.content.length === node.content[0].content.length))) return false;
-        if (type === 'table' && node.attrs?.columnWidths != null && !validColumnWidths(node.attrs.columnWidths, node.content[0].content.length)) return false;
+        if (type === 'table') {
+            const columns = columnCount(node.content[0].content);
+            if (node.content.length > 50 || columns < 1 || columns > 12 || !node.content.every(row => columnCount(row.content) === columns)) return false;
+            if (node.attrs?.columnWidths != null && !validColumnWidths(node.attrs.columnWidths, columns)) return false;
+        }
         return true;
     }
     return visit(root, null, 0);

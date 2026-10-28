@@ -23,7 +23,7 @@ try {
     $document=Api POST $collection $null 201; $documentPath="$collection/$($document.id)"
     Api POST "$documentPath/template" @{templateId=$id;revisionNumber=8} 200 | Out-Null
     $pdf=Api POST "$documentPath/draft-revisions/1/pdfs" $null 201
-    Assert-Check ($pdf.templateRevisionId -eq $last.revision.id -and $pdf.rendererVersion -match '^draft-html-v17-cell-style') 'PDF uses the exact last-page template revision and versioned renderer'
+    Assert-Check ($pdf.templateRevisionId -eq $last.revision.id -and $pdf.rendererVersion -match '^draft-html-v18-horizontal-spans') 'PDF uses the exact last-page template revision and versioned renderer'
     $values['Form.ExpectedRevision']=8; $values['Form.FooterPlacement']='AllPages'
     Save-Template $values $page 302 | Out-Null
     $all=Api GET $path $null 200

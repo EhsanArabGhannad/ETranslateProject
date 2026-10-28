@@ -103,7 +103,7 @@ try {
     $pdfDocument=Api POST $pdfCollection $null 201; $pdfDocumentPath="$pdfCollection/$($pdfDocument.id)"
     Api POST "$pdfDocumentPath/template" @{templateId=$id;revisionNumber=7} 200 | Out-Null
     $pdfVersion=Api POST "$pdfDocumentPath/draft-revisions/1/pdfs" $null 201
-    Assert-Check ($pdfVersion.templateRevisionId -eq $imageOnly.revision.id -and $pdfVersion.rendererVersion -match '^draft-html-v17-cell-style') 'Authorized PDF pipeline resolves the exact formatted template and new renderer version'
+    Assert-Check ($pdfVersion.templateRevisionId -eq $imageOnly.revision.id -and $pdfVersion.rendererVersion -match '^draft-html-v18-horizontal-spans') 'Authorized PDF pipeline resolves the exact formatted template and new renderer version'
     $cached=Api POST "$pdfDocumentPath/draft-revisions/1/pdfs" $null 200
     Assert-Check ($cached.id -eq $pdfVersion.id -and $cached.sha256 -eq $pdfVersion.sha256) 'New renderer cache preserves the archived PDF identity'
     Web GET "/Settings/Templates?tenantId=$($solo.id)&templateId=$id" 404 | Out-Null

@@ -63,7 +63,7 @@ public sealed partial class EditorAdapterBrowserTests
         await page.Locator("#editor-search-case").UncheckAsync();await page.Locator("#editor-search-word").UncheckAsync();
         await Search(page,"ترجمه","/ 2 eşleşme");await page.Locator("#editor-search-replacement").FillAsync("ترجمهٔ رسمی");await page.Locator("#editor-search-all").ClickAsync();
         Assert.Equal("rtl",await textbox.Locator(":scope>p").Nth(1).GetAttributeAsync("dir"));await Assertions.Expect(textbox.Locator(":scope>p").Nth(1)).ToHaveTextAsync("ترجمهٔ رسمی می‌روم ترجمهٔ رسمی");
-        var edited=await json.InputValueAsync();Assert.True(DocumentContentDescriptor.RichV7.TryRead(edited,out _));Assert.DoesNotContain("editor-search",edited);
+        var edited=await json.InputValueAsync();Assert.True(DocumentContentDescriptor.RichV8.TryRead(edited,out _));Assert.DoesNotContain("editor-search",edited);
         await page.Locator("#editor-pages-toggle").ClickAsync();await Assertions.Expect(page.Locator("#editor-viewport")).ToHaveAttributeAsync("data-pagination","paged");
         await Search(page,"TAIL_TARGET","/ 1 eşleşme");await page.Locator("#editor-search-next").ClickAsync();
         await page.WaitForFunctionAsync("()=>Number(document.querySelector('#editor-viewport').dataset.pageIndex)>1");
@@ -76,7 +76,7 @@ public sealed partial class EditorAdapterBrowserTests
         await page.Locator("#editor-search-all").EvaluateAsync("e=>e.dispatchEvent(new MouseEvent('click',{bubbles:true}))");Assert.Equal(edited,await json.InputValueAsync());
         fail.Release.SetResult(503);await Assertions.Expect(page.Locator("#editor-search-replace")).ToBeEnabledAsync();
         var save=fixture.Enqueue();await page.Locator("#draft-form button[type=submit]").ClickAsync();await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        fixture.Source=SubmittedJson(save.Body);fixture.SchemaVersion="7";save.Release.SetResult(303);await page.WaitForURLAsync("**after-save=1");
+        fixture.Source=SubmittedJson(save.Body);fixture.SchemaVersion="8";save.Release.SetResult(303);await page.WaitForURLAsync("**after-save=1");
         Assert.Equal(edited,await json.InputValueAsync());await Assertions.Expect(Command(page,"undo")).ToBeDisabledAsync();
         await Search(page,"SELAM","/ 4 eşleşme");await page.Locator("#editor-focus-toggle").ClickAsync();await fixture.ScreenshotAsync("search-replace.png");await page.Keyboard.PressAsync("Escape");
         fixture.Editable=false;await fixture.OpenAsync();await Search(page,"SELAM","/ 4 eşleşme");

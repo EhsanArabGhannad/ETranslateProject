@@ -27,7 +27,7 @@ public sealed class PdfRendererBusyException : Exception;
 public static class DraftPdfPolicy
 {
     // Bump this whenever HTML/layout/font/browser changes can change rendered bytes.
-    public const string RendererVersion = "draft-html-v17-cell-style-pw1.63.0-noto-pdfsharp6.2.4";
+    public const string RendererVersion = "draft-html-v18-horizontal-spans-pw1.63.0-noto-pdfsharp6.2.4";
     public const long MaximumBytes = 25 * 1024 * 1024;
     public const int MaximumTextLength = 100_000;
     public const int MaximumImages = 10;

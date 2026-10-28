@@ -27,7 +27,7 @@ function contentFingerprint(root) {
     const value = root.textContent + [...root.querySelectorAll('table')].map(table =>
         [...table.rows].map(row => [...row.cells].map(cell => {
             const style = [cell.style.backgroundColor, cell.style.borderColor, cell.style.borderWidth, cell.style.borderStyle];
-            return cell.tagName + (style.some(Boolean) ? ':' + style.join('/') : '');
+            return cell.tagName + (cell.colSpan > 1 ? `[${cell.colSpan}]` : '') + (style.some(Boolean) ? ':' + style.join('/') : '');
         }).join(',')).join(';') +
         (table.dataset.etColumnWidths ? `:${table.dataset.etColumnWidths}` : '')).join('|');
     for (let i = 0; i < value.length; i++) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
@@ -37,7 +37,11 @@ export function measureRowPlan(root, metrics) {
     const { contentWidth: width, contentHeight: height, columnGap: gap } = metrics ?? {};
     if (![width, height, gap].every(Number.isFinite) || width <= 0 || height <= 0 || gap < 0) throw new Error('Unsupported row-plan geometry');
     if (root.querySelector('table table')) throw new Error('Nested tables are not supported');
-    if ([...root.querySelectorAll('th,td')].some(cell => cell.colSpan !== 1 || cell.rowSpan !== 1)) throw new Error('Merged cells are not supported');
+    if ([...root.querySelectorAll('th,td')].some(cell => cell.colSpan < 1 || cell.colSpan > 12 || cell.rowSpan !== 1)) throw new Error('Only bounded horizontal spans are supported');
+    for (const table of root.querySelectorAll('table')) {
+        const widths = [...table.rows].map(row => [...row.cells].reduce((sum, cell) => sum + cell.colSpan, 0));
+        if (!widths.length || widths[0] < 1 || widths[0] > 12 || !widths.every(value => value === widths[0])) throw new Error('Invalid logical column grid');
+    }
     const saved = new Map();
     const remember = node => {
         if (!saved.has(node)) saved.set(node, { present: node.hasAttribute('style'),

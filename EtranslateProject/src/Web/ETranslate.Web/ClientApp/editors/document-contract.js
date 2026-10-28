@@ -9,31 +9,32 @@ export const richDocumentV4 = Object.freeze({ id: 'etranslate.rich-document', ve
 export const richDocumentV5 = Object.freeze({ id: 'etranslate.rich-document', version: 5 });
 export const richDocumentV6 = Object.freeze({ id: 'etranslate.rich-document', version: 6 });
 export const richDocumentV7 = Object.freeze({ id: 'etranslate.rich-document', version: 7 });
+export const richDocumentV8 = Object.freeze({ id: 'etranslate.rich-document', version: 8 });
 export const legacyDocument = Object.freeze({ id: 'etranslate.legacy-json', version: 0 });
 
 export function supportsStoredContent(format, version) {
     // Old pages had no metadata attributes. Do not treat partial/empty/unknown metadata as legacy.
     if (format == null && version == null) return true;
-    return format === richDocumentV1.id && [1,'1',2,'2',3,'3',4,'4',5,'5',6,'6',7,'7'].includes(version) ||
+    return format === richDocumentV1.id && [1,'1',2,'2',3,'3',4,'4',5,'5',6,'6',7,'7',8,'8'].includes(version) ||
         format === legacyDocument.id && (version === 0 || version === '0');
 }
 export const editorCommands = Object.freeze([
     'bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'paragraph', 'heading', 'bulletList', 'orderedList',
     'rtl', 'ltr', 'auto', 'undo', 'redo', 'insertTable', 'addRowAfter', 'addColumnAfter',
-    'deleteRow', 'deleteColumn', 'deleteTable', 'toggleTableHeaderRow', 'tableColumnWidths', 'tableCellStyle', 'fontFamily', 'fontSize', 'textColor', 'highlight', 'clearTextStyle',
+    'deleteRow', 'deleteColumn', 'deleteTable', 'toggleTableHeaderRow', 'tableColumnWidths', 'tableCellStyle', 'mergeNextCell', 'mergeCellsInRow', 'splitCellInRow', 'fontFamily', 'fontSize', 'textColor', 'highlight', 'clearTextStyle',
     'textAlign','lineHeight','indentLevel','increaseIndent','decreaseIndent','clearParagraphStyle','spaceBeforePt','spaceAfterPt','firstLineIndentMm'
 ]);
 
 export function assertDocumentFormat(format) {
-    if (format?.id !== richDocumentV1.id || ![1,2,3,4,5,6,7].includes(format?.version))
+    if (format?.id !== richDocumentV1.id || ![1,2,3,4,5,6,7,8].includes(format?.version))
         throw new Error('Unsupported document format');
 }
 
 export function storedDocumentFormat(format,version){
     if(!supportsStoredContent(format,version))throw new Error('Unsupported stored format');
-    return Number(version)===7?richDocumentV7:Number(version)===6?richDocumentV6:Number(version)===5?richDocumentV5:Number(version)===4?richDocumentV4:Number(version)===3?richDocumentV3:Number(version)===2?richDocumentV2:richDocumentV1;
+    return Number(version)===8?richDocumentV8:Number(version)===7?richDocumentV7:Number(version)===6?richDocumentV6:Number(version)===5?richDocumentV5:Number(version)===4?richDocumentV4:Number(version)===3?richDocumentV3:Number(version)===2?richDocumentV2:richDocumentV1;
 }
-export function readDocumentJson(source, format = richDocumentV7) {
+export function readDocumentJson(source, format = richDocumentV8) {
     assertDocumentFormat(format);
     if (typeof source !== 'string' || source.length > 2_000_000) throw new Error('Invalid document size');
     const content = JSON.parse(source);
@@ -41,7 +42,7 @@ export function readDocumentJson(source, format = richDocumentV7) {
     return normalizeEmptyText(content);
 }
 
-export function writeDocumentJson(content, format = richDocumentV7) {
+export function writeDocumentJson(content, format = richDocumentV8) {
     assertDocumentFormat(format);
     if (!isRichDocument(content,format.version)) throw new Error('Unsupported document structure');
     const source = JSON.stringify(content);
