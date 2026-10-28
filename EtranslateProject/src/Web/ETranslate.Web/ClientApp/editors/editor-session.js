@@ -5,6 +5,7 @@ import { scriptMarks } from '../inline-script.js';
 import {validSearch,validReplacement} from '../document-text-tools.js';
 import { tableOptions } from '../table-options.js';
 import { validColumnWidths } from '../table-widths.js';
+import { cellStyleFields, validCellStyleValue, validCellStyleChange } from '../cell-style.js';
 
 /**
  * Provider contract (trusted application code):
@@ -54,7 +55,14 @@ export function createEditorSession({ provider, element, contentJson, contentFor
         if(provider.format.version<3 && (Object.hasOwn(paragraphCommands,command)||paragraphActions.includes(command)))return {enabled:false,active:false};
         if(provider.format.version<5 && advancedParagraphFields.includes(command))return {enabled:false,active:false};
         if(provider.format.version<6 && command==='tableColumnWidths')return {enabled:false,active:false,columns:0,value:null};
+        if(provider.format.version<7 && command==='tableCellStyle')return {enabled:false,active:false};
         const state = adapter.getCommandState(command);
+        if (command === 'tableCellStyle') {
+            const group = source => ({ count: Number.isInteger(source?.count) && source.count >= 0 && source.count <= 600 ? source.count : 0,
+                values: Object.fromEntries(cellStyleFields.map(field => [field, validCellStyleValue(field, source?.values?.[field]) ? source.values[field] : null])),
+                mixed: Object.fromEntries(cellStyleFields.map(field => [field, source?.mixed?.[field] === true])), custom: source?.custom === true });
+            return { enabled: enabled && state.enabled === true, active: state.active === true, selection: group(state.selection), table: group(state.table) };
+        }
         if (command === 'tableColumnWidths') {
             const columns = Number.isInteger(state.columns) && state.columns >= 1 && state.columns <= 12 ? state.columns : 0;
             return { enabled: enabled && state.enabled === true && columns > 0, active: state.active === true, columns,
@@ -79,6 +87,7 @@ export function createEditorSession({ provider, element, contentJson, contentFor
         replaceSearch(value,all=false){return !destroyed&&enabled&&validReplacement(value)&&typeof all==='boolean'&&adapter.replaceSearch?.(value,all)===true;},
         getCommandState,
         execute(command, value) {
+            if (command === 'tableCellStyle') { if (!validCellStyleChange(value)) return false; value = { ...value }; }
             if (command === 'insertTable') { value = tableOptions(value); if (!value) return false; }
             if(Object.hasOwn(typographyCommands,command)&&!validTypographyValue(typographyCommands[command],value))return false;
             if(Object.hasOwn(paragraphCommands,command)&&!validParagraphValue(paragraphCommands[command],value,provider.format.version))return false;

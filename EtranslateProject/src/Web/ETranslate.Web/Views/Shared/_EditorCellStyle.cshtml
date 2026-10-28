@@ -1,0 +1,24 @@
+<details id="editor-cell-style" class="editor-cell-style">
+    <summary>@UiText.Get("EditorCellStyle")</summary>
+    <p class="muted">@UiText.Get("EditorCellStyleHelp")</p>
+    <div class="editor-cell-style-fields">
+        <label>@UiText.Get("EditorCellScope")<select id="editor-cell-scope"><option value="selection">@UiText.Get("EditorCellSelection")</option><option value="table">@UiText.Get("EditorCellWholeTable")</option></select></label>
+        <label>@UiText.Get("EditorCellBackground")<select id="editor-cell-background" data-cell-field="backgroundColor">
+            <option value="">@UiText.Get("EditorDefaultStyle")</option><option value="__mixed__" disabled>@UiText.Get("EditorMixedStyle")</option>
+            <option value="#ffffff">@UiText.Get("EditorCellWhite")</option><option value="#e5e7eb">@UiText.Get("EditorGray")</option><option value="#fef08a">@UiText.Get("EditorYellow")</option>
+            <option value="#bbf7d0">@UiText.Get("EditorGreen")</option><option value="#bfdbfe">@UiText.Get("EditorBlue")</option><option value="#fbcfe8">@UiText.Get("EditorPink")</option>
+        </select></label>
+        <label>@UiText.Get("EditorCellCustomBackground")<input id="editor-cell-background-custom" type="color" data-cell-color="backgroundColor" value="#ffffff" /></label>
+        <label>@UiText.Get("EditorCellBorderColor")<select id="editor-cell-border-color" data-cell-field="borderColor">
+            <option value="">@UiText.Get("EditorDefaultStyle")</option><option value="__mixed__" disabled>@UiText.Get("EditorMixedStyle")</option>
+            <option value="#000000">@UiText.Get("EditorBlack")</option><option value="#87969c">@UiText.Get("EditorGray")</option><option value="#b91c1c">@UiText.Get("EditorRed")</option><option value="#1d4ed8">@UiText.Get("EditorBlue")</option><option value="#15803d">@UiText.Get("EditorGreen")</option>
+        </select></label>
+        <label>@UiText.Get("EditorCellCustomBorder")<input id="editor-cell-border-custom" type="color" data-cell-color="borderColor" value="#87969c" /></label>
+        <label>@UiText.Get("EditorCellBorderWidth")<select id="editor-cell-border-width" data-cell-field="borderWidthPt">
+            <option value="">@UiText.Get("EditorDefaultStyle")</option><option value="__mixed__" disabled>@UiText.Get("EditorMixedStyle")</option><option value="0">0 pt</option><option value="0.5">0,5 pt</option><option value="1">1 pt</option><option value="1.5">1,5 pt</option><option value="2">2 pt</option><option value="3">3 pt</option>
+        </select></label>
+        <label>@UiText.Get("EditorCellBorderStyle")<select id="editor-cell-border-style" data-cell-field="borderStyle">
+            <option value="">@UiText.Get("EditorDefaultStyle")</option><option value="__mixed__" disabled>@UiText.Get("EditorMixedStyle")</option><option value="solid">@UiText.Get("EditorCellSolid")</option><option value="dashed">@UiText.Get("EditorCellDashed")</option><option value="dotted">@UiText.Get("EditorCellDotted")</option>
+        </select></label>
+    </div><p id="editor-cell-count" class="muted" role="status"></p><button id="editor-cell-reset" type="button">@UiText.Get("EditorCellReset")</button>
+</details>

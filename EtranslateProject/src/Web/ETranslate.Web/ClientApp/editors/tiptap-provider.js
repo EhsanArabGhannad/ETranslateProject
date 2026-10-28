@@ -1,12 +1,12 @@
 import { Editor, Extension, Node, Mark } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import { TableKit, Table } from '@tiptap/extension-table';
+import { TableKit, Table, TableCell, TableHeader } from '@tiptap/extension-table';
 import Paragraph from '@tiptap/extension-paragraph';
 import Heading from '@tiptap/extension-heading';
 import { Plugin } from '@tiptap/pm/state';
 import { closeHistory } from '@tiptap/pm/history';
 import { guid, isRichDocument } from '../document-schema.js';
-import { editorCommands, richDocumentV6 } from './document-contract.js';
+import { editorCommands, richDocumentV7 } from './document-contract.js';
 import { typographyFields, typographyCommands, validTypography, validTypographyValue, applyTypography } from '../typography.js';
 import { paragraphFields, paragraphCommands, paragraphActions, validParagraphValue, applyParagraph } from '../paragraph.js';
 import { scriptMarks, applyInlineScript } from '../inline-script.js';
@@ -16,9 +16,11 @@ import { firstTableRow, toggleFirstTableRow } from './tiptap-table-header.js';
 import { selectedTable } from './tiptap-table-context.js';
 import { setTableColumnWidths, resetChangedColumnCounts } from './tiptap-table-widths.js';
 import { validColumnWidths, appendColumnGroup } from '../table-widths.js';
+import { cellStyleFields, validCellStyleValue, applyCellStyle } from '../cell-style.js';
+import { cellStyleState, changeCellStyle } from './tiptap-cell-style.js';
 
 export const tiptapProvider = Object.freeze({
-    id: 'tiptap', format: richDocumentV6,
+    id: 'tiptap', format: richDocumentV7,
     capabilities: Object.freeze({ livePagination: false, docxImport: false, faithfulWordPaste: false, mergedCells: false, literalSearch:true }),
     create: createTiptapAdapter
 });
@@ -27,6 +29,19 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     let editor;
     const search=createTiptapSearch();
     const widthContexts = new WeakMap(); let nextWidthContext = 0;
+    function styledCell(Base, tag) { return Base.extend({
+        addAttributes() { return { ...this.parent?.(), ...Object.fromEntries(cellStyleFields.map(field => [field, { default: null, rendered: false, parseHTML: element => {
+            try { const attrs = JSON.parse(element.getAttribute('data-et-cell-style')); return attrs && validCellStyleValue(field, attrs[field]) ? attrs[field] : null; } catch { return null; }
+        } }])) }; },
+        renderHTML(properties) {
+            const attrs = properties.node.attrs;
+            if (!cellStyleFields.some(field => attrs[field] != null)) return this.parent(properties);
+            const cell = document.createElement(tag); cell.dir = attrs.dir ?? 'auto'; cell.colSpan = 1; cell.rowSpan = 1;
+            cell.dataset.etCellStyle = JSON.stringify(Object.fromEntries(cellStyleFields.map(field => [field, attrs[field] ?? null])));
+            applyCellStyle(cell, attrs); return { dom: cell, contentDOM: cell };
+        }
+    }); }
+    const StyledCell = styledCell(TableCell, 'td'), StyledHeader = styledCell(TableHeader, 'th');
     const WidthTable = Table.extend({
         addAttributes() { return { ...this.parent?.(), columnWidths: { default: null, rendered: false, parseHTML: element => {
             try { const widths = JSON.parse(element.getAttribute('data-et-column-widths')); return validColumnWidths(widths) ? widths : null; } catch { return null; }
@@ -86,7 +101,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         name: 'preservationPolicy',
         addProseMirrorPlugins() {
             return [search.plugin,new Plugin({ filterTransaction: transaction => {
-                if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),6)) return true;
+                if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),7)) return true;
                 onRejectedChange(); return false;
             } })];
         }
@@ -96,7 +111,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
             element, injectCSS: false, editable, textDirection: 'auto',
             extensions: [StarterKit.configure({ code: false, codeBlock: false, link: false, horizontalRule: false,
                 dropcursor: false, trailingNode: false, paragraph:false,heading:false }), StyledParagraph,StyledHeading,ManagedImage, Typography,...scripts,
-                TableKit.configure({ table: false }), WidthTable.configure({ resizable: false, View: null }), PreservationPolicy],
+                TableKit.configure({ table: false, tableCell: false, tableHeader: false }), WidthTable.configure({ resizable: false, View: null }), StyledCell, StyledHeader, PreservationPolicy],
             content: { type: 'doc', content: [{ type: 'paragraph' }] },
             editorProps: { attributes: { role: 'textbox', tabindex:'0', 'aria-label': labels.text, 'aria-multiline': 'true', spellcheck: 'false' } }
         });
@@ -177,6 +192,10 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     }).run();}
     function getCommandState(command) {
         if (!editorCommands.includes(command) || editor.isDestroyed) return { enabled: false, active: false };
+        if (command === 'tableCellStyle') {
+            const selection = cellStyleState(editor.state, 'selection'), table = cellStyleState(editor.state, 'table');
+            return { enabled: editor.isEditable && selection.count > 0, active: selection.custom, selection, table };
+        }
         if (command === 'tableColumnWidths') {
             const table = selectedTable(editor.state), widths = table?.node.attrs.columnWidths ?? null;
             if (table && !widthContexts.has(table.node)) widthContexts.set(table.node, `table-${++nextWidthContext}`);
@@ -215,6 +234,10 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         getCommandState,
         execute(command, value) {
             if (!getCommandState(command).enabled) return false;
+            if (command === 'tableCellStyle') {
+                editor.view.focus(); const tr = changeCellStyle(editor.state, value); if (!tr) return false;
+                editor.view.dispatch(tr.scrollIntoView()); editor.view.dispatch(closeHistory(editor.state.tr)); return true;
+            }
             if (command === 'tableColumnWidths') {
                 editor.view.focus();
                 const tr = setTableColumnWidths(editor.state, value); if (!tr) return false;

@@ -80,6 +80,7 @@ else if (Model.Document.CurrentDraftRevision == 0) {
     <button type="button" data-command="toggleTableHeaderRow" aria-pressed="false" title="@UiText.Get("EditorToggleTableHeaderHelp")">@UiText.Get("EditorToggleTableHeader")</button>
     <partial name="_EditorTable" />
     <partial name="_EditorTableWidths" />
+    <partial name="_EditorCellStyle" />
 </div><p id="editor-paper-description" class="muted"></p><div id="editor-viewport" class="editor-viewport" tabindex="0" role="region" aria-label="@UiText.Get("EditorPaperRegion")" aria-describedby="editor-paper-description"><div id="editor-paper-stage"><div id="editor-paper"><div id="rich-text"></div></div></div></div><p class="muted">@UiText.Get("BicimlendirmeSeciliMetneVeyaGecerliParagrafaUygulanir")</p></div>
 <p id="editor-format-status" class="muted" role="status"></p>
 @if (plain is not null) { <label for="translation-text">@UiText.Get("HerSatirBirParagraf")</label><textarea id="translation-text" name="plainText" rows="18" dir="auto" readonly="@(!editable)" maxlength="1000000">@plain</textarea><textarea id="document-json" name="editorContentJson" hidden>@Model.EditorContentJson</textarea> }

@@ -5,5 +5,5 @@ namespace ETranslate.Web.Models;
 public static class RichDocument
 {
     public static bool TryGetPlainText(string json, out string? plainText)
-        => DocumentContentDescriptor.RichV6.TryRead(json, out plainText);
+        => DocumentContentDescriptor.RichV7.TryRead(json, out plainText);
 }

@@ -148,6 +148,11 @@ public static class DraftPdfHtml
             "tableRow" => "tr", "tableCell" => "td", "tableHeader" => "th", _ => "div"
         };
         html.Append($"<{tagName} dir=\"{direction}\"");
+        if (version >= 7 && type is "tableCell" or "tableHeader" && attrs.ValueKind == JsonValueKind.Object)
+        {
+            var cellCss = DocumentCellStyle.Css(attrs);
+            if (cellCss.Length > 0) html.Append($" style=\"{Encode(cellCss)}\"");
+        }
         if (type is "paragraph" or "heading" && attrs.ValueKind==JsonValueKind.Object)
         {
             var paragraphCss=DocumentParagraph.Css(attrs);

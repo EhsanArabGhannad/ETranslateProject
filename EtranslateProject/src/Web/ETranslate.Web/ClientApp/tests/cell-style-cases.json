@@ -1,0 +1,22 @@
+[
+ {"name":"null defaults","attrs":{"backgroundColor":null,"borderColor":null,"borderWidthPt":null,"borderStyle":null},"valid":true},
+ {"name":"background","attrs":{"backgroundColor":"#BfDBfe"},"valid":true},
+ {"name":"all fields","attrs":{"backgroundColor":"#fef08a","borderColor":"#1d4ed8","borderWidthPt":1.5,"borderStyle":"dashed"},"valid":true},
+ {"name":"hidden zero","attrs":{"borderWidthPt":0},"valid":true},
+ {"name":"half pt","attrs":{"borderWidthPt":0.5},"valid":true},
+ {"name":"three pt","attrs":{"borderWidthPt":3.0},"valid":true},
+ {"name":"solid","attrs":{"borderStyle":"solid"},"valid":true},
+ {"name":"dotted","attrs":{"borderStyle":"dotted"},"valid":true},
+ {"name":"short hex","attrs":{"backgroundColor":"#fff"},"valid":false},
+ {"name":"alpha hex","attrs":{"backgroundColor":"#ffffff00"},"valid":false},
+ {"name":"named color","attrs":{"borderColor":"red"},"valid":false},
+ {"name":"newline color","attrs":{"borderColor":"#123456\n"},"valid":false},
+ {"name":"css injection","attrs":{"backgroundColor":"#ffffff;background:url(x)"},"valid":false},
+ {"name":"unknown css","attrs":{"style":"color:red"},"valid":false},
+ {"name":"negative","attrs":{"borderWidthPt":-1},"valid":false},
+ {"name":"over max","attrs":{"borderWidthPt":4},"valid":false},
+ {"name":"unknown fraction","attrs":{"borderWidthPt":0.7},"valid":false},
+ {"name":"string width","attrs":{"borderWidthPt":"1"},"valid":false},
+ {"name":"hidden token","attrs":{"borderStyle":"hidden"},"valid":false},
+ {"name":"image style","attrs":{"borderStyle":"url(x)"},"valid":false}
+]

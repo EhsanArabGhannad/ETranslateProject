@@ -14,7 +14,7 @@ public static class DocumentContentJson
         {
             using var document = JsonDocument.Parse(json);
             var remaining = 20_000;
-            if (schemaVersion is not (1 or 2 or 3 or 4 or 5 or 6) || rootType is not ("doc" or "header" or "footer") || !Validate(document.RootElement, null, 0, ref remaining, rootType, schemaVersion)) return false;
+            if (schemaVersion is not (1 or 2 or 3 or 4 or 5 or 6 or 7) || rootType is not ("doc" or "header" or "footer") || !Validate(document.RootElement, null, 0, ref remaining, rootType, schemaVersion)) return false;
             var lines = new List<string>();
             Extract(document.RootElement, lines);
             plainText = string.Join('\n', lines);
@@ -99,6 +99,7 @@ public static class DocumentContentJson
                 Guid.TryParseExact(field.Value.GetString(), "D", out _)) continue;
             if (type is "tableCell" or "tableHeader")
             {
+                if (version >= 7 && DocumentCellStyle.ValidValue(field.Name, field.Value)) continue;
                 if (field.Name is "colspan" or "rowspan" && field.Value.ValueKind == JsonValueKind.Number && field.Value.TryGetInt32(out var span) && span == 1) continue;
                 if (field.Name is "colwidth" or "align" && field.Value.ValueKind == JsonValueKind.Null) continue;
             }

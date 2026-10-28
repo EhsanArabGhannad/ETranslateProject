@@ -69,3 +69,8 @@
 .editor-controls .editor-column-inputs label{margin:0;font-weight:500}
 .editor-controls .editor-column-inputs input{width:100px;margin-top:5px;padding:7px 10px}
 .editor-controls .editor-column-inputs input[aria-invalid=true]{border-color:#b91c1c}
+.editor-controls .editor-cell-style{flex:1 1 100%;width:100%;border:0;margin:4px 0}
+.editor-cell-style-fields{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+.editor-controls .editor-cell-style-fields label{margin:0;font-weight:500;max-width:100%}
+.editor-controls .editor-cell-style-fields :is(select,input){width:auto;max-width:100%;margin:5px 0 0;padding:7px}
+.editor-controls .editor-cell-style-fields input[type=color]{width:65px;height:38px}
