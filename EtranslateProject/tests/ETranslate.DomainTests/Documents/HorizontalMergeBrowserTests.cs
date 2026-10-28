@@ -17,8 +17,10 @@ public sealed partial class EditorAdapterBrowserTests
     }
     private static async Task SelectMergeRange(IPage page, ILocator table, int firstRow, int firstCell, int lastRow, int lastCell)
     {
+        await table.Locator("tr").Nth(firstRow).ScrollIntoViewIfNeededAsync();
+        await page.Locator("#rich-text [role=textbox]").FocusAsync();
         await table.EvaluateAsync("""
-            (table,arg)=>{table.closest('[role=textbox]').focus();const from=table.rows[arg.firstRow].cells[arg.firstCell],to=table.rows[arg.lastRow].cells[arg.lastCell];
+            (table,arg)=>{const from=table.rows[arg.firstRow].cells[arg.firstCell],to=table.rows[arg.lastRow].cells[arg.lastCell];
                 const range=document.createRange();range.setStart(from,0);range.setEnd(to,to.childNodes.length);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);}
             """, new { firstRow, firstCell, lastRow, lastCell });
     }
@@ -36,7 +38,7 @@ public sealed partial class EditorAdapterBrowserTests
         await Command(page, "mergeNextCell").ClickAsync();
         Assert.Equal(2, await row.Locator("th").CountAsync()); await Assertions.Expect(row.Locator("th").First).ToHaveAttributeAsync("colspan", "2");
         await Assertions.Expect(row.Locator("th").First).ToContainTextAsync("MG_R0C1"); Assert.Equal(4, await row.Locator("th").First.Locator("p").CountAsync());
-        var merged = await json.InputValueAsync(); Assert.True(DocumentContentDescriptor.RichV8.TryRead(merged, out _)); Assert.False(DocumentContentDescriptor.RichV7.TryRead(merged, out _));
+        var merged = await json.InputValueAsync(); Assert.True(DocumentContentDescriptor.RichV9.TryRead(merged, out _)); Assert.False(DocumentContentDescriptor.RichV7.TryRead(merged, out _));
         await Command(page, "undo").ClickAsync(); Assert.Equal(original, await row.Locator("th,td").EvaluateAllAsync<string[]>("cells=>cells.map(cell=>cell.innerHTML)"));
         await Command(page, "redo").ClickAsync(); Assert.Equal(merged, await json.InputValueAsync());
         await Command(page, "splitCellInRow").ClickAsync(); Assert.Equal(3, await row.Locator("th").CountAsync());
@@ -56,7 +58,7 @@ public sealed partial class EditorAdapterBrowserTests
         await SelectHeaderMarker(page, "MG_R2C0"); var retry = fixture.Enqueue(); await page.Locator("#draft-form button[type=submit]").ClickAsync(); await retry.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
         await Assertions.Expect(Command(page, "splitCellInRow")).ToBeDisabledAsync(); await Command(page, "splitCellInRow").DispatchEventAsync("click"); Assert.Equal(edited, await json.InputValueAsync());
         retry.Release.SetResult(503); await Assertions.Expect(Command(page, "splitCellInRow")).ToBeEnabledAsync();
-        var save = fixture.Enqueue(); await page.Locator("#draft-form button[type=submit]").ClickAsync(); await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10)); fixture.Source = SubmittedJson(save.Body); fixture.SchemaVersion = "8";
+        var save = fixture.Enqueue(); await page.Locator("#draft-form button[type=submit]").ClickAsync(); await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10)); fixture.Source = SubmittedJson(save.Body); fixture.SchemaVersion = "9";
         save.Release.SetResult(303); await page.WaitForURLAsync("**after-save=1"); Assert.Equal(edited, await json.InputValueAsync());
         await Assertions.Expect(Command(page, "undo")).ToBeDisabledAsync(); await SelectHeaderMarker(page, "MG_R2C0"); await Assertions.Expect(Command(page, "splitCellInRow")).ToBeEnabledAsync();
         await page.Locator("#editor-horizontal-merge").EvaluateAsync("e=>e.open=true"); await page.Locator("#editor-search").EvaluateAsync("e=>e.open=false");
@@ -88,8 +90,8 @@ public sealed partial class EditorAdapterBrowserTests
             await SelectHeaderMarker(page, spec.Marker); for (var i = 0; i < spec.Times; i++) await Command(page, "mergeNextCell").ClickAsync();
         }
         var edited = await page.Locator("#document-json").InputValueAsync();
-        Assert.True(DocumentContentDescriptor.RichV7.TryRead(source, out var before)); Assert.True(DocumentContentDescriptor.RichV8.TryRead(edited, out var after)); Assert.Equal(before, after);
-        var save = fixture.Enqueue(); await page.Locator("#draft-form button[type=submit]").ClickAsync(); await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10)); fixture.Source = SubmittedJson(save.Body); fixture.SchemaVersion = "8";
+        Assert.True(DocumentContentDescriptor.RichV7.TryRead(source, out var before)); Assert.True(DocumentContentDescriptor.RichV9.TryRead(edited, out var after)); Assert.Equal(before, after);
+        var save = fixture.Enqueue(); await page.Locator("#draft-form button[type=submit]").ClickAsync(); await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10)); fixture.Source = SubmittedJson(save.Body); fixture.SchemaVersion = "9";
         save.Release.SetResult(303); await page.WaitForURLAsync("**after-save=1"); Assert.Equal(edited, await page.Locator("#document-json").InputValueAsync());
         await page.Locator("#editor-pages-toggle").ClickAsync(); await Assertions.Expect(page.Locator("#editor-viewport")).ToHaveAttributeAsync("data-pagination", "paged");
         var directory = Path.GetFullPath(Path.Combine(Environment.GetEnvironmentVariable("ETRANSLATE_EDITOR_ADAPTER_WEB_ROOT")!, "../../../tmp/pdfs/horizontal-merge")); Directory.CreateDirectory(directory);
@@ -101,7 +103,7 @@ public sealed partial class EditorAdapterBrowserTests
             """);
         await File.WriteAllTextAsync(Path.Combine(directory, "merge-markers.json"), markers);
         using (var renderer = new ChromiumDraftPdfRenderer()) {
-            var bytes = await renderer.RenderAsync(new(Guid.NewGuid(), 1, null, edited, null, null, null, null, new Dictionary<Guid, PdfImage>()) { ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 8 }, CancellationToken.None);
+            var bytes = await renderer.RenderAsync(new(Guid.NewGuid(), 1, null, edited, null, null, null, null, new Dictionary<Guid, PdfImage>()) { ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 9 }, CancellationToken.None);
             using var stream = new MemoryStream(bytes); using var pdf = PdfReader.Open(stream, PdfDocumentOpenMode.Import);
             Assert.Equal(int.Parse((await page.Locator("#editor-viewport").GetAttributeAsync("data-page-count"))!), pdf.PageCount); Assert.True(pdf.PageCount > 2); await File.WriteAllBytesAsync(Path.Combine(directory, "horizontal-merge.pdf"), bytes);
         }

@@ -126,6 +126,7 @@ public sealed class SqlPaginationAcceptanceTests
         var collection = $"/api/v1/tenants/{tenantId}/translation-jobs/{jobId}/documents";
         var document = await Api(host, "documents", HttpMethod.Post, collection, null, HttpStatusCode.Created);
         var documentId = document.GetProperty("id").GetGuid(); var path = collection + "/" + documentId;
+        Guid? bodyImageId = null;
         if (template.HasValue)
         {
             var detail = await Api(host, "documents", HttpMethod.Get, $"/api/v1/tenants/{tenantId}/document-templates/{template}", null, HttpStatusCode.OK);
@@ -192,6 +193,18 @@ public sealed class SqlPaginationAcceptanceTests
             await page.Locator("#editor-cell-border-width").SelectOptionAsync("1.5");
             await page.Locator("#editor-horizontal-merge").EvaluateAsync("e=>e.open=true");
             await page.Locator("button[data-command=mergeNextCell]").ClickAsync();
+            await page.Locator("#editor-pages-toggle").ClickAsync();
+            await textbox.Locator(":scope > p").Last.ClickAsync(); await page.Keyboard.PressAsync("End");
+            await page.Locator("#editor-images").EvaluateAsync("e=>e.open=true");
+            await page.Locator("#editor-image-file").SetInputFilesAsync(new FilePayload { Name = "private-body.png", MimeType = "image/png", Buffer = BodyImageFixture.Png });
+            await page.Locator("#editor-image-upload").ClickAsync(); await Assertions.Expect(textbox.Locator("img")).ToHaveCountAsync(1);
+            bodyImageId = Guid.Parse((await textbox.Locator("img").GetAttributeAsync("data-asset-id"))!);
+            await page.Locator("#editor-image-width").FillAsync("40"); await page.Locator("#editor-image-align").SelectOptionAsync("right"); await page.Locator("#editor-image-apply").ClickAsync();
+            await textbox.Locator(":scope > p").Last.ClickAsync();
+            await page.Locator("#editor-image-file").SetInputFilesAsync(new FilePayload { Name = "private-body.jpg", MimeType = "image/jpeg", Buffer = BodyImageFixture.Jpeg });
+            await page.Locator("#editor-image-upload").ClickAsync(); await Assertions.Expect(textbox.Locator("img")).ToHaveCountAsync(2);
+            await page.Locator("#editor-image-width").FillAsync("25"); await page.Locator("#editor-image-align").SelectOptionAsync("left"); await page.Locator("#editor-image-apply").ClickAsync();
+            await VerifyPrivateImageAccess(host, tenantId, jobId, documentId, bodyImageId.Value, path, revision);
         }
         var edited = await page.Locator("#document-json").InputValueAsync();
         await page.Locator("#draft-form button[type=submit]").ClickAsync();
@@ -201,9 +214,12 @@ public sealed class SqlPaginationAcceptanceTests
         Assert.Equal(edited, persisted.GetProperty("editorContentJson").GetString());
         if(archive){Assert.Contains("QA_REPLACED",edited);Assert.DoesNotContain("editor-search",edited);}
         Assert.Equal(DocumentContentDescriptor.RichFormat, persisted.GetProperty("contentFormat").GetString());
-        Assert.Equal(8,persisted.GetProperty("contentSchemaVersion").GetInt32());
+        Assert.Equal(9,persisted.GetProperty("contentSchemaVersion").GetInt32());
         if (archive) {
             using var widthBody = JsonDocument.Parse(edited);
+            var bodyImages = widthBody.RootElement.GetProperty("content").EnumerateArray().Where(node => node.GetProperty("type").GetString() == "image").ToArray();
+            Assert.Equal(2, bodyImages.Length); Assert.Equal(new[] { 40, 25 }, bodyImages.Select(node => node.GetProperty("attrs").GetProperty("widthPercent").GetInt32()).ToArray());
+            Assert.All(bodyImages, node => Assert.Equal("document", node.GetProperty("attrs").GetProperty("assetScope").GetString()));
             Assert.Equal(new[] { 35, 65 }, widthBody.RootElement.GetProperty("content")[0].GetProperty("attrs").GetProperty("columnWidths").EnumerateArray().Select(width => width.GetInt32()).ToArray());
             Assert.Contains(widthBody.RootElement.GetProperty("content")[0].GetProperty("content").EnumerateArray().SelectMany(row => row.GetProperty("content").EnumerateArray()), cell => cell.GetProperty("attrs").GetProperty("colspan").GetInt32() == 2);
             foreach (var row in widthBody.RootElement.GetProperty("content")[0].GetProperty("content").EnumerateArray()) foreach (var cell in row.GetProperty("content").EnumerateArray()) {
@@ -241,8 +257,10 @@ public sealed class SqlPaginationAcceptanceTests
             await page.Locator("#editor-pages-toggle").ClickAsync(); await Assertions.Expect(viewport).ToHaveAttributeAsync("data-pagination", "paged");
             await page.Locator("#editor-page-index").SelectOptionAsync("2"); await AssertLocked(page);
             await Api(host, "documents", HttpMethod.Post, path + "/draft-revisions", new {
-                expectedCurrentRevision = revision, editorContentJson = edited, contentFormat = DocumentContentDescriptor.RichFormat, contentSchemaVersion = 8
+                expectedCurrentRevision = revision, editorContentJson = edited, contentFormat = DocumentContentDescriptor.RichFormat, contentSchemaVersion = 9
             }, HttpStatusCode.Conflict);
+            using var blockedForm = new MultipartFormDataContent(); var blockedImage = new ByteArrayContent(BodyImageFixture.Png); blockedImage.Headers.ContentType = new MediaTypeHeaderValue("image/png"); blockedForm.Add(blockedImage, "file", "blocked.png");
+            using var blockedUpload = await api.PostAsync(host.Urls["documents"] + path + $"/images?expectedRevision={revision}", blockedForm); Assert.Equal(HttpStatusCode.Conflict, blockedUpload.StatusCode);
         }
         var map = await MarkerMap(page);
         var generateResponse = page.WaitForResponseAsync(response => response.Request.Method == "POST" && response.Url.EndsWith("/Workspace/GenerateDraftPdf"));
@@ -288,7 +306,36 @@ public sealed class SqlPaginationAcceptanceTests
         await AssertLocked(page); await page.Locator("#editor-pages-toggle").ClickAsync(); await Assertions.Expect(viewport).ToHaveAttributeAsync("data-pagination", "paged");
         await page.Locator("#editor-page-index").SelectOptionAsync("2"); await AssertLocked(page);
         Assert.Equal(body, await page.Locator("#document-json").InputValueAsync());
-        samples.Add(new { name, revision, pages = map.GetProperty("pageCount").GetInt32(), markers = 47, lastFooter, hasTemplate = template.HasValue, archiveVerified = old is not null, typographyVerified=lastFooter,paragraphSettingsVerified=lastFooter,paragraphSpacingVerified=lastFooter,inlineScriptVerified=lastFooter,searchReplaceVerified=archive,columnWidthsVerified=archive,cellStyleVerified=archive,horizontalMergeVerified=archive });
+        samples.Add(new { name, revision, pages = map.GetProperty("pageCount").GetInt32(), markers = 47, lastFooter, hasTemplate = template.HasValue, archiveVerified = old is not null, typographyVerified=lastFooter,paragraphSettingsVerified=lastFooter,paragraphSpacingVerified=lastFooter,inlineScriptVerified=lastFooter,searchReplaceVerified=archive,columnWidthsVerified=archive,cellStyleVerified=archive,horizontalMergeVerified=archive,bodyImagesVerified=archive });
+    }
+
+    private async Task VerifyPrivateImageAccess(IsolatedSqlProductHost host, Guid tenantId, Guid jobId, Guid documentId, Guid imageId, string path, int revision)
+    {
+        var imageUrl = host.Urls["documents"] + path + $"/images/{imageId}";
+        using var download = await api.GetAsync(imageUrl); Assert.Equal(HttpStatusCode.OK, download.StatusCode); Assert.True(download.Headers.CacheControl?.NoStore); Assert.Equal(BodyImageFixture.Png, await download.Content.ReadAsByteArrayAsync());
+        using var anonymous = new HttpClient(); using var denied = await anonymous.GetAsync(imageUrl); Assert.Equal(HttpStatusCode.Unauthorized, denied.StatusCode);
+        await Api(host, "documents", HttpMethod.Get, $"/api/v1/tenants/{Guid.NewGuid()}/translation-jobs/{jobId}/documents/{documentId}/images/{imageId}", null, HttpStatusCode.Forbidden);
+        foreach (var valid in new[] { false, true }) {
+            using var form = new MultipartFormDataContent(); var bytes = new ByteArrayContent(valid ? BodyImageFixture.Png : "fake image"u8.ToArray()); bytes.Headers.ContentType = new MediaTypeHeaderValue("image/png"); form.Add(bytes, "file", "test.png");
+            using var result = await api.PostAsync(host.Urls["documents"] + path + $"/images?expectedRevision={(valid ? revision - 1 : revision)}", form); Assert.Equal(valid ? HttpStatusCode.Conflict : HttpStatusCode.BadRequest, result.StatusCode);
+        }
+        var otherJob = await Api(host, "translation-workflow", HttpMethod.Post, $"/api/v1/tenants/{tenantId}/translation-jobs", new { title = "Sentetik görsel erişim sınırı", sourceLanguageCode = "fa", targetLanguageCode = "tr", notaryRequirement = "NotRequired" }, HttpStatusCode.Created);
+        var otherCollection = $"/api/v1/tenants/{tenantId}/translation-jobs/{otherJob.GetProperty("id").GetGuid()}/documents";
+        var otherDocument = await Api(host, "documents", HttpMethod.Post, otherCollection, null, HttpStatusCode.Created); var other = otherCollection + "/" + otherDocument.GetProperty("id").GetGuid();
+        using var outside = await api.GetAsync(host.Urls["documents"] + other + $"/images/{imageId}"); Assert.Equal(HttpStatusCode.NotFound, outside.StatusCode);
+        var forged = JsonSerializer.Serialize(new { type = "doc", content = new[] { new { type = "image", attrs = new { assetId = imageId, assetScope = "document", widthPercent = 50, align = "center" } } } });
+        await Api(host, "documents", HttpMethod.Post, other + "/draft-revisions", new { expectedCurrentRevision = 0, editorContentJson = forged, contentFormat = DocumentContentDescriptor.RichFormat, contentSchemaVersion = 9 }, HttpStatusCode.BadRequest);
+        // This second document owns its own JPEG; changing its letterhead must retain it.
+        using var ownForm = new MultipartFormDataContent(); var jpeg = new ByteArrayContent(BodyImageFixture.Jpeg); jpeg.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg"); ownForm.Add(jpeg, "file", "own-private.jpg");
+        using var ownUpload = await api.PostAsync(host.Urls["documents"] + other + "/images?expectedRevision=0", ownForm); Assert.Equal(HttpStatusCode.Created, ownUpload.StatusCode);
+        var ownId = (await ownUpload.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid(); var owned = forged.Replace(imageId.ToString(), ownId.ToString());
+        await Api(host, "documents", HttpMethod.Post, other + "/draft-revisions", new { expectedCurrentRevision = 0, editorContentJson = owned, contentFormat = DocumentContentDescriptor.RichFormat, contentSchemaVersion = 9 }, HttpStatusCode.Created);
+        var templates = await Api(host, "documents", HttpMethod.Get, $"/api/v1/tenants/{tenantId}/document-templates", null, HttpStatusCode.OK); var target = templates[0];
+        await Api(host, "documents", HttpMethod.Post, other + "/template-change", new { expectedCurrentRevision = 1, templateId = target.GetProperty("id").GetGuid(), revisionNumber = target.GetProperty("currentRevision").GetInt32() }, HttpStatusCode.OK);
+        foreach (var version in new[] { 1, 2 }) {
+            var saved = await Api(host, "documents", HttpMethod.Get, other + $"/draft-revisions/{version}", null, HttpStatusCode.OK); Assert.Equal(owned, saved.GetProperty("editorContentJson").GetString());
+            await Api(host, "documents", HttpMethod.Post, other + $"/draft-revisions/{version}/pdfs", null, HttpStatusCode.Created);
+        }
     }
 
     private async Task<JsonElement> Api(IsolatedSqlProductHost host, string service, HttpMethod method, string path, object? body, HttpStatusCode expected)

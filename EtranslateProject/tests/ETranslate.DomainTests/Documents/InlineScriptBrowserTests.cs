@@ -55,7 +55,7 @@ public sealed partial class EditorAdapterBrowserTests
         await Assertions.Expect(blocks.Nth(2).Locator("sup")).ToHaveTextAsync("2");await Assertions.Expect(blocks.Nth(2).Locator("sub")).ToHaveTextAsync("3");
         await SelectScriptText(page,textbox.Locator("td p"),"2");await Command(page,"superscript").ClickAsync();await Command(page,"strike").ClickAsync();
         var styled=await page.Locator("#document-json").InputValueAsync();
-        Assert.True(DocumentContentDescriptor.RichV8.TryRead(styled,out _));Assert.False(DocumentContentDescriptor.RichV3.TryRead(styled,out _));
+        Assert.True(DocumentContentDescriptor.RichV9.TryRead(styled,out _));Assert.False(DocumentContentDescriptor.RichV3.TryRead(styled,out _));
         await Assertions.Expect(page.Locator("#preview-body sup")).ToHaveCountAsync(4);
         await Assertions.Expect(page.Locator("#preview-body sub")).ToHaveCountAsync(3);
         var fail=fixture.Enqueue();await page.Locator("#draft-form button[type=submit]").ClickAsync();await fail.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
@@ -82,7 +82,7 @@ public sealed partial class EditorAdapterBrowserTests
             """);
         await File.WriteAllTextAsync(Path.Combine(directory,"script-markers.json"),markers);
         using(var renderer=new ChromiumDraftPdfRenderer()){
-            var bytes=await renderer.RenderAsync(new(Guid.NewGuid(),1,null,styled,null,null,null,null,new Dictionary<Guid,PdfImage>()){ContentFormat=DocumentContentDescriptor.RichFormat,ContentSchemaVersion=8},CancellationToken.None);
+            var bytes=await renderer.RenderAsync(new(Guid.NewGuid(),1,null,styled,null,null,null,null,new Dictionary<Guid,PdfImage>()){ContentFormat=DocumentContentDescriptor.RichFormat,ContentSchemaVersion=9},CancellationToken.None);
             using var stream=new MemoryStream(bytes);using var pdf=PdfReader.Open(stream,PdfDocumentOpenMode.Import);
             Assert.Equal(int.Parse((await page.Locator("#editor-viewport").GetAttributeAsync("data-page-count"))!),pdf.PageCount);
             await File.WriteAllBytesAsync(Path.Combine(directory,"script-styles.pdf"),bytes);

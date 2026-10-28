@@ -8,9 +8,10 @@ import {startEditorTextTools} from './editor-text-tools.js';
 import { startEditorTableTools } from './editor-table-tools.js';
 import { startEditorTableWidths } from './editor-table-widths.js';
 import { startEditorCellStyle } from './editor-cell-style.js';
+import { startEditorImages } from './editor-images.js';
 
 // DOM orchestration only. All vendor-specific editing/selection/history code belongs in its provider.
-export function startRichEditor(workspace, onChanged, preview) {
+export function startRichEditor(workspace, onChanged, preview, onUploadBusy) {
     const json = document.getElementById('document-json');
     const status = document.getElementById('editor-format-status');
     if (!supportsStoredContent(workspace.dataset.contentFormat, workspace.dataset.contentSchemaVersion) ||
@@ -32,8 +33,8 @@ export function startRichEditor(workspace, onChanged, preview) {
             provider: defaultEditorProvider, element: document.getElementById('rich-text'),
             contentJson: json.value, editable: workspace.dataset.editable === 'true',
             contentFormat: storedDocumentFormat(workspace.dataset.contentFormat,workspace.dataset.contentSchemaVersion),
-            resolveAsset: id => assetUrl(workspace, id),
-            labels: { text: ui.CeviriMetni, image: ui.SablonGorseli, missingImage: ui.SablonGorseliKullanilamiyor },
+            resolveAsset: (id, scope) => assetUrl(workspace, id, scope),
+            labels: { text: ui.CeviriMetni, image: ui.SablonGorseli, bodyImage: ui.EditorBodyImage, missingImage: ui.SablonGorseliKullanilamiyor },
             onRejectedChange: () => { status.textContent = ui.BuDegisiklikIzinVerilenYapininDisindadirTablo; }
         });
         const buttons = Array.from(document.querySelectorAll('#rich-region button[data-command]'));
@@ -97,6 +98,7 @@ export function startRichEditor(workspace, onChanged, preview) {
         cleanups.push(startEditorTextTools(workspace,session,json.value));
         cleanups.push(startEditorTableWidths(workspace, session));
         cleanups.push(startEditorCellStyle(workspace, session));
+        cleanups.push(startEditorImages(workspace, session, onUploadBusy));
         status.textContent = workspace.dataset.editable === 'true'
             ? ui.MetinBicimlendirmesiHerSurumleBirlikteKaydedilir : ui.SaltOkunurSurumDuzenlemeKapalidir;
         return Object.freeze({ ...session, destroy });

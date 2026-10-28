@@ -41,10 +41,15 @@ public static partial class DocumentEndpoints
                 .Concat(DraftPdfHtml.ImageReferences(template?.HeaderContentJson, "header", template?.ContentDescriptor))
                 .Concat(DraftPdfHtml.ImageReferences(template?.FooterContentJson, "footer", template?.ContentDescriptor)).Distinct().ToArray();
             if (ids.Length > DraftPdfPolicy.MaximumImages) throw new PdfRenderValidationException("Too many managed images for a draft PDF.");
-            var assets = template is null ? [] : await database.TemplateAssets.AsNoTracking()
-                .Where(asset => asset.TemplateId == template.TemplateId && ids.Contains(asset.Id)).ToListAsync(cancellationToken);
+            var documentIds = DocumentImageReferences.Parse(draft.EditorContentJson);
+            var templateIds = ids.Except(documentIds).ToArray();
+            var templateAssets = template is null ? [] : await database.TemplateAssets.AsNoTracking()
+                .Where(asset => asset.TemplateId == template.TemplateId && templateIds.Contains(asset.Id)).ToListAsync(cancellationToken);
+            var documentAssets = await database.DocumentImages.AsNoTracking().Where(image => image.DocumentId == documentId && documentIds.Contains(image.Id)).ToListAsync(cancellationToken);
+            var assets = templateAssets.Select(asset => new { asset.Id, asset.StorageKey, asset.SizeBytes, asset.Sha256, asset.ContentType })
+                .Concat(documentAssets.Select(asset => new { asset.Id, asset.StorageKey, asset.SizeBytes, asset.Sha256, asset.ContentType })).ToList();
             if (assets.Count != ids.Length || assets.Sum(asset => asset.SizeBytes) > DraftPdfPolicy.MaximumImageBytes)
-                throw new PdfRenderValidationException("Images are missing, outside the pinned template, or too large.");
+                throw new PdfRenderValidationException("Images are missing, outside this document/pinned template, or too large.");
             var images = new Dictionary<Guid, PdfImage>();
             foreach (var asset in assets)
             {

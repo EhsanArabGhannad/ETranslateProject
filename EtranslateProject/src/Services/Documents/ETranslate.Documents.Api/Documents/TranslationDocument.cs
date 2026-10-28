@@ -201,6 +201,14 @@ public sealed class TranslationDocument
         if (IsReviewLocked) throw new DocumentReviewConflictException("Document is locked for internal review or approval.");
     }
 
+    public void RecordImageUpload(int expectedRevision, DateTimeOffset now)
+    {
+        EnsureReviewEditable();
+        if (expectedRevision != CurrentDraftRevision) throw new DocumentRevisionConflictException(expectedRevision, CurrentDraftRevision);
+        // Force the rowversion write so concurrent review/save cannot accept a stale upload.
+        UpdatedAtUtc = now > UpdatedAtUtc ? now : UpdatedAtUtc.AddTicks(1);
+    }
+
     public DocumentReview SubmitReview(int expectedRevision, int expectedRound, DocumentPdfVersion pdf,
         DocumentReview? previous, string sourceFilesJson, Guid actor, DateTimeOffset now)
     {

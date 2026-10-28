@@ -37,7 +37,7 @@ public sealed partial class EditorAdapterBrowserTests
         Assert.Equal(source, await json.InputValueAsync()); Assert.Equal("CLEAN", await page.Locator("#save-state").InnerTextAsync());
         var content = await table.Locator("tr").EvaluateAllAsync<string[]>("nodes=>nodes.map(node=>node.innerHTML)");
         await page.Locator("#editor-column-apply").ClickAsync();
-        var unequal = await json.InputValueAsync(); Assert.True(DocumentContentDescriptor.RichV8.TryRead(unequal, out _)); Assert.False(DocumentContentDescriptor.RichV5.TryRead(unequal, out _));
+        var unequal = await json.InputValueAsync(); Assert.True(DocumentContentDescriptor.RichV9.TryRead(unequal, out _)); Assert.False(DocumentContentDescriptor.RichV5.TryRead(unequal, out _));
         Assert.Equal("HRT_003", await page.EvaluateAsync<string>("()=>getSelection().toString()"));
         Assert.Equal(content, await table.Locator("tr").EvaluateAllAsync<string[]>("nodes=>nodes.map(node=>node.innerHTML)"));
         var ratios = await table.EvaluateAsync<double[]>("e=>[...e.rows[0].cells].map(cell=>100*cell.getBoundingClientRect().width/e.getBoundingClientRect().width)");
@@ -56,7 +56,7 @@ public sealed partial class EditorAdapterBrowserTests
         await Assertions.Expect(page.Locator("#editor-column-apply")).ToBeDisabledAsync(); await page.Locator("#editor-column-reset").DispatchEventAsync("click"); Assert.Equal(unequal, await json.InputValueAsync());
         retry.Release.SetResult(503); await Assertions.Expect(page.Locator("#editor-column-apply")).ToBeEnabledAsync();
         var save = fixture.Enqueue(); await page.Locator("#draft-form button[type=submit]").ClickAsync(); await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        fixture.Source = SubmittedJson(save.Body); fixture.SchemaVersion = "8"; save.Release.SetResult(303); await page.WaitForURLAsync("**after-save=1");
+        fixture.Source = SubmittedJson(save.Body); fixture.SchemaVersion = "9"; save.Release.SetResult(303); await page.WaitForURLAsync("**after-save=1");
         Assert.Equal(unequal, await json.InputValueAsync()); await SelectHeaderMarker(page, "HRT_003"); await AssertWidthValues(page, 25, 50, 25);
         await Assertions.Expect(Command(page, "undo")).ToBeDisabledAsync();
         await page.Locator("#editor-table-widths").EvaluateAsync("e=>e.open=true");
@@ -86,7 +86,7 @@ public sealed partial class EditorAdapterBrowserTests
         }
         var source = await page.Locator("#document-json").InputValueAsync();
         var save = fixture.Enqueue(); await page.Locator("#draft-form button[type=submit]").ClickAsync(); await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        fixture.Source = SubmittedJson(save.Body); fixture.SchemaVersion = "8"; save.Release.SetResult(303); await page.WaitForURLAsync("**after-save=1");
+        fixture.Source = SubmittedJson(save.Body); fixture.SchemaVersion = "9"; save.Release.SetResult(303); await page.WaitForURLAsync("**after-save=1");
         Assert.Equal(source, await page.Locator("#document-json").InputValueAsync());
         await page.Locator("#editor-pages-toggle").ClickAsync(); await Assertions.Expect(page.Locator("#editor-viewport")).ToHaveAttributeAsync("data-pagination", "paged");
         var directory = Path.GetFullPath(Path.Combine(Environment.GetEnvironmentVariable("ETRANSLATE_EDITOR_ADAPTER_WEB_ROOT")!, "../../../tmp/pdfs/table-widths")); Directory.CreateDirectory(directory);
@@ -99,7 +99,7 @@ public sealed partial class EditorAdapterBrowserTests
         await File.WriteAllTextAsync(Path.Combine(directory, "width-markers.json"), markers);
         using (var renderer = new ChromiumDraftPdfRenderer())
         {
-            var bytes = await renderer.RenderAsync(new(Guid.NewGuid(), 1, null, source, null, null, null, null, new Dictionary<Guid, PdfImage>()) { ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 8 }, CancellationToken.None);
+            var bytes = await renderer.RenderAsync(new(Guid.NewGuid(), 1, null, source, null, null, null, null, new Dictionary<Guid, PdfImage>()) { ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 9 }, CancellationToken.None);
             using var stream = new MemoryStream(bytes); using var pdf = PdfReader.Open(stream, PdfDocumentOpenMode.Import);
             Assert.Equal(int.Parse((await page.Locator("#editor-viewport").GetAttributeAsync("data-page-count"))!), pdf.PageCount); Assert.True(pdf.PageCount > 2);
             await File.WriteAllBytesAsync(Path.Combine(directory, "column-widths.pdf"), bytes);

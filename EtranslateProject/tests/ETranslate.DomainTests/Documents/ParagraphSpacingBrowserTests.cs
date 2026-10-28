@@ -37,7 +37,7 @@ public sealed partial class EditorAdapterBrowserTests
         await SelectScriptText(page,textbox.Locator("td p"),"TABLE_SPACING");await page.Locator("#editor-space-before").SelectOptionAsync("6");await page.Locator("#editor-space-after").SelectOptionAsync("12");await page.Locator("#editor-first-line-indent").SelectOptionAsync("5");await page.Locator("#editor-indent-level").SelectOptionAsync("1");
         await textbox.Locator("blockquote").EvaluateAsync("e=>{e.closest('[role=textbox]').focus();const range=document.createRange();range.selectNodeContents(e);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);}");
         await page.Locator("#editor-space-before").SelectOptionAsync("6");await page.Locator("#editor-space-after").SelectOptionAsync("12");await page.Locator("#editor-first-line-indent").SelectOptionAsync("10");
-        var styled=await json.InputValueAsync();Assert.True(DocumentContentDescriptor.RichV8.TryRead(styled,out _));Assert.False(DocumentContentDescriptor.RichV4.TryRead(styled,out _));
+        var styled=await json.InputValueAsync();Assert.True(DocumentContentDescriptor.RichV9.TryRead(styled,out _));Assert.False(DocumentContentDescriptor.RichV4.TryRead(styled,out _));
         await textbox.EvaluateAsync("e=>{e.focus();const range=document.createRange();range.selectNodeContents(e);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);}");
         foreach(var id in new[]{"#editor-space-before","#editor-space-after","#editor-first-line-indent"})await Assertions.Expect(page.Locator(id)).ToHaveValueAsync("__mixed__");
         await page.Locator("#editor-space-after").SelectOptionAsync("0");await Command(page,"undo").ClickAsync();Assert.Equal(styled,await json.InputValueAsync());
@@ -61,7 +61,7 @@ public sealed partial class EditorAdapterBrowserTests
             """);
         await File.WriteAllTextAsync(Path.Combine(directory,"spacing-markers.json"),markers);
         using(var renderer=new ChromiumDraftPdfRenderer()){
-            var bytes=await renderer.RenderAsync(new(Guid.NewGuid(),1,null,styled,null,null,null,null,new Dictionary<Guid,PdfImage>()){ContentFormat=DocumentContentDescriptor.RichFormat,ContentSchemaVersion=8},CancellationToken.None);
+            var bytes=await renderer.RenderAsync(new(Guid.NewGuid(),1,null,styled,null,null,null,null,new Dictionary<Guid,PdfImage>()){ContentFormat=DocumentContentDescriptor.RichFormat,ContentSchemaVersion=9},CancellationToken.None);
             using var stream=new MemoryStream(bytes);using var pdf=PdfReader.Open(stream,PdfDocumentOpenMode.Import);Assert.Equal(int.Parse((await page.Locator("#editor-viewport").GetAttributeAsync("data-page-count"))!),pdf.PageCount);Assert.True(pdf.PageCount>1);
             await File.WriteAllBytesAsync(Path.Combine(directory,"paragraph-spacing.pdf"),bytes);
         }

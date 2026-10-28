@@ -691,5 +691,21 @@
   "EditorPaperRegion": "Çeviri kâğıdı, kaydırılabilir düzenleme alanı",
   "EditorPaperDescription": "Sürekli kâğıt görünümü · {0} · {1} · {2} × {3} mm. Otomatik sayfalama yoktur. Yalnızca gövde gösterilir; üstbilgi ve altbilgi için şablon önizlemesini kullanın. Kesin sayfa sınırlarını kayıtlı sürümün PDF dosyasında kontrol edin. Yakınlaştırma metni değiştirmez.",
   "EditorPaperUnavailable": "Kâğıt ayarları desteklenmiyor; normal metin görünümü korundu. Sayfa düzenini PDF dosyasında kontrol edin.",
-  "BelgeIcerikSurumuDesteklenmiyor": "İçerik biçimi veya şema sürümü bu uygulama tarafından desteklenmiyor. Özgün veri ve önceki PDF dosyaları korunmuştur; bu içerikle düzenleme ve yeni PDF oluşturma kapalıdır."
+  "BelgeIcerikSurumuDesteklenmiyor": "İçerik biçimi veya şema sürümü bu uygulama tarafından desteklenmiyor. Özgün veri ve önceki PDF dosyaları korunmuştur; bu içerikle düzenleme ve yeni PDF oluşturma kapalıdır.",
+  "EditorImages": "Metne görsel ekle ve düzenle",
+  "EditorImageHelp": "PNG/JPEG, en fazla 5 MiB ve 16 megapiksel; kenar başına en fazla 10.000 piksel. Metin içinde ayrı bir blok olarak eklenir; tablo, liste ve alıntı içine ekleme yoktur. Önce imleci ana metne koyun. Yükleme sırasında düzenleme ve kayıt bekler. Görsele tıklayarak genişliği (%5–100) ve hizalamayı değiştirin; en-boy oranı korunur. Görseli silmek eski sürümlerdeki dosyayı silmez. PDF toplamda en fazla 10 görsel kabul eder.",
+  "EditorImageFile": "Görsel dosyası",
+  "EditorImageUpload": "Yükle ve imlece ekle",
+  "EditorImageWidth": "Genişlik (%)",
+  "EditorImageAlign": "Görsel hizası",
+  "EditorImageApply": "Görsele uygula",
+  "EditorImageDelete": "Seçili görseli kaldır",
+  "EditorImageInvalidFile": "En fazla 5 MiB ve 16 megapiksel boyutunda geçerli bir PNG veya JPEG seçin; her kenar en fazla 10.000 piksel olabilir.",
+  "EditorImageInvalidWidth": "Genişlik için 5 ile 100 arasında tam sayı girin.",
+  "EditorImageUploading": "Görsel yükleniyor; metin ve kayıt geçici olarak kilitli.",
+  "EditorImageFailed": "Görsel eklenemedi. Metniniz korundu; dosyayı ve bağlantıyı kontrol edip yeniden deneyin.",
+  "EditorImageAdded": "Görsel eklendi. Kalıcı sürüm ve PDF için metni kaydedin.",
+  "EditorImageSelect": "Ana metne imleç koyun veya düzenlemek için görsele tıklayın.",
+  "EditorImageLayoutSaved": "Görsel boyutu ve hizası uygulandı.",
+  "EditorBodyImage": "Çeviri görseli"
 }

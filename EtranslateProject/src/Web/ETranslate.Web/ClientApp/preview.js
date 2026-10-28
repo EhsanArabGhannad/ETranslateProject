@@ -7,14 +7,18 @@ import { applyParagraph } from './paragraph.js';
 import { scriptMarks, applyInlineScript, orderedInlineMarks } from './inline-script.js';
 import { appendColumnGroup } from './table-widths.js';
 import { applyCellStyle } from './cell-style.js';
+import { applyBodyImage } from './body-image.js';
 
-export function assetUrl(workspace, assetId) {
-    const { tenantId, templateId } = workspace.dataset;
+export function assetUrl(workspace, assetId, scope = null) {
+    const { tenantId, templateId, jobId } = workspace.dataset;
+    if (scope === 'document') return [assetId, tenantId, jobId].every(value => typeof value === 'string' && guid.test(value))
+        ? `/Workspace/BodyImage?tenantId=${tenantId}&jobId=${jobId}&assetId=${assetId}` : null;
     if (![assetId, tenantId, templateId].every(value => typeof value === 'string' && guid.test(value))) return null;
     return `/Workspace/Asset?tenantId=${tenantId}&templateId=${templateId}&assetId=${assetId}`;
 }
-export function createPreview(workspace, resolveImage = id => assetUrl(workspace, id)) {
+export function createPreview(workspace, resolveImage = (id, scope) => assetUrl(workspace, id, scope)) {
     const find = id => document.getElementById(id);
+    const imagePool = new Map(), imageUses = new Map();
     let remaining, unsupported, contentVersion;
     function render(node, parent, depth = 0) {
         if (node == null || depth > 32 || --remaining < 0) { unsupported = true; return; }
@@ -41,12 +45,23 @@ export function createPreview(workspace, resolveImage = id => assetUrl(workspace
             parent.append(leaf); return;
         }
         if (node.type === 'image') {
-            const url = resolveImage(node.attrs?.assetId);
+            const url = resolveImage(node.attrs?.assetId, node.attrs?.assetScope);
             if (!url) { unsupported = true; parent.append(document.createTextNode(ui.GorselKullanilamiyor)); return; }
-            const image = document.createElement('img'); image.alt = ui.SablonGorseli; image.src = url;
+            const index = imageUses.get(url) ?? 0; imageUses.set(url, index + 1);
+            let images = imagePool.get(url); if (!images) { images = []; imagePool.set(url, images); }
+            let image = images[index];
+            if (!image) {
+                image = document.createElement('img'); image.src = url; images.push(image);
+                image.addEventListener('error', () => { image.dataset.previewFailed = 'true'; image.replaceWith(document.createTextNode(ui.GorselKullanilamiyor)); });
+            }
+            if (image.dataset.previewFailed) { unsupported = true; parent.append(document.createTextNode(ui.GorselKullanilamiyor)); return; }
+            // Keep the decoded private element across text edits; no-store images must not
+            // be downloaded again for every keystroke. Each occurrence owns one element.
+            image.className = ''; while (image.style.length) image.style.removeProperty(image.style.item(0));
+            image.alt = node.attrs?.assetScope === 'document' ? ui.EditorBodyImage : ui.SablonGorseli;
             if (node.attrs?.layout === 'banner') image.classList.add('template-banner');
             if (['left', 'center', 'right'].includes(node.attrs?.align)) image.classList.add(`image-${node.attrs.align}`);
-            image.addEventListener('error', () => image.replaceWith(document.createTextNode(ui.GorselKullanilamiyor)));
+            if (contentVersion >= 9) applyBodyImage(image, node.attrs);
             parent.append(image); return;
         }
         if (node.type === 'hardBreak') { parent.append(document.createElement('br')); return; }
@@ -89,7 +104,7 @@ export function createPreview(workspace, resolveImage = id => assetUrl(workspace
         remaining = 20000; render(root, target);
     }
     function update() {
-        unsupported = false;
+        unsupported = false; imageUses.clear();
         try {
             region('preview-header', find('template-header').value);
             region('preview-body', find('document-json').value);
@@ -102,6 +117,7 @@ export function createPreview(workspace, resolveImage = id => assetUrl(workspace
             if (policy === 'LastPage') find('preview-notice').textContent += ui.AltbilgiYalnizcaCevirininSonSayfasindadirBuGorunum;
             if (policy === null) find('preview-notice').textContent += ui.AltbilgiAyarlariBilinmiyorKonumunuBuOnizlemedenCikarmayin;
         } catch { find('preview-notice').textContent = ui.JSONYapisiGecersizOnizlemeTamamlanamiyor; }
+        finally { for (const [url, images] of imagePool) { const used = imageUses.get(url) ?? 0; if (!used) imagePool.delete(url); else images.length = used; } }
     }
     find('preview-page-role')?.addEventListener('change', update);
     return update;

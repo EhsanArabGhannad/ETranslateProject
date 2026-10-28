@@ -3,6 +3,7 @@ import { validParagraphValue } from './paragraph.js';
 import { scriptMarks } from './inline-script.js';
 import { validColumnWidths } from './table-widths.js';
 import { validCellStyleValue } from './cell-style.js';
+import { validImageValue } from './body-image.js';
 import { columnCount } from './table-spans.js';
 export const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -11,7 +12,7 @@ const tableTypes = ['table', 'tableRow', 'tableCell', 'tableHeader'];
 const marks = ['bold', 'italic', 'underline', 'strike'];
 
 export function isRichDocument(root, version = 1) {
-    if(![1,2,3,4,5,6,7,8].includes(version))return false;
+    if(![1,2,3,4,5,6,7,8,9].includes(version))return false;
     let remaining = 20000;
     function visit(node, parent, depth) {
         if (depth > 32 || --remaining < 0 || !object(node) || typeof node.type !== 'string') return false;
@@ -34,6 +35,7 @@ export function isRichDocument(root, version = 1) {
             if (key === 'attrs' && type !== 'text' && object(value) && Object.entries(value).every(([attr, val]) =>
                 version>=3 && ['paragraph','heading'].includes(type) && validParagraphValue(attr,val,version) ||
                 version>=6 && type==='table' && attr==='columnWidths' && validColumnWidths(val) ||
+                version>=9 && type==='image' && validImageValue(attr,val) ||
                 version>=7 && ['tableCell','tableHeader'].includes(type) && validCellStyleValue(attr,val) ||
                 attr === 'dir' && ['auto', 'rtl', 'ltr'].includes(val) ||
                 type === 'heading' && attr === 'level' && Number.isInteger(val) && val >= 1 && val <= 6 ||

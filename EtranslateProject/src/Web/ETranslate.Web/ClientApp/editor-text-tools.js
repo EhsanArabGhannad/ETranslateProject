@@ -23,6 +23,8 @@ export function startEditorTextTools(workspace,session,source){
         status.textContent=!value.supported?ui.EditorSearchUnavailable:query.value?formatUi(ui.EditorSearchResults,number(value.index),number(value.total)+(value.truncated?'+':''))+(value.truncated?' '+ui.EditorSearchLimited:''):ui.EditorSearchPrompt;
     }
     const on=(element,event,handler)=>{element.addEventListener(event,handler);cleanups.push(()=>element.removeEventListener(event,handler));};
+    // Search actions must not blur the editor and restore a stale native selection.
+    for (const button of [previous,next,replace,all,clear]) on(button,'mousedown',event=>event.preventDefault());
     function search(){clearTimeout(timer);timer=undefined;feedback.textContent='';if(!session.setSearch({query:query.value,caseSensitive:matchCase.checked,wholeWord:wholeWord.checked})){
         session.setSearch({query:'',caseSensitive:false,wholeWord:false});feedback.textContent=ui.EditorSearchInvalid;
     }state();}

@@ -6,7 +6,7 @@ import Heading from '@tiptap/extension-heading';
 import { Plugin } from '@tiptap/pm/state';
 import { closeHistory } from '@tiptap/pm/history';
 import { guid, isRichDocument } from '../document-schema.js';
-import { editorCommands, richDocumentV8 } from './document-contract.js';
+import { editorCommands, richDocumentV9 } from './document-contract.js';
 import { typographyFields, typographyCommands, validTypography, validTypographyValue, applyTypography } from '../typography.js';
 import { paragraphFields, paragraphCommands, paragraphActions, validParagraphValue, applyParagraph } from '../paragraph.js';
 import { scriptMarks, applyInlineScript } from '../inline-script.js';
@@ -20,15 +20,18 @@ import { cellStyleFields, validCellStyleValue, applyCellStyle } from '../cell-st
 import { cellStyleState, changeCellStyle, selectedCells } from './tiptap-cell-style.js';
 import { columnCount } from '../table-spans.js';
 import { horizontalCells, changeHorizontalCells } from './tiptap-horizontal-merge.js';
+import { imageFields, validImageValue, applyBodyImage } from '../body-image.js';
+import { selectedImage, canInsertImage, imageTransaction } from './tiptap-images.js';
 
 export const tiptapProvider = Object.freeze({
-    id: 'tiptap', format: richDocumentV8,
-    capabilities: Object.freeze({ livePagination: false, docxImport: false, faithfulWordPaste: false, mergedCells: false, horizontalCellMerge: true, literalSearch:true }),
+    id: 'tiptap', format: richDocumentV9,
+    capabilities: Object.freeze({ livePagination: false, docxImport: false, faithfulWordPaste: false, mergedCells: false, horizontalCellMerge: true, privateBodyImages: true, literalSearch:true }),
     create: createTiptapAdapter
 });
 
 function createTiptapAdapter({ element, content, editable, resolveAsset, labels, onRejectedChange }) {
     let editor;
+    const imageBookmarks = new Map(); let imageBookmarkId = 0;
     const search=createTiptapSearch();
     const widthContexts = new WeakMap(); let nextWidthContext = 0;
     function styledCell(Base, tag) { return Base.extend({
@@ -79,13 +82,18 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         name: 'image', group: 'block', atom: true, draggable: false,
         addAttributes() {
             return { assetId: { default: null, parseHTML: element => element.getAttribute('data-asset-id'), renderHTML: attrs =>
-                guid.test(attrs.assetId ?? '') ? { 'data-asset-id': attrs.assetId } : {} } };
+                guid.test(attrs.assetId ?? '') ? { 'data-asset-id': attrs.assetId } : {} }, ...Object.fromEntries(imageFields.map(field => [field, { default: null, rendered: false, parseHTML: element => {
+                    try { const attrs = JSON.parse(element.getAttribute('data-et-image')); return validImageValue(field, attrs?.[field]) ? attrs[field] : null; } catch { return null; }
+                } }])) };
         },
         parseHTML() { return [{ tag: 'img[data-asset-id]', getAttrs: element => guid.test(element.getAttribute('data-asset-id') ?? '') ? {} : false }]; },
         renderHTML({ node }) {
-            const url = resolveAsset(node.attrs.assetId);
-            return url ? ['img', { src: url, alt: labels.image, 'data-asset-id': node.attrs.assetId }]
-                : ['span', { class: 'missing-asset' }, labels.missingImage];
+            const url = resolveAsset(node.attrs.assetId, node.attrs.assetScope);
+            if (!url) return ['span', { class: 'missing-asset' }, labels.missingImage];
+            const image = document.createElement('img'); image.src = url; image.alt = node.attrs.assetScope === 'document' ? labels.bodyImage ?? labels.image : labels.image;
+            image.dataset.assetId = node.attrs.assetId;
+            image.dataset.etImage = JSON.stringify(Object.fromEntries(imageFields.map(field => [field, node.attrs[field] ?? null])));
+            applyBodyImage(image, node.attrs); return { dom: image };
         }
     });
     const Typography = Mark.create({
@@ -103,7 +111,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         name: 'preservationPolicy',
         addProseMirrorPlugins() {
             return [search.plugin,new Plugin({ filterTransaction: transaction => {
-                if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),8)) return true;
+                if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),9)) return true;
                 onRejectedChange(); return false;
             } })];
         }
@@ -195,6 +203,16 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     }).run();}
     function getCommandState(command) {
         if (!editorCommands.includes(command) || editor.isDestroyed) return { enabled: false, active: false };
+        if (command === 'insertImage') {
+            let selection = editor.state.selection;
+            try { if (imageBookmarks.size) selection = imageBookmarks.values().next().value.resolve(editor.state.doc); } catch { return { enabled: false, active: false }; }
+            return { enabled: editor.isEditable && canInsertImage({ doc: editor.state.doc, selection }), active: false };
+        }
+        if (command === 'imageLayout' || command === 'deleteImage') {
+            const node = selectedImage(editor.state);
+            return { enabled: editor.isEditable && !!node, active: !!node, context: node ? `${editor.state.selection.from}:${node.attrs.assetId}` : null,
+                widthPercent: node?.attrs.widthPercent ?? null, align: node?.attrs.align ?? null };
+        }
         if (['mergeNextCell', 'mergeCellsInRow', 'splitCellInRow'].includes(command)) return { enabled: editor.isEditable && horizontalCells(editor.state, command) !== null, active: false };
         if (command === 'tableCellStyle') {
             const selection = cellStyleState(editor.state, 'selection'), table = cellStyleState(editor.state, 'table');
@@ -227,10 +245,15 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         const tableAllowed = ![...tableCommands, 'insertTable'].includes(command) || allowedTable(command);
         return { enabled: editor.isEditable && tableAllowed && operations[command](editor.can().chain()).run(), active };
     }
-    const transaction = ({ transaction }) => notify({ documentChanged: transaction.docChanged });
+    const transaction = ({ transaction }) => {
+        for (const [id, bookmark] of imageBookmarks) imageBookmarks.set(id, bookmark.map(transaction.mapping));
+        notify({ documentChanged: transaction.docChanged });
+    };
     editor.on('transaction', transaction);
     return {
         getDocument: () => editor.getJSON(),
+        captureImageInsertion() { if (!editor.isEditable || !canInsertImage(editor.state)) return null; imageBookmarks.clear(); const id = `image-${++imageBookmarkId}`; imageBookmarks.set(id, editor.state.selection.getBookmark()); return id; },
+        releaseImageInsertion(id) { imageBookmarks.delete(id); },
         setSearch:options=>search.setSearch(editor,options),
         getSearchState:()=>search.getState(editor),
         findMatch:direction=>search.find(editor,direction),
@@ -238,6 +261,12 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         getCommandState,
         execute(command, value) {
             if (!getCommandState(command).enabled) return false;
+            if (['insertImage', 'imageLayout', 'deleteImage'].includes(command)) {
+                editor.view.focus();
+                const tr = imageTransaction(editor.state, command, value, imageBookmarks.get(value?.bookmark)); if (!tr) return false;
+                editor.view.dispatch(tr); editor.view.dispatch(closeHistory(editor.state.tr));
+                if (command === 'insertImage') imageBookmarks.delete(value.bookmark); return true;
+            }
             if (['mergeNextCell', 'mergeCellsInRow', 'splitCellInRow'].includes(command)) {
                 editor.view.focus(); const tr = changeHorizontalCells(editor.state, command); if (!tr) return false;
                 editor.view.dispatch(tr); editor.view.dispatch(closeHistory(editor.state.tr)); return true;
@@ -279,6 +308,6 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         },
         setEditable(value) { editor.setEditable(value, false); notify({ documentChanged: false }); },
         subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
-        destroy() { listeners.clear(); editor.off('transaction', transaction); editor.destroy(); }
+        destroy() { imageBookmarks.clear(); listeners.clear(); editor.off('transaction', transaction); editor.destroy(); }
     };
 }

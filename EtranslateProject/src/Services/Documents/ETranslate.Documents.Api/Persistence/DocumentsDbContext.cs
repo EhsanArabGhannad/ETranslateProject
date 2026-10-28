@@ -13,6 +13,7 @@ public sealed class DocumentsDbContext(
     public DbSet<DocumentTemplate> DocumentTemplates => Set<DocumentTemplate>();
     public DbSet<DocumentTemplateRevision> TemplateRevisions => Set<DocumentTemplateRevision>();
     public DbSet<TemplateAsset> TemplateAssets => Set<TemplateAsset>();
+    public DbSet<DocumentImage> DocumentImages => Set<DocumentImage>();
     public DbSet<DocumentPdfVersion> PdfVersions => Set<DocumentPdfVersion>();
     public DbSet<DocumentReview> Reviews => Set<DocumentReview>();
     public DbSet<DocumentSigningPreview> SigningPreviews => Set<DocumentSigningPreview>();
@@ -118,6 +119,19 @@ public sealed class DocumentsDbContext(
             entity.HasIndex(asset => asset.StorageKey).IsUnique();
             entity.HasOne<DocumentTemplate>().WithMany()
                 .HasForeignKey(asset => asset.TemplateId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<DocumentImage>(entity =>
+        {
+            entity.ToTable("document_images"); entity.HasKey(image => image.Id);
+            entity.Property(image => image.Id).ValueGeneratedNever();
+            entity.Property(image => image.OriginalFileName).HasMaxLength(255).IsRequired();
+            entity.Property(image => image.ContentType).HasMaxLength(100).IsRequired();
+            entity.Property(image => image.Sha256).HasMaxLength(64).IsRequired();
+            entity.Property(image => image.StorageKey).HasMaxLength(500).IsRequired();
+            entity.HasIndex(image => image.StorageKey).IsUnique();
+            entity.HasIndex(image => new { image.DocumentId, image.UploadedAtUtc });
+            entity.HasOne<TranslationDocument>().WithMany().HasForeignKey(image => image.DocumentId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.AddInboxStateEntity(entity => entity.ToTable("inbox_state"));

@@ -139,7 +139,10 @@ public static class DraftPdfHtml
             if (attrs.TryGetProperty("layout", out var imageLayout) && imageLayout.GetString() == "banner") classes.Add("template-banner");
             if (attrs.TryGetProperty("align", out var imageAlign)) classes.Add($"image-{imageAlign.GetString()}");
             var imageClass = classes.Count == 0 ? "" : $" class=\"{string.Join(' ', classes)}\"";
-            html.Append($"<img{imageClass} alt=\"Template image\" src=\"data:{image.ContentType};base64,{Convert.ToBase64String(image.Bytes)}\">"); return;
+            var imageStyle = version >= 9 ? DocumentBodyImage.Css(attrs) : "";
+            var styleAttribute = imageStyle.Length > 0 ? $" style=\"{Encode(imageStyle)}\"" : "";
+            var imageAlt = version >= 9 && DocumentBodyImage.IsDocumentImage(attrs) ? "Translation image" : "Template image";
+            html.Append($"<img{imageClass}{styleAttribute} alt=\"{imageAlt}\" src=\"data:{image.ContentType};base64,{Convert.ToBase64String(image.Bytes)}\">"); return;
         }
         var tagName = type switch
         {

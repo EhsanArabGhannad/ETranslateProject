@@ -71,6 +71,53 @@ namespace ETranslate.Documents.Api.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ETranslate.Documents.Api.Documents.DocumentImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTimeOffset>("UploadedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique();
+
+                    b.HasIndex("DocumentId", "UploadedAtUtc");
+
+                    b.ToTable("document_images", "documents");
+                });
+
             modelBuilder.Entity("ETranslate.Documents.Api.Documents.DocumentPdfVersion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -691,6 +738,15 @@ namespace ETranslate.Documents.Api.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("TemplateRevisionId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("ETranslate.Documents.Api.Documents.DocumentImage", b =>
+                {
+                    b.HasOne("ETranslate.Documents.Api.Documents.TranslationDocument", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("ETranslate.Documents.Api.Documents.DocumentPdfVersion", b =>

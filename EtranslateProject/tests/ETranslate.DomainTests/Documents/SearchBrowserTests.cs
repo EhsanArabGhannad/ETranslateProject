@@ -32,7 +32,10 @@ public sealed partial class EditorAdapterBrowserTests
         await page.SetViewportSizeAsync(1600,1250);await fixture.OpenAsync();
         var textbox=page.Locator("#rich-text [role=textbox]");var json=page.Locator("#document-json");
         var counts=await page.Locator("#editor-statistics").InnerTextAsync();Assert.Contains("sözcük",counts);
-        await textbox.Locator("p").First.ClickAsync();await page.Keyboard.PressAsync("Control+Home");await page.Keyboard.PressAsync("Control+f");
+        await textbox.Locator("p").First.ClickAsync();await page.Keyboard.PressAsync("Control+Home");
+        // Let the native caret move reach the provider before the find input takes focus.
+        await Assertions.Expect(page.Locator("#editor-font-size")).ToHaveValueAsync("18");
+        await page.Keyboard.PressAsync("Control+f");
         await Assertions.Expect(page.Locator("#editor-search-query")).ToBeFocusedAsync();
         await Search(page,"merhaba","/ 4 eşleşme");
         Assert.Equal(source,await json.InputValueAsync());Assert.Equal(counts,await page.Locator("#editor-statistics").InnerTextAsync());
@@ -63,7 +66,7 @@ public sealed partial class EditorAdapterBrowserTests
         await page.Locator("#editor-search-case").UncheckAsync();await page.Locator("#editor-search-word").UncheckAsync();
         await Search(page,"ترجمه","/ 2 eşleşme");await page.Locator("#editor-search-replacement").FillAsync("ترجمهٔ رسمی");await page.Locator("#editor-search-all").ClickAsync();
         Assert.Equal("rtl",await textbox.Locator(":scope>p").Nth(1).GetAttributeAsync("dir"));await Assertions.Expect(textbox.Locator(":scope>p").Nth(1)).ToHaveTextAsync("ترجمهٔ رسمی می‌روم ترجمهٔ رسمی");
-        var edited=await json.InputValueAsync();Assert.True(DocumentContentDescriptor.RichV8.TryRead(edited,out _));Assert.DoesNotContain("editor-search",edited);
+        var edited=await json.InputValueAsync();Assert.True(DocumentContentDescriptor.RichV9.TryRead(edited,out _));Assert.DoesNotContain("editor-search",edited);
         await page.Locator("#editor-pages-toggle").ClickAsync();await Assertions.Expect(page.Locator("#editor-viewport")).ToHaveAttributeAsync("data-pagination","paged");
         await Search(page,"TAIL_TARGET","/ 1 eşleşme");await page.Locator("#editor-search-next").ClickAsync();
         await page.WaitForFunctionAsync("()=>Number(document.querySelector('#editor-viewport').dataset.pageIndex)>1");

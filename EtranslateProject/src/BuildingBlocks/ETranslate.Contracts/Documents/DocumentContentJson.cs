@@ -14,7 +14,7 @@ public static class DocumentContentJson
         {
             using var document = JsonDocument.Parse(json);
             var remaining = 20_000;
-            if (schemaVersion is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8) || rootType is not ("doc" or "header" or "footer") || !Validate(document.RootElement, null, 0, ref remaining, rootType, schemaVersion)) return false;
+            if (schemaVersion is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9) || rootType is not ("doc" or "header" or "footer") || !Validate(document.RootElement, null, 0, ref remaining, rootType, schemaVersion)) return false;
             var lines = new List<string>();
             Extract(document.RootElement, lines);
             plainText = string.Join('\n', lines);
@@ -83,6 +83,7 @@ public static class DocumentContentJson
         foreach (var field in attrs.EnumerateObject())
         {
             if (!seen.Add(field.Name)) return false;
+            if (version >= 9 && !letterhead && type == "image" && DocumentBodyImage.ValidValue(field.Name, field.Value)) continue;
             if (version >= 6 && type == "table" && field.Name == "columnWidths" && DocumentTableWidths.IsValid(field.Value)) continue;
             if(version>=3 && type is "paragraph" or "heading" && DocumentParagraph.ValidValue(field.Name,field.Value,version))continue;
             if (letterhead && type is "paragraph" or "heading" && field.Name == "textAlign" &&

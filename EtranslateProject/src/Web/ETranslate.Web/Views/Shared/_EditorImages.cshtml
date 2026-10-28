@@ -1,0 +1,13 @@
+<details id="editor-images" class="editor-images">
+    <summary>@UiText.Get("EditorImages")</summary>
+    <p class="muted">@UiText.Get("EditorImageHelp")</p>
+    <div class="editor-image-fields">
+        <label for="editor-image-file">@UiText.Get("EditorImageFile")<input type="file" id="editor-image-file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" /></label>
+        <button type="button" id="editor-image-upload">@UiText.Get("EditorImageUpload")</button>
+        <label for="editor-image-width">@UiText.Get("EditorImageWidth")<input type="text" id="editor-image-width" inputmode="numeric" value="50" placeholder="@UiText.Get("EditorDefaultStyle")" /></label>
+        <label for="editor-image-align">@UiText.Get("EditorImageAlign")<select id="editor-image-align"><option value="">@UiText.Get("EditorDefaultStyle")</option><option value="left">@UiText.Get("EditorAlignLeft")</option><option value="center" selected>@UiText.Get("EditorAlignCenter")</option><option value="right">@UiText.Get("EditorAlignRight")</option></select></label>
+        <button type="button" id="editor-image-apply">@UiText.Get("EditorImageApply")</button>
+        <button type="button" data-command="deleteImage">@UiText.Get("EditorImageDelete")</button>
+    </div>
+    <p class="muted" id="editor-image-status" role="status"></p>
+</details>

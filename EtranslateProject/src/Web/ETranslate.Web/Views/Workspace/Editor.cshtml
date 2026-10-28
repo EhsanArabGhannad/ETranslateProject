@@ -32,6 +32,7 @@ else if (Model.Document.CurrentDraftRevision == 0) {
      data-template-content-format="@(Model.Template?.ContentDescriptor.DisplayFormat ?? ETranslate.Contracts.Documents.DocumentContentDescriptor.LegacyDisplayFormat)"
      data-template-content-schema-version="@(Model.Template?.ContentDescriptor.DisplaySchemaVersion ?? 0)"
      data-rich-compatible="@compatible.ToString().ToLowerInvariant()" data-editable="@editable.ToString().ToLowerInvariant()"
+     data-job-id="@Model.Job.Id" data-image-upload-url="@Url.Action("UploadBodyImage")"
      data-source-base="@Url.Action("Source", new { tenantId = Model.TenantId, jobId = Model.Job.Id })">
 <section class="card source-panel"><div class="section-heading"><h2>@UiText.Get("KaynakBelge")</h2><span class="badge" id="source-count">@sources.Count dosya</span></div>
 @if (editable) {
@@ -82,6 +83,7 @@ else if (Model.Document.CurrentDraftRevision == 0) {
     <partial name="_EditorTableWidths" />
     <partial name="_EditorCellStyle" />
     <partial name="_EditorHorizontalMerge" />
+    <partial name="_EditorImages" />
 </div><p id="editor-paper-description" class="muted"></p><div id="editor-viewport" class="editor-viewport" tabindex="0" role="region" aria-label="@UiText.Get("EditorPaperRegion")" aria-describedby="editor-paper-description"><div id="editor-paper-stage"><div id="editor-paper"><div id="rich-text"></div></div></div></div><p class="muted">@UiText.Get("BicimlendirmeSeciliMetneVeyaGecerliParagrafaUygulanir")</p></div>
 <p id="editor-format-status" class="muted" role="status"></p>
 @if (plain is not null) { <label for="translation-text">@UiText.Get("HerSatirBirParagraf")</label><textarea id="translation-text" name="plainText" rows="18" dir="auto" readonly="@(!editable)" maxlength="1000000">@plain</textarea><textarea id="document-json" name="editorContentJson" hidden>@Model.EditorContentJson</textarea> }

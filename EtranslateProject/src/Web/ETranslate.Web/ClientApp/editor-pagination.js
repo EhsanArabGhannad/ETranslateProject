@@ -134,6 +134,8 @@ export function startEditorPagination(workspace, session, schedule) {
             // Do not start another private-image request on every keystroke. Images are already
             // decoded; a read-only measurement box uses their actual unscaled dimensions.
             const currentScale=new DOMMatrixReadOnly(getComputedStyle(paper).transform).a || 1;
+            if ([...root.querySelectorAll('img')].some(image => !image.complete)) return true;
+            if ([...root.querySelectorAll('img')].some(image => !image.naturalWidth || image.naturalWidth * image.naturalHeight > 16000000 || image.getBoundingClientRect().height / currentScale > metrics.contentHeight + .5)) throw new Error();
             function copy(node) {
                 if(node instanceof HTMLImageElement){const box=document.createElement('span'),rect=node.getBoundingClientRect();
                     Object.assign(box.style,{display:'block',width:`${rect.width/currentScale}px`,height:`${rect.height/currentScale}px`,breakInside:'avoid'});return box;}
@@ -163,9 +165,10 @@ export function startEditorPagination(workspace, session, schedule) {
     find('editor-page-prev').addEventListener('mousedown',keep);find('editor-page-next').addEventListener('mousedown',keep);
     find('editor-page-prev').addEventListener('click',previous);find('editor-page-next').addEventListener('click',next);select.addEventListener('change',chosen);
     document.addEventListener('selectionchange',followCaret);root.addEventListener('keyup',key);
+    const imageReady = () => schedule(); root.addEventListener('load', imageReady, true); root.addEventListener('error', imageReady, true);
     const unsubscribe=session.onDocumentChange(()=>{follow=true;schedule();});
     return {render,destroy(){disposed=true;stop();measure.remove();unsubscribe();toggle.removeEventListener('mousedown',keep);toggle.removeEventListener('click',switchMode);
         find('editor-page-prev').removeEventListener('mousedown',keep);find('editor-page-next').removeEventListener('mousedown',keep);
         find('editor-page-prev').removeEventListener('click',previous);find('editor-page-next').removeEventListener('click',next);select.removeEventListener('change',chosen);
-        document.removeEventListener('selectionchange',followCaret);root.removeEventListener('keyup',key);}};
+        document.removeEventListener('selectionchange',followCaret);root.removeEventListener('keyup',key);root.removeEventListener('load', imageReady, true);root.removeEventListener('error', imageReady, true);}};
 }

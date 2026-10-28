@@ -64,7 +64,7 @@ public sealed partial class EditorAdapterBrowserTests
         Assert.Equal(1, await page.Locator("#preview-body table").CountAsync());
 
         var edited = await page.Locator("#document-json").InputValueAsync();
-        Assert.True(DocumentContentDescriptor.RichV8.TryRead(edited, out var plain));
+        Assert.True(DocumentContentDescriptor.RichV9.TryRead(edited, out var plain));
         Assert.Contains("نیم‌فاصله", plain); Assert.Contains("İstanbul şĞı", plain); Assert.Contains("ADAPTER_EDIT", plain);
         Assert.Contains("\"bold\"", edited);
         var retry = fixture.Enqueue();
@@ -82,7 +82,7 @@ public sealed partial class EditorAdapterBrowserTests
         var success = fixture.Enqueue();
         await page.Locator("#draft-form button[type=submit]").ClickAsync();
         await success.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        fixture.Source = SubmittedJson(success.Body); fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "8"; success.Release.SetResult(303);
+        fixture.Source = SubmittedJson(success.Body); fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "9"; success.Release.SetResult(303);
         try { await page.WaitForURLAsync("**/Workspace/Editor?after-save=1", new() { Timeout = 10000 }); }
         catch (TimeoutException error) { throw new InvalidOperationException("Save redirect: " + await page.Locator("#save-state").InnerTextAsync() +
             "; responses=" + string.Join(",", fixture.Responses) + "; unexpected=" + string.Join(",", fixture.Unexpected), error); }
@@ -167,7 +167,7 @@ public sealed partial class EditorAdapterBrowserTests
             Assert.Equal(Initial, await page.Locator("#document-json").InputValueAsync());
             await Assertions.Expect(page.Locator("#rich-text [role=textbox]")).ToHaveAttributeAsync("contenteditable", "true");
         }
-        foreach (var pair in new[] { (DocumentContentDescriptor.RichFormat, "9"), ("sfdt", "1"), (DocumentContentDescriptor.RichFormat, "") })
+        foreach (var pair in new[] { (DocumentContentDescriptor.RichFormat, "10"), ("sfdt", "1"), (DocumentContentDescriptor.RichFormat, "") })
         {
             fixture.Format = pair.Item1; fixture.SchemaVersion = pair.Item2;
             await fixture.OpenAsync(rich: false);
@@ -179,7 +179,7 @@ public sealed partial class EditorAdapterBrowserTests
             await Assertions.Expect(page.Locator("#preview-body")).Not.ToContainTextAsync("İstanbul");
         }
         fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "1";
-        fixture.TemplateFormat = DocumentContentDescriptor.RichFormat; fixture.TemplateSchemaVersion = "9";
+        fixture.TemplateFormat = DocumentContentDescriptor.RichFormat; fixture.TemplateSchemaVersion = "10";
         await fixture.OpenAsync(rich: false);
         await Assertions.Expect(page.Locator("#draft-form button[type=submit]")).ToBeDisabledAsync();
         Assert.Equal(Initial, await page.Locator("#document-json").InputValueAsync());
@@ -375,6 +375,7 @@ public sealed partial class EditorAdapterBrowserTests
         public static readonly Guid ImageId=Guid.Parse("11111111-1111-1111-1111-111111111111");
         public static readonly byte[] ImageBytes=Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jVloAAAAASUVORK5CYII=");
         public bool ServeImage { get; set; } = true;
+        public byte[] BodyImageBytes { get; set; } = BodyImageFixture.Png;
         private BrowserFixture(IPlaywright playwright, IBrowser browser, IBrowserContext context, IPage page,
             WebApplication server, string source, bool editable)
         {
@@ -436,14 +437,14 @@ public sealed partial class EditorAdapterBrowserTests
         private async Task HandleAsync(HttpContext request)
         {
             var path = request.Request.Path.Value;
-            if (request.Request.Method == "POST" && path is "/Workspace/SaveDraft" or "/Workspace/Review" && responses.TryDequeue(out var gate))
+            if (request.Request.Method == "POST" && path is "/Workspace/SaveDraft" or "/Workspace/Review" or "/Workspace/UploadBodyImage" && responses.TryDequeue(out var gate))
             {
                 using var reader = new StreamReader(request.Request.Body);
                 gate.Body = await reader.ReadToEndAsync(request.RequestAborted); gate.Received.SetResult();
                 var status = await gate.Release.Task.WaitAsync(TimeSpan.FromSeconds(30));
                 request.Response.StatusCode = status; request.Response.ContentType = "application/json";
                 if (status == 303) request.Response.Headers.Location = "/Workspace/Editor?after-save=1";
-                await request.Response.WriteAsync("{\"message\":\"Synthetic review failure\"}", request.RequestAborted);
+                await request.Response.WriteAsync(path == "/Workspace/UploadBodyImage" && status == 200 ? "{\"id\":\"" + ImageId + "\"}" : "{\"message\":\"Synthetic review failure\"}", request.RequestAborted);
                 return;
             }
             if (request.Request.Method == "GET" && path == "/Workspace/Editor")
@@ -456,6 +457,11 @@ public sealed partial class EditorAdapterBrowserTests
                 if(!ServeImage){request.Response.StatusCode=404;return;}
                 request.Response.ContentType="image/png";
                 await request.Response.Body.WriteAsync(ImageBytes,request.RequestAborted);return;
+            }
+            if (request.Request.Method == "GET" && path == "/Workspace/BodyImage" && request.Request.Query["assetId"] == ImageId.ToString()) {
+                if (!ServeImage) { request.Response.StatusCode = 404; return; }
+                request.Response.ContentType = "image/png"; request.Response.Headers.CacheControl = "private, no-store";
+                await request.Response.Body.WriteAsync(BodyImageBytes, request.RequestAborted); return;
             }
             var file = path switch {
                 "/js/generated/workspace.js" => ("wwwroot/js/generated/workspace.js", "text/javascript"),
@@ -479,6 +485,7 @@ public sealed partial class EditorAdapterBrowserTests
             var widthsTools=Regex.Replace(File.ReadAllText(Path.Combine(Environment.GetEnvironmentVariable("ETRANSLATE_EDITOR_ADAPTER_WEB_ROOT")!,"Views/Shared/_EditorTableWidths.cshtml")),"@UiText\\.Get\\(\"([^\"]+)\"\\)",match=>WebUtility.HtmlEncode(UiText.Get(match.Groups[1].Value)));
             var cellTools=Regex.Replace(File.ReadAllText(Path.Combine(Environment.GetEnvironmentVariable("ETRANSLATE_EDITOR_ADAPTER_WEB_ROOT")!,"Views/Shared/_EditorCellStyle.cshtml")),"@UiText\\.Get\\(\"([^\"]+)\"\\)",match=>WebUtility.HtmlEncode(UiText.Get(match.Groups[1].Value)));
             var mergeTools=Regex.Replace(File.ReadAllText(Path.Combine(Environment.GetEnvironmentVariable("ETRANSLATE_EDITOR_ADAPTER_WEB_ROOT")!,"Views/Shared/_EditorHorizontalMerge.cshtml")),"@UiText\\.Get\\(\"([^\"]+)\"\\)",match=>WebUtility.HtmlEncode(UiText.Get(match.Groups[1].Value)));
+            var imageTools = Regex.Replace(File.ReadAllText(Path.Combine(Environment.GetEnvironmentVariable("ETRANSLATE_EDITOR_ADAPTER_WEB_ROOT")!, "Views/Shared/_EditorImages.cshtml")), "@UiText\\.Get\\(\"([^\"]+)\"\\)", match => WebUtility.HtmlEncode(UiText.Get(match.Groups[1].Value)));
             var commands = new[] { "bold", "italic", "underline", "strike", "superscript", "subscript", "paragraph", "heading", "bulletList", "orderedList", "rtl", "ltr", "auto", "undo", "redo", "insertTable", "addRowAfter", "addColumnAfter", "deleteRow", "deleteColumn", "deleteTable", "toggleTableHeaderRow", "notSupported" };
             var labels = new[] { "KalinMetin", "ItalikMetin", "AltiCizili", "EditorStrike", "EditorSuperscript", "EditorSubscript", "Paragraf", "Baslik", "MaddeIsaretliListe", "NumaraliListe", "SagdanSola", "SoldanSaga", "OtomatikYon", "GeriAl", "Yinele", "Baslikli33Tablo", "SonrakiSatir", "SonrakiSutun", "SatiriSil", "SutunuSil", "TabloyuSil", "EditorToggleTableHeader" };
             var buttons = string.Join("", commands.Select((command, i) => $"<button type='button' data-command='{command}' aria-pressed='false' {(i == labels.Length ? "hidden" : "")}>{(i < 3 ? new[] { "<strong>B</strong>", "<em>I</em>", "<u>U</u>" }[i] : i < labels.Length ? UiText.Get(labels[i]) : command)}</button>"));
@@ -506,7 +513,7 @@ public sealed partial class EditorAdapterBrowserTests
             return $$"""
                 <!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/site.css"><link rel="stylesheet" href="/css/document-pagination.css"></head><body>
                 <header class="topbar"><a href="/Workspace/Editor">ETranslate · Yerel test</a></header><main class="shell"><h1>Çeviri stüdyosu · Deneme belgesi</h1>
-                <fieldset class="subscription-lock"><div class="editor-grid" id="editor-workspace" data-rich-compatible="true" data-tenant-id="22222222-2222-2222-2222-222222222222" data-template-id="33333333-3333-3333-3333-333333333333" data-editable="{{Editable.ToString().ToLowerInvariant()}}" {{metadata}} {{templateMetadata}}>
+                <fieldset class="subscription-lock"><div class="editor-grid" id="editor-workspace" data-rich-compatible="true" data-tenant-id="22222222-2222-2222-2222-222222222222" data-template-id="33333333-3333-3333-3333-333333333333" data-job-id="44444444-4444-4444-4444-444444444444" data-image-upload-url="/Workspace/UploadBodyImage" data-editable="{{Editable.ToString().ToLowerInvariant()}}" {{metadata}} {{templateMetadata}}>
                 <section class="card source-panel"><h2>Kaynak belge</h2><div class="source-display">Yalnızca sentetik test verisi</div></section>
                 <section class="card editor-controls"><div class="section-heading"><h2 id="editor-heading">{{UiText.Get("CeviriMetni")}}</h2><p id="save-state">CLEAN</p></div>
                 <div id="editor-view-controls" class="editor-view-controls" role="group" aria-label="{{UiText.Get("EditorViewControls")}}" hidden>
@@ -516,8 +523,8 @@ public sealed partial class EditorAdapterBrowserTests
                     <button type="button" id="editor-pages-toggle" aria-pressed="false">{{UiText.Get("EditorEnablePages")}}</button>
                 </div>
                 <nav id="editor-pages-nav" class="editor-pagination-nav" hidden><button id="editor-page-prev" type="button">Önceki</button><select id="editor-page-index"></select><button id="editor-page-next" type="button">Sonraki</button><span id="editor-page-count"></span></nav><p id="editor-pagination-status"></p>
-                <form id="draft-form" action="/Workspace/SaveDraft" method="post"><input type="hidden" name="mode" value="{{(rich ? "text" : "json")}}">
-                <div id="rich-region" hidden>{{textTools}}{{typography}}{{paragraph}}<div class="editor-toolbar" role="toolbar" aria-label="{{UiText.Get("CeviriBicimlendirme")}}">{{buttons}}{{tableTools}}{{widthsTools}}{{cellTools}}{{mergeTools}}</div><p id="editor-paper-description" class="muted"></p>
+                <form id="draft-form" action="/Workspace/SaveDraft" method="post"><input type="hidden" name="mode" value="{{(rich ? "text" : "json")}}"><input type="hidden" name="expectedRevision" value="1"><input type="hidden" name="tenantId" value="22222222-2222-2222-2222-222222222222"><input type="hidden" name="jobId" value="44444444-4444-4444-4444-444444444444"><input type="hidden" name="__RequestVerificationToken" value="synthetic-token">
+                <div id="rich-region" hidden>{{textTools}}{{typography}}{{paragraph}}<div class="editor-toolbar" role="toolbar" aria-label="{{UiText.Get("CeviriBicimlendirme")}}">{{buttons}}{{tableTools}}{{widthsTools}}{{cellTools}}{{mergeTools}}{{imageTools}}</div><p id="editor-paper-description" class="muted"></p>
                 <div id="editor-viewport" class="editor-viewport" tabindex="0" role="region" aria-label="{{UiText.Get("EditorPaperRegion")}}" aria-describedby="editor-paper-description"><div id="editor-paper-stage"><div id="editor-paper"><div id="rich-text"></div></div></div></div></div>
                 <p id="editor-format-status"></p><label for="document-json">JSON</label>
                 <textarea id="document-json" name="editorContentJson">{{WebUtility.HtmlEncode(Source)}}</textarea>

@@ -22,7 +22,8 @@ for sample in report["samples"]:
     pdf = PdfReader(directory / f"{name}.pdf")
     texts = [page.extract_text() for page in pdf.pages]
     if sample["archiveVerified"]:
-        assert sample["searchReplaceVerified"] and sample["columnWidthsVerified"] and sample["cellStyleVerified"] and sample["horizontalMergeVerified"] and "QA_REPLACED" in "\n".join(texts)
+        assert sample["searchReplaceVerified"] and sample["columnWidthsVerified"] and sample["cellStyleVerified"] and sample["horizontalMergeVerified"] and sample["bodyImagesVerified"] and "QA_REPLACED" in "\n".join(texts)
+        assert sum(len(page.images) for page in pdf.pages) == 2
     typography = None
     inline_script = None
     markers = {}

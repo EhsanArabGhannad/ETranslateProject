@@ -98,6 +98,11 @@ public static partial class DocumentEndpoints
             return Results.ValidationProblem(exception.Errors.ToDictionary());
         }
         if (ids.Count == 0) return null;
+        var documentIds = DocumentImageReferences.Parse(content);
+        if (await database.DocumentImages.CountAsync(image => image.DocumentId == document.Id && documentIds.Contains(image.Id), cancellationToken) != documentIds.Count)
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["assetId"] = ["Body images must belong to this document."] });
+        ids = ids.Except(documentIds).ToArray();
+        if (ids.Count == 0) return null;
         var templateId = await database.TemplateRevisions.AsNoTracking()
             .Where(revision => revision.Id == document.TemplateRevisionId)
             .Select(revision => (Guid?)revision.TemplateId).SingleOrDefaultAsync(cancellationToken);

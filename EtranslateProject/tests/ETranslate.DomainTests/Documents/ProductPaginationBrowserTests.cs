@@ -54,7 +54,7 @@ public sealed partial class EditorAdapterBrowserTests
             """);
         await textbox.Locator("td p").Filter(new(){HasText=marker}).First.ClickAsync();await page.Keyboard.PressAsync("End");await page.Keyboard.InsertTextAsync(" PAGE_EDIT");
         await Assertions.Expect(page.Locator("#document-json")).ToHaveValueAsync(new System.Text.RegularExpressions.Regex("PAGE_EDIT"));
-        var edited=await page.Locator("#document-json").InputValueAsync();Assert.True(DocumentContentDescriptor.RichV8.TryRead(edited,out _));
+        var edited=await page.Locator("#document-json").InputValueAsync();Assert.True(DocumentContentDescriptor.RichV9.TryRead(edited,out _));
         foreach(var zoom in new[]{"75","125","fit"}){
             await page.Locator("#editor-zoom").SelectOptionAsync(zoom);
             await Assertions.Expect(viewport).ToHaveAttributeAsync("data-page-index","2");

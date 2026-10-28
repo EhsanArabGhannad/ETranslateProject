@@ -6,6 +6,8 @@ import {validSearch,validReplacement} from '../document-text-tools.js';
 import { tableOptions } from '../table-options.js';
 import { validColumnWidths } from '../table-widths.js';
 import { cellStyleFields, validCellStyleValue, validCellStyleChange } from '../cell-style.js';
+import { validImageLayout, validImageValue } from '../body-image.js';
+import { guid } from '../document-schema.js';
 
 /**
  * Provider contract (trusted application code):
@@ -57,7 +59,12 @@ export function createEditorSession({ provider, element, contentJson, contentFor
         if(provider.format.version<6 && command==='tableColumnWidths')return {enabled:false,active:false,columns:0,value:null};
         if(provider.format.version<7 && command==='tableCellStyle')return {enabled:false,active:false};
         if(provider.format.version<8 && ['mergeNextCell','mergeCellsInRow','splitCellInRow'].includes(command))return {enabled:false,active:false};
+        if(provider.format.version<9 && ['insertImage','imageLayout','deleteImage'].includes(command))return {enabled:false,active:false};
         const state = adapter.getCommandState(command);
+        if (command === 'imageLayout') return { enabled: enabled && state.enabled === true, active: state.active === true,
+            context: typeof state.context === 'string' ? state.context : null,
+            widthPercent: validImageValue('widthPercent', state.widthPercent) ? state.widthPercent : null,
+            align: validImageValue('align', state.align) ? state.align : null };
         if (command === 'tableCellStyle') {
             const group = source => ({ count: Number.isInteger(source?.count) && source.count >= 0 && source.count <= 600 ? source.count : 0,
                 values: Object.fromEntries(cellStyleFields.map(field => [field, validCellStyleValue(field, source?.values?.[field]) ? source.values[field] : null])),
@@ -82,12 +89,24 @@ export function createEditorSession({ provider, element, contentJson, contentFor
         format: Object.freeze({ ...provider.format }),
         capabilities: Object.freeze({ ...provider.capabilities }),
         getDocumentJson,
+        captureImageInsertion() {
+            if (!getCommandState('insertImage').enabled) return null;
+            const bookmark = adapter.captureImageInsertion?.();
+            return typeof bookmark === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(bookmark) ? bookmark : null;
+        },
+        releaseImageInsertion(bookmark) { if (!destroyed && typeof bookmark === 'string') adapter.releaseImageInsertion?.(bookmark); },
         setSearch(options){return !destroyed&&validSearch(options)&&adapter.setSearch?.(options)===true;},
         getSearchState(){const state=!destroyed?adapter.getSearchState?.():null;return state?.supported===true?{supported:true,total:state.total,index:state.index,truncated:state.truncated===true,editable:enabled,canReplace:enabled&&state.total>0}:{supported:false,total:0,index:0,truncated:false,editable:false,canReplace:false};},
         findMatch(direction=1){return !destroyed&&[1,-1].includes(direction)&&adapter.findMatch?.(direction)===true;},
         replaceSearch(value,all=false){return !destroyed&&enabled&&validReplacement(value)&&typeof all==='boolean'&&adapter.replaceSearch?.(value,all)===true;},
         getCommandState,
         execute(command, value) {
+            if (command === 'insertImage') {
+                if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length !== 2 ||
+                    !guid.test(value.assetId ?? '') || typeof value.bookmark !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(value.bookmark)) return false;
+                value = { ...value };
+            }
+            if (command === 'imageLayout') { if (!validImageLayout(value)) return false; value = { ...value }; }
             if (command === 'tableCellStyle') { if (!validCellStyleChange(value)) return false; value = { ...value }; }
             if (command === 'insertTable') { value = tableOptions(value); if (!value) return false; }
             if(Object.hasOwn(typographyCommands,command)&&!validTypographyValue(typographyCommands[command],value))return false;

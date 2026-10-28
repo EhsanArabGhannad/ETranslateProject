@@ -15,7 +15,7 @@ public sealed class RowPlannerVersionTests
         var current=new DocumentPdfVersion(document,draft,1,null,DraftPdfPolicy.RendererVersion,"new.pdf",200,new string('b',64),actor,DateTimeOffset.UnixEpoch);
         Assert.NotEqual(old.Id,current.Id);Assert.Equal(old.DraftRevisionId,current.DraftRevisionId);
         Assert.NotEqual(old.RendererVersion,current.RendererVersion);Assert.Equal("old.pdf",old.StorageKey);Assert.Equal(new string('a',64),old.Sha256);
-        Assert.Contains("v18-horizontal-spans",DraftPdfPolicy.RendererVersion);Assert.Equal("signing-preview-v2-letterhead",SigningPreviewPolicy.RendererVersion);
+        Assert.Contains("v19-body-images",DraftPdfPolicy.RendererVersion);Assert.Equal("signing-preview-v2-letterhead",SigningPreviewPolicy.RendererVersion);
         // Read only EF metadata; no SQL connection. Cache uniqueness must permit both versions.
         using var db=new DocumentsDbContext(new DbContextOptionsBuilder<DocumentsDbContext>().UseSqlServer("Server=localhost;Database=test;Integrated Security=true;TrustServerCertificate=true").Options);
         var entity=db.Model.FindEntityType(typeof(DocumentPdfVersion))!;

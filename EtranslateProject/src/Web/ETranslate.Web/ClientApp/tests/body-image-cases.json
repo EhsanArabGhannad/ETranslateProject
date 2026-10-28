@@ -1,0 +1,135 @@
+[
+  {
+    "name": "legacy defaults",
+    "attrs": {},
+    "valid": true,
+    "legacyValid": true
+  },
+  {
+    "name": "private width5 left",
+    "attrs": {
+      "assetScope": "document",
+      "widthPercent": 5,
+      "align": "left"
+    },
+    "valid": true,
+    "legacyValid": false
+  },
+  {
+    "name": "private width100 right",
+    "attrs": {
+      "assetScope": "document",
+      "widthPercent": 100,
+      "align": "right"
+    },
+    "valid": true,
+    "legacyValid": false
+  },
+  {
+    "name": "nullable provider defaults",
+    "attrs": {
+      "assetScope": null,
+      "widthPercent": null,
+      "align": null
+    },
+    "valid": true,
+    "legacyValid": false
+  },
+  {
+    "name": "resize template body image",
+    "attrs": {
+      "widthPercent": 50,
+      "align": "center"
+    },
+    "valid": true,
+    "legacyValid": false
+  },
+  {
+    "name": "too narrow",
+    "attrs": {
+      "widthPercent": 4
+    },
+    "valid": false,
+    "legacyValid": false
+  },
+  {
+    "name": "too wide",
+    "attrs": {
+      "widthPercent": 101
+    },
+    "valid": false,
+    "legacyValid": false
+  },
+  {
+    "name": "fraction",
+    "attrs": {
+      "widthPercent": 12.5
+    },
+    "valid": false,
+    "legacyValid": false
+  },
+  {
+    "name": "string width",
+    "attrs": {
+      "widthPercent": "50"
+    },
+    "valid": false,
+    "legacyValid": false
+  },
+  {
+    "name": "scope other",
+    "attrs": {
+      "assetScope": "tenant"
+    },
+    "valid": false,
+    "legacyValid": false
+  },
+  {
+    "name": "scope number",
+    "attrs": {
+      "assetScope": 1
+    },
+    "valid": false,
+    "legacyValid": false
+  },
+  {
+    "name": "alignment justify",
+    "attrs": {
+      "align": "justify"
+    },
+    "valid": false,
+    "legacyValid": false
+  },
+  {
+    "name": "style injection",
+    "attrs": {
+      "align": "left;display:none"
+    },
+    "valid": false,
+    "legacyValid": false
+  },
+  {
+    "name": "remote source",
+    "attrs": {
+      "src": "https://example.invalid/a.png"
+    },
+    "valid": false,
+    "legacyValid": false
+  },
+  {
+    "name": "data source",
+    "attrs": {
+      "src": "data:image/png;base64,a"
+    },
+    "valid": false,
+    "legacyValid": false
+  },
+  {
+    "name": "pixel height",
+    "attrs": {
+      "height": 100
+    },
+    "valid": false,
+    "legacyValid": false
+  }
+]

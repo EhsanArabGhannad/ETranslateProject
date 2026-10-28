@@ -42,6 +42,6 @@ export function changeHorizontalCells(state, command) {
         const last = cells.at(-1); tr.replaceWith(first.pos, last.pos + last.node.nodeSize, merged);
     }
     const json = tr.doc.toJSON();
-    if (!isRichDocument(json, 8) || JSON.stringify(json).length > 2_000_000 || bodyTextBlocks(json).join('\n').length > 1_000_000) return null;
+    if (!isRichDocument(json, 9) || JSON.stringify(json).length > 2_000_000 || bodyTextBlocks(json).join('\n').length > 1_000_000) return null;
     return tr.setSelection(Selection.near(tr.doc.resolve(first.pos + 1))).scrollIntoView();
 }

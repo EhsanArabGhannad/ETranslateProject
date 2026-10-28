@@ -14,7 +14,7 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
 
     public async Task<byte[]> RenderAsync(DraftPdfInput input, CancellationToken cancellationToken)
     {
-        var prepared = DraftPdfHtml.Prepare(input, input.BodyDescriptor.IsRichV2||input.BodyDescriptor.IsRichV3||input.BodyDescriptor.IsRichV4||input.BodyDescriptor.IsRichV5||input.BodyDescriptor.IsRichV6||input.BodyDescriptor.IsRichV7||input.BodyDescriptor.IsRichV8||input.TemplateDescriptor.IsRichV2||input.TemplateDescriptor.IsRichV3||input.TemplateDescriptor.IsRichV4||input.TemplateDescriptor.IsRichV5||input.TemplateDescriptor.IsRichV6||input.TemplateDescriptor.IsRichV7||input.TemplateDescriptor.IsRichV8 ? _typographyFonts.Value : _fonts.Value);
+        var prepared = DraftPdfHtml.Prepare(input, input.BodyDescriptor.IsRichV2||input.BodyDescriptor.IsRichV3||input.BodyDescriptor.IsRichV4||input.BodyDescriptor.IsRichV5||input.BodyDescriptor.IsRichV6||input.BodyDescriptor.IsRichV7||input.BodyDescriptor.IsRichV8||input.BodyDescriptor.IsRichV9||input.TemplateDescriptor.IsRichV2||input.TemplateDescriptor.IsRichV3||input.TemplateDescriptor.IsRichV4||input.TemplateDescriptor.IsRichV5||input.TemplateDescriptor.IsRichV6||input.TemplateDescriptor.IsRichV7||input.TemplateDescriptor.IsRichV8||input.TemplateDescriptor.IsRichV9 ? _typographyFonts.Value : _fonts.Value);
         if (!await _slot.WaitAsync(TimeSpan.FromSeconds(1), cancellationToken)) throw new PdfRendererBusyException();
         try
         {
@@ -41,6 +41,7 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
                         HeaderMm: document.querySelector('.letterhead').getBoundingClientRect().height * 25.4 / 96,
                         FooterMm: document.querySelector('.letterfoot').getBoundingClientRect().height * 25.4 / 96,
                         BodyMm: document.querySelector('main').getBoundingClientRect().height * 25.4 / 96,
+                        MaximumBodyImageMm: Math.max(0, ...[...document.querySelectorAll('main img')].map(image => image.getBoundingClientRect().height * 25.4 / 96)),
                         MaximumTableRowMm: Math.max(0, ...[...document.querySelectorAll('main table')].map(table => {
                             const header = table.tHead?.getBoundingClientRect().height ?? 0;
                             const row = Math.max(0, ...[...table.querySelectorAll('tbody tr')].map(row => row.getBoundingClientRect().height));
@@ -63,6 +64,8 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
                 throw new PdfRenderValidationException("Page layout leaves too little space or the document exceeds the draft PDF length limit.");
             if (metrics.MaximumTableRowMm > bodyHeight)
                 throw new PdfRenderValidationException("A table row with its repeated heading is taller than the printable page; shorten its cells before generating a PDF.");
+            if (metrics.MaximumBodyImageMm > bodyHeight)
+                throw new PdfRenderValidationException("A body image is taller than the printable page; reduce its width before generating a PDF.");
             // Browser fragmentation is used only for body text, never for repeating letterhead/footer.
             await page.EvaluateAsync<bool>("""
                 () => {
@@ -140,7 +143,7 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
         catch (PlaywrightException error) { throw new PdfRendererUnavailableException(error); }
         finally { _slot.Release(); }
     }
-    private sealed record PrintMetrics(decimal HeaderMm, decimal FooterMm, decimal BodyMm, decimal MaximumTableRowMm, bool OversizedImage, bool HasTable);
+    private sealed record PrintMetrics(decimal HeaderMm, decimal FooterMm, decimal BodyMm, decimal MaximumTableRowMm, decimal MaximumBodyImageMm, bool OversizedImage, bool HasTable);
     private static byte[] ApplyLetterhead(byte[] body, byte[] letterhead, byte[]? earlierLetterhead, bool lastOnly, CancellationToken token)
     {
         using var bodyStream = new MemoryStream(body, writable:false);

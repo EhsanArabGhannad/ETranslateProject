@@ -83,7 +83,7 @@ public sealed partial class EditorAdapterBrowserTests
         retry.Release.SetResult(503); await Assertions.Expect(page.Locator("#editor-table-rows")).ToBeEnabledAsync();
         var saved = fixture.Enqueue(); await page.Locator("#draft-form button[type=submit]").ClickAsync();
         await saved.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        fixture.Source = SubmittedJson(saved.Body); fixture.SchemaVersion = "8"; saved.Release.SetResult(303); await page.WaitForURLAsync("**after-save=1");
+        fixture.Source = SubmittedJson(saved.Body); fixture.SchemaVersion = "9"; saved.Release.SetResult(303); await page.WaitForURLAsync("**after-save=1");
         Assert.Equal(source, await json.InputValueAsync());
         await Assertions.Expect(Command(page, "undo")).ToBeDisabledAsync();
         Assert.Equal(8, await textbox.Locator("table td").CountAsync()); Assert.Equal(0, await textbox.Locator("table th").CountAsync());
@@ -109,7 +109,7 @@ public sealed partial class EditorAdapterBrowserTests
         await TableDimensions(page, 50, 12, true); await Command(page, "insertTable").ClickAsync();
         Assert.Equal(50, await textbox.Locator("table tr").CountAsync()); Assert.Equal(12, await textbox.Locator("table th").CountAsync());
         await Assertions.Expect(Command(page, "addRowAfter")).ToBeDisabledAsync(); await Assertions.Expect(Command(page, "addColumnAfter")).ToBeDisabledAsync();
-        var maximum = await json.InputValueAsync(); Assert.True(DocumentContentDescriptor.RichV8.TryRead(maximum, out _));
+        var maximum = await json.InputValueAsync(); Assert.True(DocumentContentDescriptor.RichV9.TryRead(maximum, out _));
         await textbox.Locator("table tr").Last.Locator("td p").Last.ClickAsync(); await page.Keyboard.PressAsync("Tab");
         Assert.Equal(maximum, await json.InputValueAsync());
         await Command(page, "undo").ClickAsync(); Assert.Equal(0, await textbox.Locator("table").CountAsync());
@@ -120,7 +120,9 @@ public sealed partial class EditorAdapterBrowserTests
         // Build real tables using only the public picker and normal cell typing.
         foreach (var spec in new[] { (Rows: 36, Columns: 4, Header: true, Prefix: "CFG_H_"), (Rows: 32, Columns: 3, Header: false, Prefix: "CFG_N_") })
         {
-            await textbox.Locator(":scope>p").Last.ClickAsync(); await page.Keyboard.PressAsync("End");
+            // Use distinct existing paragraphs; native insertion at the document end
+            // does not promise to create an extra trailing paragraph.
+            await (spec.Header ? textbox.Locator(":scope>p").First : textbox.Locator(":scope>p").Last).ClickAsync(); await page.Keyboard.PressAsync("End");
             await TableDimensions(page, spec.Rows, spec.Columns, spec.Header); await Command(page, "insertTable").ClickAsync();
             var table = textbox.Locator("table").Last;
             for (var r = 0; r < spec.Rows; r++)
@@ -129,11 +131,11 @@ public sealed partial class EditorAdapterBrowserTests
                 await page.Keyboard.InsertTextAsync($"{spec.Prefix}{r:000} İstanbul ترجمه");
             }
         }
-        var source = await json.InputValueAsync(); Assert.True(DocumentContentDescriptor.RichV8.TryRead(source, out _));
+        var source = await json.InputValueAsync(); Assert.True(DocumentContentDescriptor.RichV9.TryRead(source, out _));
         Assert.Equal(4, await textbox.Locator("table").First.Locator("th").CountAsync());
         Assert.Equal(0, await textbox.Locator("table").Last.Locator("th").CountAsync());
         var save = fixture.Enqueue(); await page.Locator("#draft-form button[type=submit]").ClickAsync(); await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        fixture.Source = SubmittedJson(save.Body); fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "8";
+        fixture.Source = SubmittedJson(save.Body); fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "9";
         save.Release.SetResult(303); await page.WaitForURLAsync("**after-save=1"); Assert.Equal(source, await json.InputValueAsync());
         await page.Locator("#editor-pages-toggle").ClickAsync();
         await Assertions.Expect(page.Locator("#editor-viewport")).ToHaveAttributeAsync("data-pagination", "paged");
@@ -147,7 +149,7 @@ public sealed partial class EditorAdapterBrowserTests
         await File.WriteAllTextAsync(Path.Combine(directory, "table-markers.json"), markers);
         using (var renderer = new ChromiumDraftPdfRenderer())
         {
-            var bytes = await renderer.RenderAsync(new(Guid.NewGuid(), 1, null, source, null, null, null, null, new Dictionary<Guid, PdfImage>()) { ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 8 }, CancellationToken.None);
+            var bytes = await renderer.RenderAsync(new(Guid.NewGuid(), 1, null, source, null, null, null, null, new Dictionary<Guid, PdfImage>()) { ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 9 }, CancellationToken.None);
             using var stream = new MemoryStream(bytes); using var pdf = PdfReader.Open(stream, PdfDocumentOpenMode.Import);
             Assert.Equal(int.Parse((await page.Locator("#editor-viewport").GetAttributeAsync("data-page-count"))!), pdf.PageCount); Assert.True(pdf.PageCount > 2);
             await File.WriteAllBytesAsync(Path.Combine(directory, "chosen-tables.pdf"), bytes);

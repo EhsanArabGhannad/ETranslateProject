@@ -33,6 +33,10 @@ public static partial class DocumentEndpoints
         IReadOnlyCollection<Guid> assets;
         try { assets = TemplateAssetReferences.Parse(current.EditorContentJson); }
         catch (DocumentTemplateValidationException error) { return Results.ValidationProblem(error.Errors.ToDictionary()); }
+        var documentImages = DocumentImageReferences.Parse(current.EditorContentJson);
+        if (await database.DocumentImages.CountAsync(image => image.DocumentId == documentId && documentImages.Contains(image.Id), cancellationToken) != documentImages.Count)
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["assetId"] = ["Body images must belong to this document."] });
+        assets = assets.Except(documentImages).ToArray();
         if (assets.Count > 0 && await database.TemplateAssets.CountAsync(a => a.TemplateId == target.Template.Id && assets.Contains(a.Id), cancellationToken) != assets.Count)
             return Results.ValidationProblem(new Dictionary<string, string[]> { ["assetId"] = ["Saved body images must belong to the target template; no image or text was removed."] });
         var now = timeProvider.GetUtcNow();

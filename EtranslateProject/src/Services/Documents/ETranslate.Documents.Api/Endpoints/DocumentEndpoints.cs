@@ -40,6 +40,8 @@ public static partial class DocumentEndpoints
         group.MapPost("/{documentId:guid}/source-files", UploadSourceFileAsync)
             .DisableAntiforgery();
         group.MapGet("/{documentId:guid}/source-files/{sourceFileId:guid}", DownloadSourceFileAsync);
+        group.MapPost("/{documentId:guid}/images", UploadDocumentImageAsync).DisableAntiforgery();
+        group.MapGet("/{documentId:guid}/images/{imageId:guid}", DownloadDocumentImageAsync);
 
         return endpoints;
     }

@@ -33,6 +33,7 @@
     <None Include="..\..\src\Web\ETranslate.Web\ClientApp\tests\table-width-cases.json" Link="table-width-cases.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\src\Web\ETranslate.Web\ClientApp\tests\cell-style-cases.json" Link="cell-style-cases.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\src\Web\ETranslate.Web\ClientApp\tests\horizontal-span-cases.json" Link="horizontal-span-cases.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\Web\ETranslate.Web\ClientApp\tests\body-image-cases.json" Link="body-image-cases.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

@@ -9,9 +9,11 @@ const find = id => document.getElementById(id), workspace = find('editor-workspa
 if (workspace) {
     const json = find('document-json'), text = find('translation-text'), form = find('draft-form');
     const preview = createPreview(workspace);
-    let dirty = false, saving = false, navigating = false;
+    let dirty = false, saving = false, navigating = false, uploading = false;
     const changed = () => { dirty = true; find('save-state').textContent = ui.KaydedilmemisDegisiklikler; };
-    const editor = startRichEditor(workspace, changed, preview);
+    const editor = startRichEditor(workspace, changed, preview, busy => {
+        uploading = busy; form.querySelector('button[type=submit]').disabled = busy || workspace.dataset.editable !== 'true';
+    });
     if (!editor) {
         (text ?? json).addEventListener('input', () => {
             if (text) json.value = JSON.stringify({ type: 'doc', content: text.value.replace(/\r\n/g, '\n').split('\n')
@@ -22,12 +24,12 @@ if (workspace) {
     window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
     form.addEventListener('submit', async event => {
         event.preventDefault();
-        if (saving || workspace.dataset.editable !== 'true') return;
+        if (saving || uploading || workspace.dataset.editable !== 'true') return;
         const mode = form.elements.mode.value;
         try {
             if (editor) json.value = editor.getDocumentJson();
             const document = JSON.parse(json.value);
-            if (!document || typeof document !== 'object' || json.value.length > 2000000 || mode === 'rich' && !isRichDocument(document,8)) throw new Error();
+            if (!document || typeof document !== 'object' || json.value.length > 2000000 || mode === 'rich' && !isRichDocument(document,9)) throw new Error();
         } catch { find('save-state').textContent = ui.BelgeYapisiGecersizVeyaKaydedilemiyorDegisikliklerKorunmustur; return; }
         const button = form.querySelector('button[type=submit]');
         saving = true; button.disabled = true; find('save-state').textContent = ui.Kaydediliyor;
@@ -61,7 +63,7 @@ if (workspace) {
         reviewForm.addEventListener('submit', async event => {
             event.preventDefault();
             const status = find('review-status');
-            if (dirty || saving) {
+            if (dirty || saving || uploading) {
                 status.textContent = ui.OnceMetinDegisiklikleriniKaydedinYalnizcaKayitliSurum; return;
             }
             const controls = Array.from(document.querySelectorAll('.review-form button'));
