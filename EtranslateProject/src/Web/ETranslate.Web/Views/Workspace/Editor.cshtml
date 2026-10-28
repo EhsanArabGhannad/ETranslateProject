@@ -74,9 +74,10 @@ else if (Model.Document.CurrentDraftRevision == 0) {
     <button type="button" data-command="bulletList" aria-pressed="false">@UiText.Get("MaddeIsaretliListe")</button><button type="button" data-command="orderedList" aria-pressed="false">@UiText.Get("NumaraliListe")</button>
     <button type="button" data-command="rtl" aria-label="@UiText.Get("SagdanSolaYon")">@UiText.Get("SagdanSola")</button><button type="button" data-command="ltr" aria-label="@UiText.Get("SoldanSagaYon")">@UiText.Get("SoldanSaga")</button><button type="button" data-command="auto">@UiText.Get("OtomatikYon")</button>
     <button type="button" data-command="undo">@UiText.Get("GeriAl")</button><button type="button" data-command="redo">@UiText.Get("Yinele")</button>
-    <button type="button" data-command="insertTable">@UiText.Get("Baslikli33Tablo")</button>
+    <button type="button" data-command="insertTable" aria-describedby="editor-table-size">@UiText.Get("EditorInsertTable")</button>
     <button type="button" data-command="addRowAfter">@UiText.Get("SonrakiSatir")</button><button type="button" data-command="addColumnAfter">@UiText.Get("SonrakiSutun")</button>
     <button type="button" data-command="deleteRow">@UiText.Get("SatiriSil")</button><button type="button" data-command="deleteColumn">@UiText.Get("SutunuSil")</button><button type="button" data-command="deleteTable">@UiText.Get("TabloyuSil")</button>
+    <partial name="_EditorTable" />
 </div><p id="editor-paper-description" class="muted"></p><div id="editor-viewport" class="editor-viewport" tabindex="0" role="region" aria-label="@UiText.Get("EditorPaperRegion")" aria-describedby="editor-paper-description"><div id="editor-paper-stage"><div id="editor-paper"><div id="rich-text"></div></div></div></div><p class="muted">@UiText.Get("BicimlendirmeSeciliMetneVeyaGecerliParagrafaUygulanir")</p></div>
 <p id="editor-format-status" class="muted" role="status"></p>
 @if (plain is not null) { <label for="translation-text">@UiText.Get("HerSatirBirParagraf")</label><textarea id="translation-text" name="plainText" rows="18" dir="auto" readonly="@(!editable)" maxlength="1000000">@plain</textarea><textarea id="document-json" name="editorContentJson" hidden>@Model.EditorContentJson</textarea> }

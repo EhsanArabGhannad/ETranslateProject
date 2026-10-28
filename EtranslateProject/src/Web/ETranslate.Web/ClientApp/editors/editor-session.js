@@ -3,6 +3,7 @@ import { typographyCommands, validTypographyValue } from '../typography.js';
 import { paragraphCommands, paragraphActions, advancedParagraphFields, validParagraphValue } from '../paragraph.js';
 import { scriptMarks } from '../inline-script.js';
 import {validSearch,validReplacement} from '../document-text-tools.js';
+import { tableOptions } from '../table-options.js';
 
 /**
  * Provider contract (trusted application code):
@@ -70,6 +71,7 @@ export function createEditorSession({ provider, element, contentJson, contentFor
         replaceSearch(value,all=false){return !destroyed&&enabled&&validReplacement(value)&&typeof all==='boolean'&&adapter.replaceSearch?.(value,all)===true;},
         getCommandState,
         execute(command, value) {
+            if (command === 'insertTable') { value = tableOptions(value); if (!value) return false; }
             if(Object.hasOwn(typographyCommands,command)&&!validTypographyValue(typographyCommands[command],value))return false;
             if(Object.hasOwn(paragraphCommands,command)&&!validParagraphValue(paragraphCommands[command],value,provider.format.version))return false;
             if (!getCommandState(command).enabled) return false;

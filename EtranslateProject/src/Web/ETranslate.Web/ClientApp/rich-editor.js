@@ -5,6 +5,7 @@ import { defaultEditorProvider } from './editors/default-provider.js';
 import { supportsStoredContent, storedDocumentFormat } from './editors/document-contract.js';
 import { startEditorView } from './editor-view.js';
 import {startEditorTextTools} from './editor-text-tools.js';
+import { startEditorTableTools } from './editor-table-tools.js';
 
 // DOM orchestration only. All vendor-specific editing/selection/history code belongs in its provider.
 export function startRichEditor(workspace, onChanged, preview) {
@@ -35,10 +36,14 @@ export function startRichEditor(workspace, onChanged, preview) {
         });
         const buttons = Array.from(document.querySelectorAll('#rich-region button[data-command]'));
         const styles=Array.from(document.querySelectorAll('#rich-region select[data-style-command]'));
+        const tableTools = startEditorTableTools(workspace, session, updateToolbar);
+        cleanups.push(() => tableTools.destroy());
         function updateToolbar() {
+            tableTools.update();
             for (const button of buttons) {
                 const state = session.getCommandState(button.dataset.command);
                 button.disabled = workspace.dataset.editable !== 'true' || !state.enabled;
+                if (button.dataset.command === 'insertTable') button.disabled ||= tableTools.getOptions() === null;
                 if (button.hasAttribute('aria-pressed')) button.setAttribute('aria-pressed', String(state.active));
             }
             for(const control of styles){const state=session.getCommandState(control.dataset.styleCommand);
@@ -62,7 +67,12 @@ export function startRichEditor(workspace, onChanged, preview) {
         for (const button of buttons) {
             const keepSelection = event => event.preventDefault();
             const execute = () => {
-                if (workspace.dataset.editable === 'true') session.execute(button.dataset.command);
+                if (workspace.dataset.editable === 'true') {
+                    if (button.dataset.command === 'insertTable') {
+                        const options = tableTools.getOptions();
+                        if (options) session.execute('insertTable', options);
+                    } else session.execute(button.dataset.command);
+                }
                 updateToolbar();
             };
             button.addEventListener('mousedown', keepSelection); button.addEventListener('click', execute);

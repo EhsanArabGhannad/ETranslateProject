@@ -11,6 +11,7 @@ import { typographyFields, typographyCommands, validTypography, validTypographyV
 import { paragraphFields, paragraphCommands, paragraphActions, validParagraphValue, applyParagraph } from '../paragraph.js';
 import { scriptMarks, applyInlineScript } from '../inline-script.js';
 import {createTiptapSearch} from './tiptap-search.js';
+import { tableOptions, tableLimits } from '../table-options.js';
 
 export const tiptapProvider = Object.freeze({
     id: 'tiptap', format: richDocumentV5,
@@ -99,7 +100,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     function allowedTable(command) {
         const size = tableSize();
         if (command === 'insertTable') return !size && editor.state.selection.$from.depth === 1;
-        return !!size && (command !== 'addRowAfter' || size.rows < 50) && (command !== 'addColumnAfter' || size.columns < 12);
+        return !!size && (command !== 'addRowAfter' || size.rows < tableLimits.rows) && (command !== 'addColumnAfter' || size.columns < tableLimits.columns);
     }
     const operations = {
         bold: chain => chain.toggleBold(), italic: chain => chain.toggleItalic(), underline: chain => chain.toggleUnderline(),
@@ -186,6 +187,14 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         getCommandState,
         execute(command, value) {
             if (!getCommandState(command).enabled) return false;
+            if (command === 'insertTable') {
+                const options = tableOptions(value); if (!options) return false;
+                const inserted = editor.chain().focus().command(({tr}) => { closeHistory(tr); return true; })
+                    .insertTable({ rows: options.rows, cols: options.columns, withHeaderRow: options.withHeaderRow }).run();
+                // Keep subsequent typing separate: one Undo removes just the inserted table.
+                if (inserted) editor.view.dispatch(closeHistory(editor.state.tr));
+                return inserted;
+            }
             if(command==='paragraph'||command==='heading')return changeBlock(command);
             if(Object.hasOwn(paragraphCommands,command))return validParagraphValue(paragraphCommands[command],value,5)&&updateParagraph(command,value);
             if(paragraphActions.includes(command))return updateParagraph(command);

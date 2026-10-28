@@ -51,3 +51,16 @@
 .editor-pagination-nav{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 0}
 .editor-controls .editor-pagination-nav button{width:auto;margin:0;padding:6px 10px}
 .editor-pagination-nav select{width:auto;margin:0;padding:6px}
+.editor-controls .editor-table-settings{flex:1 1 100%;width:100%;border:0;margin:4px 0}
+.editor-table-fields{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-top:10px}
+.editor-controls .editor-table-fields label{display:flex;flex-direction:column;gap:5px;margin:0;font-weight:500}
+.editor-controls .editor-table-fields input[type=text]{width:110px;margin:0;padding:7px 10px}
+.editor-controls .editor-table-fields .editor-table-header{flex-direction:row;align-items:center;padding:7px 0}
+.editor-controls .editor-table-fields input[type=checkbox]{width:auto;margin:0}
+.editor-controls .editor-table-grid{display:grid;grid-template-columns:repeat(8,26px);gap:3px;width:max-content;direction:ltr}
+.editor-controls .editor-table-grid button{width:26px;height:26px;min-height:0;padding:0;margin:0;border:1px solid #91a8a4;border-radius:3px;background:#fff}
+.editor-controls .editor-table-grid button[data-preview=true]{background:#d3e8e0;border-color:#287d73}
+.editor-controls .editor-table-grid button[data-preview=true][data-header=true]{background:#8abdb1}
+.editor-controls .editor-table-grid button[aria-pressed=true]{outline:2px solid #176f65;outline-offset:0}
+.editor-controls .editor-table-grid button:focus-visible{outline:3px solid #283c83;outline-offset:1px}
+.editor-controls .editor-table-fields input[aria-invalid=true]{border-color:#b91c1c}

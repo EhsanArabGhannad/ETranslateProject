@@ -33,5 +33,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Inline script baselines, sizes or colored strike differed.' }
     & $PythonPath (Join-Path $PSScriptRoot 'verify_paragraph_spacing_pdf.py') (Join-Path $projectRoot 'tmp/pdfs/paragraph-spacing')
     if ($LASTEXITCODE -ne 0) { throw 'Paragraph before/after spacing, first-line indent or marker pages differed.' }
+    & $PythonPath (Join-Path $PSScriptRoot 'verify_table_insertion_pdf.py') (Join-Path $projectRoot 'tmp/pdfs/table-insertion')
+    if ($LASTEXITCODE -ne 0) { throw 'Chosen table dimensions, header repetition or marker pages differed.' }
     Write-Output 'Editor adapter and page-flow checks passed. Synthetic PDF comparison and temporary loopback host only; no SQL, AppHost or external services.'
 } finally { foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name,$previous[$name]) } }

@@ -1,0 +1,11 @@
+<details id="editor-table-settings" class="editor-table-settings">
+    <summary>@UiText.Get("EditorTableSettings")</summary>
+    <div class="editor-table-fields">
+        <label for="editor-table-rows">@UiText.Get("EditorTableRows")<input id="editor-table-rows" type="text" inputmode="numeric" maxlength="2" value="3" autocomplete="off" aria-describedby="editor-table-help editor-table-error" /></label>
+        <label for="editor-table-columns">@UiText.Get("EditorTableColumns")<input id="editor-table-columns" type="text" inputmode="numeric" maxlength="2" value="3" autocomplete="off" aria-describedby="editor-table-help editor-table-error" /></label>
+        <label class="editor-table-header"><input id="editor-table-header" type="checkbox" checked />@UiText.Get("EditorTableHeader")</label>
+    </div>
+    <p id="editor-table-help" class="muted">@UiText.Get("EditorTableHelp")</p>
+    <div id="editor-table-grid" class="editor-table-grid" role="group" aria-label="@UiText.Get("EditorTableQuickSize")"></div>
+    <p id="editor-table-size" role="status"></p><p id="editor-table-error" class="validation-message" role="status" hidden></p>
+</details>
