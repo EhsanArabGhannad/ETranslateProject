@@ -18,7 +18,7 @@ export function supportsStoredContent(format, version) {
 export const editorCommands = Object.freeze([
     'bold', 'italic', 'underline', 'strike', 'superscript', 'subscript', 'paragraph', 'heading', 'bulletList', 'orderedList',
     'rtl', 'ltr', 'auto', 'undo', 'redo', 'insertTable', 'addRowAfter', 'addColumnAfter',
-    'deleteRow', 'deleteColumn', 'deleteTable', 'fontFamily', 'fontSize', 'textColor', 'highlight', 'clearTextStyle',
+    'deleteRow', 'deleteColumn', 'deleteTable', 'toggleTableHeaderRow', 'fontFamily', 'fontSize', 'textColor', 'highlight', 'clearTextStyle',
     'textAlign','lineHeight','indentLevel','increaseIndent','decreaseIndent','clearParagraphStyle','spaceBeforePt','spaceAfterPt','firstLineIndentMm'
 ]);
 

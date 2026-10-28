@@ -12,6 +12,7 @@ import { paragraphFields, paragraphCommands, paragraphActions, validParagraphVal
 import { scriptMarks, applyInlineScript } from '../inline-script.js';
 import {createTiptapSearch} from './tiptap-search.js';
 import { tableOptions, tableLimits } from '../table-options.js';
+import { firstTableRow, toggleFirstTableRow } from './tiptap-table-header.js';
 
 export const tiptapProvider = Object.freeze({
     id: 'tiptap', format: richDocumentV5,
@@ -159,6 +160,10 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     }).run();}
     function getCommandState(command) {
         if (!editorCommands.includes(command) || editor.isDestroyed) return { enabled: false, active: false };
+        if (command === 'toggleTableHeaderRow') {
+            const row = firstTableRow(editor.state);
+            return { enabled: editor.isEditable && row !== null, active: row?.active === true };
+        }
         // Tiptap's generic can().setMark rejects an opposite excluding mark. These commands
         // deliberately replace that mark in the same transaction, including at the caret.
         if(scriptMarks.includes(command))return {enabled:editor.isEditable&&selectedBlocks(editor.state).some(({node})=>node.type.allowsMarkType(editor.schema.marks[command])),active:editor.isActive(command)};
@@ -187,6 +192,13 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         getCommandState,
         execute(command, value) {
             if (!getCommandState(command).enabled) return false;
+            if (command === 'toggleTableHeaderRow') {
+                editor.view.focus();
+                const tr = toggleFirstTableRow(editor.state); if (!tr) return false;
+                editor.view.dispatch(tr.scrollIntoView());
+                editor.view.dispatch(closeHistory(editor.state.tr));
+                return true;
+            }
             if (command === 'insertTable') {
                 const options = tableOptions(value); if (!options) return false;
                 const inserted = editor.chain().focus().command(({tr}) => { closeHistory(tr); return true; })

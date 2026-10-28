@@ -265,6 +265,8 @@
   "EditorTableSize": "{0} satır × {1} sütun",
   "EditorTableWithHeader": "Başlıklı",
   "EditorTableWithoutHeader": "Başlıksız",
+  "EditorToggleTableHeader": "İlk satır başlığı",
+  "EditorToggleTableHeaderHelp": "Seçili tablonun ilk satırını başlık yapın veya normal satıra dönüştürün. Başlık, tablo devam ettiğinde sayfalarda tekrarlanır.",
   "EditorTableInvalid": "Satır sayısı 1–50, sütun sayısı 1–12 arasında bir tam sayı olmalıdır.",
   "SonrakiSatir": "Sonraki satır",
   "SonrakiSutun": "Sonraki sütun",

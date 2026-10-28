@@ -77,6 +77,7 @@ else if (Model.Document.CurrentDraftRevision == 0) {
     <button type="button" data-command="insertTable" aria-describedby="editor-table-size">@UiText.Get("EditorInsertTable")</button>
     <button type="button" data-command="addRowAfter">@UiText.Get("SonrakiSatir")</button><button type="button" data-command="addColumnAfter">@UiText.Get("SonrakiSutun")</button>
     <button type="button" data-command="deleteRow">@UiText.Get("SatiriSil")</button><button type="button" data-command="deleteColumn">@UiText.Get("SutunuSil")</button><button type="button" data-command="deleteTable">@UiText.Get("TabloyuSil")</button>
+    <button type="button" data-command="toggleTableHeaderRow" aria-pressed="false" title="@UiText.Get("EditorToggleTableHeaderHelp")">@UiText.Get("EditorToggleTableHeader")</button>
     <partial name="_EditorTable" />
 </div><p id="editor-paper-description" class="muted"></p><div id="editor-viewport" class="editor-viewport" tabindex="0" role="region" aria-label="@UiText.Get("EditorPaperRegion")" aria-describedby="editor-paper-description"><div id="editor-paper-stage"><div id="editor-paper"><div id="rich-text"></div></div></div></div><p class="muted">@UiText.Get("BicimlendirmeSeciliMetneVeyaGecerliParagrafaUygulanir")</p></div>
 <p id="editor-format-status" class="muted" role="status"></p>

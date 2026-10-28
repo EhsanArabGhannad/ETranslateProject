@@ -35,5 +35,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Paragraph before/after spacing, first-line indent or marker pages differed.' }
     & $PythonPath (Join-Path $PSScriptRoot 'verify_table_insertion_pdf.py') (Join-Path $projectRoot 'tmp/pdfs/table-insertion')
     if ($LASTEXITCODE -ne 0) { throw 'Chosen table dimensions, header repetition or marker pages differed.' }
+    & $PythonPath (Join-Path $PSScriptRoot 'verify_table_header_pdf.py') (Join-Path $projectRoot 'tmp/pdfs/table-header')
+    if ($LASTEXITCODE -ne 0) { throw 'Existing table heading changes, repetition or marker pages differed.' }
     Write-Output 'Editor adapter and page-flow checks passed. Synthetic PDF comparison and temporary loopback host only; no SQL, AppHost or external services.'
 } finally { foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name,$previous[$name]) } }
