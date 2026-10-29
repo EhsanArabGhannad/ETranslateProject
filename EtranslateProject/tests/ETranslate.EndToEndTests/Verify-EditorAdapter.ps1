@@ -47,5 +47,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Private image pages, dimensions, alignment or aspect differed.' }
     & $PythonPath (Join-Path $PSScriptRoot 'verify_page_breaks_pdf.py') (Join-Path $projectRoot 'tmp/pdfs/page-breaks')
     if ($LASTEXITCODE -ne 0) { throw 'Manual page starts, empty pages or last-page footer differed.' }
+    & $PythonPath (Join-Path $PSScriptRoot 'verify_word_paste_pdf.py') (Join-Path $projectRoot 'tmp/pdfs/word-paste')
+    if ($LASTEXITCODE -ne 0) { throw 'Pasted Word styles, text or editor/PDF pages differed.' }
     Write-Output 'Editor adapter and page-flow checks passed. Synthetic PDF comparison and temporary loopback host only; no SQL, AppHost or external services.'
 } finally { foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name,$previous[$name]) } }

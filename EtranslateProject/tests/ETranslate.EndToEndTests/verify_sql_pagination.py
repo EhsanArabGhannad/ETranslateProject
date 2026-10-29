@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import re
 import sys
+import pdfplumber
 from pypdf import PdfReader
 from verify_typography_pdf import assert_typography
 from verify_inline_scripts_pdf import assert_sql_script
@@ -24,6 +25,15 @@ for sample in report["samples"]:
     if sample["archiveVerified"]:
         assert sample["searchReplaceVerified"] and sample["columnWidthsVerified"] and sample["cellStyleVerified"] and sample["horizontalMergeVerified"] and sample["bodyImagesVerified"] and sample["manualPageBreakVerified"] and "QA_REPLACED" in "\n".join(texts)
         assert sum(len(page.images) for page in pdf.pages) == 2
+        assert sample["wordPasteVerified"]
+        with pdfplumber.open(directory / f"{name}.pdf") as positioned:
+            assert "WP_SQL" in "\n".join(page.extract_text() for page in positioned.pages)
+            pasted_chars = [char for page in positioned.pages for char in page.chars
+                            if "NotoSerif" in char["fontname"] and abs(char["size"] - 14) < .06
+                            and isinstance(char.get("non_stroking_color"), (list, tuple))
+                            and len(char["non_stroking_color"]) == 3
+                            and all(abs(float(a) - b / 255) < .003 for a, b in zip(char["non_stroking_color"], (21, 128, 61)))]
+            assert len(pasted_chars) >= 6, "Expected pasted Noto Serif 14pt green text in persisted PDF"
     typography = None
     inline_script = None
     markers = {}

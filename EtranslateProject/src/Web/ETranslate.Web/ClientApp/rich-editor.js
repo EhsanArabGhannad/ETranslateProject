@@ -9,6 +9,7 @@ import { startEditorTableTools } from './editor-table-tools.js';
 import { startEditorTableWidths } from './editor-table-widths.js';
 import { startEditorCellStyle } from './editor-cell-style.js';
 import { startEditorImages } from './editor-images.js';
+import { startEditorClipboard } from './editor-clipboard.js';
 
 // DOM orchestration only. All vendor-specific editing/selection/history code belongs in its provider.
 export function startRichEditor(workspace, onChanged, preview, onUploadBusy) {
@@ -99,6 +100,7 @@ export function startRichEditor(workspace, onChanged, preview, onUploadBusy) {
         cleanups.push(startEditorTableWidths(workspace, session));
         cleanups.push(startEditorCellStyle(workspace, session));
         cleanups.push(startEditorImages(workspace, session, onUploadBusy));
+        cleanups.push(startEditorClipboard(workspace, session));
         status.textContent = workspace.dataset.editable === 'true'
             ? ui.MetinBicimlendirmesiHerSurumleBirlikteKaydedilir : ui.SaltOkunurSurumDuzenlemeKapalidir;
         return Object.freeze({ ...session, destroy });

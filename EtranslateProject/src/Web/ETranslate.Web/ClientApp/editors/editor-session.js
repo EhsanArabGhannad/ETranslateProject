@@ -9,6 +9,7 @@ import { cellStyleFields, validCellStyleValue, validCellStyleChange } from '../c
 import { validImageLayout, validImageValue } from '../body-image.js';
 import { guid } from '../document-schema.js';
 import { pageBreakCommands } from '../page-break.js';
+import { pasteWarningCodes } from '../clipboard-style.js';
 
 /**
  * Provider contract (trusted application code):
@@ -91,6 +92,14 @@ export function createEditorSession({ provider, element, contentJson, contentFor
         format: Object.freeze({ ...provider.format }),
         capabilities: Object.freeze({ ...provider.capabilities }),
         getDocumentJson,
+        getPasteState() {
+            const state = !destroyed ? adapter.getPasteState?.() : null, report = state?.report;
+            return { supported: state?.supported === true, editable: enabled && !destroyed, mode: state?.mode === 'plain' ? 'plain' : 'formatted',
+                report: report && ['inserted', 'rejected'].includes(report.outcome) ? { outcome: report.outcome, plain: report.plain === true, internal: report.internal === true,
+                    error: ['empty', 'limit', 'invalid', 'context'].includes(report.error) ? report.error : null,
+                    warnings: [...new Set((Array.isArray(report.warnings) ? report.warnings : []).filter(code => pasteWarningCodes.includes(code)))] } : null };
+        },
+        setPasteMode(mode) { return !destroyed && enabled && ['formatted', 'plain'].includes(mode) && adapter.setPasteMode?.(mode) === true; },
         captureImageInsertion() {
             if (!getCommandState('insertImage').enabled) return null;
             const bookmark = adapter.captureImageInsertion?.();

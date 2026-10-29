@@ -24,10 +24,11 @@ import { imageFields, validImageValue, applyBodyImage } from '../body-image.js';
 import { selectedImage, canInsertImage, imageTransaction } from './tiptap-images.js';
 import { applyPageStart, pageBreakCommands } from '../page-break.js';
 import { pageBreakState, pageBreakTransaction } from './tiptap-page-break.js';
+import { createTiptapClipboard } from './tiptap-clipboard.js';
 
 export const tiptapProvider = Object.freeze({
     id: 'tiptap', format: richDocumentV10,
-    capabilities: Object.freeze({ livePagination: false, docxImport: false, faithfulWordPaste: false, mergedCells: false, horizontalCellMerge: true, privateBodyImages: true, manualPageBreaks: true, literalSearch:true }),
+    capabilities: Object.freeze({ livePagination: false, docxImport: false, faithfulWordPaste: false, boundedFormattedPaste: true, mergedCells: false, horizontalCellMerge: true, privateBodyImages: true, manualPageBreaks: true, literalSearch:true }),
     create: createTiptapAdapter
 });
 
@@ -64,6 +65,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     });
     const listeners = new Set();
     const notify = event => { for (const listener of listeners) listener(event); };
+    const clipboard = createTiptapClipboard(() => editor, notify);
     function textBlock(Base,tag){return Base.extend({
         addAttributes(){return {...this.parent?.(),pageBreakBefore:{default:null,rendered:false,keepOnSplit:false,parseHTML:element=>element.getAttribute('data-et-page-start')==='true'?true:null},...Object.fromEntries(paragraphFields.map(field=>[field,{default:null,rendered:false,parseHTML:element=>{
             try{const value=JSON.parse(element.getAttribute('data-et-paragraph'));return value&&typeof value==='object'&&!Array.isArray(value)&&Object.entries(value).every(([key,item])=>validParagraphValue(key,item,5))?value[field]??null:null;}catch{return null;}
@@ -144,7 +146,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
                 dropcursor: false, trailingNode: false, paragraph:false,heading:false }), StyledParagraph,StyledHeading,ManagedImage, Typography,...scripts,
                 TableKit.configure({ table: false, tableCell: false, tableHeader: false }), WidthTable.configure({ resizable: false, View: null }), StyledCell, StyledHeader, PageBreakKeys, PreservationPolicy],
             content: { type: 'doc', content: [{ type: 'paragraph' }] },
-            editorProps: { attributes: { role: 'textbox', tabindex:'0', 'aria-label': labels.text, 'aria-multiline': 'true', spellcheck: 'false' } }
+            editorProps: { handleDOMEvents: clipboard.events, attributes: { role: 'textbox', tabindex:'0', 'aria-label': labels.text, 'aria-multiline': 'true', spellcheck: 'false' } }
         });
         const value = editor.schema.nodeFromJSON(content); value.check();
         // Initial content must not be undoable into an empty document or mark a mounted revision dirty.
@@ -280,6 +282,8 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     editor.on('transaction', transaction);
     return {
         getDocument: () => editor.getJSON(),
+        getPasteState: clipboard.getState,
+        setPasteMode: clipboard.setMode,
         captureImageInsertion() { if (!editor.isEditable || !canInsertImage(editor.state)) return null; imageBookmarks.clear(); const id = `image-${++imageBookmarkId}`; imageBookmarks.set(id, editor.state.selection.getBookmark()); return id; },
         releaseImageInsertion(id) { imageBookmarks.delete(id); },
         setSearch:options=>search.setSearch(editor,options),
@@ -337,6 +341,6 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         },
         setEditable(value) { editor.setEditable(value, false); notify({ documentChanged: false }); },
         subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
-        destroy() { imageBookmarks.clear(); listeners.clear(); editor.off('transaction', transaction); editor.destroy(); }
+        destroy() { clipboard.destroy(); imageBookmarks.clear(); listeners.clear(); editor.off('transaction', transaction); editor.destroy(); }
     };
 }

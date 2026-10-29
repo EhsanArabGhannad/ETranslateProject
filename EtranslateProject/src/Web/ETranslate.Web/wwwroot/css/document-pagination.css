@@ -86,3 +86,8 @@
 .editor-controls .editor-cell-style-fields :is(select,input){width:auto;max-width:100%;margin:5px 0 0;padding:7px}
 .editor-controls .editor-cell-style-fields input[type=color]{width:65px;height:38px}
 .editor-controls .editor-horizontal-merge{flex:1 1 100%;width:100%;border:0;margin:4px 0}
+.editor-clipboard,.editor-paste-status{flex-basis:100%;min-width:0}
+.editor-clipboard{padding:.65rem;border:1px solid var(--line,#d5dfdc);background:var(--surface-soft,#f6f8f6)}
+.editor-clipboard select{width:auto;max-width:100%;margin-top:.35rem}
+.editor-paste-status{margin:.25rem 0;padding:.65rem;border-inline-start:3px solid var(--accent,#18786d);line-height:1.7}
+.editor-paste-status[data-outcome="rejected"]{border-inline-start-color:#a64030}

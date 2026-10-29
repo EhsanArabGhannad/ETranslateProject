@@ -210,6 +210,11 @@ public sealed class SqlPaginationAcceptanceTests
             await page.Locator("#editor-page-breaks").EvaluateAsync("e=>e.open=true"); await Assertions.Expect(page.Locator("button[data-command=insertPageBreak]")).ToBeEnabledAsync();
             var beforeBreak = await page.Locator("#document-json").InputValueAsync(); await page.Locator("button[data-command=insertPageBreak]").ClickAsync();
             await page.Locator("button[data-command=undo]").ClickAsync(); Assert.Equal(beforeBreak, await page.Locator("#document-json").InputValueAsync()); await page.Locator("button[data-command=redo]").ClickAsync();
+            await page.Keyboard.PressAsync("End");
+            await textbox.EvaluateAsync("""
+                el=>{const data=new DataTransfer();data.setData('text/html','<span style="font-family:Times New Roman;font-size:14pt;color:#15803d"><b> WP_SQL</b></span>');el.dispatchEvent(new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true}));}
+                """);
+            await Assertions.Expect(page.Locator("#editor-paste-status")).ToContainTextAsync("Noto");
         }
         var edited = await page.Locator("#document-json").InputValueAsync();
         await page.Locator("#draft-form button[type=submit]").ClickAsync();
@@ -227,6 +232,9 @@ public sealed class SqlPaginationAcceptanceTests
             Assert.All(bodyImages, node => Assert.Equal("document", node.GetProperty("attrs").GetProperty("assetScope").GetString()));
             var end = widthBody.RootElement.GetProperty("content").EnumerateArray().Single(node => node.GetProperty("type").GetString() == "paragraph" && node.TryGetProperty("content", out var content) && content.EnumerateArray().Any(text => text.TryGetProperty("text", out var value) && value.GetString() == "END_MARKER"));
             Assert.True(end.GetProperty("attrs").GetProperty("pageBreakBefore").GetBoolean());
+            var pastedText = end.GetProperty("content").EnumerateArray().Single(node => node.TryGetProperty("text", out var text) && text.GetString()!.Contains("WP_SQL"));
+            var pastedStyle = pastedText.GetProperty("marks").EnumerateArray().Single(mark => mark.GetProperty("type").GetString() == "typography").GetProperty("attrs");
+            Assert.Equal(14, pastedStyle.GetProperty("fontSize").GetInt32()); Assert.Equal("serif", pastedStyle.GetProperty("fontFamily").GetString()); Assert.Equal("#15803d", pastedStyle.GetProperty("color").GetString());
             Assert.Equal(new[] { 35, 65 }, widthBody.RootElement.GetProperty("content")[0].GetProperty("attrs").GetProperty("columnWidths").EnumerateArray().Select(width => width.GetInt32()).ToArray());
             Assert.Contains(widthBody.RootElement.GetProperty("content")[0].GetProperty("content").EnumerateArray().SelectMany(row => row.GetProperty("content").EnumerateArray()), cell => cell.GetProperty("attrs").GetProperty("colspan").GetInt32() == 2);
             foreach (var row in widthBody.RootElement.GetProperty("content")[0].GetProperty("content").EnumerateArray()) foreach (var cell in row.GetProperty("content").EnumerateArray()) {
@@ -313,7 +321,7 @@ public sealed class SqlPaginationAcceptanceTests
         await AssertLocked(page); await page.Locator("#editor-pages-toggle").ClickAsync(); await Assertions.Expect(viewport).ToHaveAttributeAsync("data-pagination", "paged");
         await page.Locator("#editor-page-index").SelectOptionAsync("2"); await AssertLocked(page);
         Assert.Equal(body, await page.Locator("#document-json").InputValueAsync());
-        samples.Add(new { name, revision, pages = map.GetProperty("pageCount").GetInt32(), markers = 47, lastFooter, hasTemplate = template.HasValue, archiveVerified = old is not null, typographyVerified=lastFooter,paragraphSettingsVerified=lastFooter,paragraphSpacingVerified=lastFooter,inlineScriptVerified=lastFooter,searchReplaceVerified=archive,columnWidthsVerified=archive,cellStyleVerified=archive,horizontalMergeVerified=archive,bodyImagesVerified=archive,manualPageBreakVerified=archive });
+        samples.Add(new { name, revision, pages = map.GetProperty("pageCount").GetInt32(), markers = 47, lastFooter, hasTemplate = template.HasValue, archiveVerified = old is not null, typographyVerified=lastFooter,paragraphSettingsVerified=lastFooter,paragraphSpacingVerified=lastFooter,inlineScriptVerified=lastFooter,searchReplaceVerified=archive,columnWidthsVerified=archive,cellStyleVerified=archive,horizontalMergeVerified=archive,bodyImagesVerified=archive,manualPageBreakVerified=archive,wordPasteVerified=archive });
     }
 
     private async Task VerifyPrivateImageAccess(IsolatedSqlProductHost host, Guid tenantId, Guid jobId, Guid documentId, Guid imageId, string path, int revision)
