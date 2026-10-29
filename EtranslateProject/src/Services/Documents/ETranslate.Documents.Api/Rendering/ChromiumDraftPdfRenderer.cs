@@ -14,7 +14,7 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
 
     public async Task<byte[]> RenderAsync(DraftPdfInput input, CancellationToken cancellationToken)
     {
-        var prepared = DraftPdfHtml.Prepare(input, input.BodyDescriptor.IsRichV2||input.BodyDescriptor.IsRichV3||input.BodyDescriptor.IsRichV4||input.BodyDescriptor.IsRichV5||input.BodyDescriptor.IsRichV6||input.BodyDescriptor.IsRichV7||input.BodyDescriptor.IsRichV8||input.BodyDescriptor.IsRichV9||input.TemplateDescriptor.IsRichV2||input.TemplateDescriptor.IsRichV3||input.TemplateDescriptor.IsRichV4||input.TemplateDescriptor.IsRichV5||input.TemplateDescriptor.IsRichV6||input.TemplateDescriptor.IsRichV7||input.TemplateDescriptor.IsRichV8||input.TemplateDescriptor.IsRichV9 ? _typographyFonts.Value : _fonts.Value);
+        var prepared = DraftPdfHtml.Prepare(input, input.BodyDescriptor.IsRichV2||input.BodyDescriptor.IsRichV3||input.BodyDescriptor.IsRichV4||input.BodyDescriptor.IsRichV5||input.BodyDescriptor.IsRichV6||input.BodyDescriptor.IsRichV7||input.BodyDescriptor.IsRichV8||input.BodyDescriptor.IsRichV9||input.BodyDescriptor.IsRichV10||input.TemplateDescriptor.IsRichV2||input.TemplateDescriptor.IsRichV3||input.TemplateDescriptor.IsRichV4||input.TemplateDescriptor.IsRichV5||input.TemplateDescriptor.IsRichV6||input.TemplateDescriptor.IsRichV7||input.TemplateDescriptor.IsRichV8||input.TemplateDescriptor.IsRichV9||input.TemplateDescriptor.IsRichV10 ? _typographyFonts.Value : _fonts.Value);
         if (!await _slot.WaitAsync(TimeSpan.FromSeconds(1), cancellationToken)) throw new PdfRendererBusyException();
         try
         {
@@ -48,7 +48,8 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
                             return (header + row) * 25.4 / 96;
                         })),
                         OversizedImage: [...document.images].some(image => image.naturalWidth * image.naturalHeight > 16000000),
-                        HasTable: !!document.querySelector('main table')
+                        HasTable: !!document.querySelector('main table'),
+                        HasManualPageStart: !!document.querySelector('main [data-et-page-start]')
                     };
                 }
                 """).WaitAsync(token);
@@ -77,7 +78,7 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
             int? expectedPages = null;
             // Signing-preview appendices retain their existing rendering path/version. Old stored
             // PDFs are downloaded by identity; only new drafts use the new renderer identifier.
-            if (input.PreviewPlan is null && metrics.HasTable)
+            if (input.PreviewPlan is null && (metrics.HasTable || metrics.HasManualPageStart))
                 expectedPages = await DocumentRowPlanner.ApplyAsync(page,
                     (double)(layout.DimensionsMm.Width - layout.Left - layout.Right) * 96 / 25.4,
                     (double)bodyHeight * 96 / 25.4, (double)(layout.Left + layout.Right) * 96 / 25.4 + 28, token);
@@ -143,7 +144,7 @@ public sealed class ChromiumDraftPdfRenderer : IDraftPdfRenderer, IDisposable
         catch (PlaywrightException error) { throw new PdfRendererUnavailableException(error); }
         finally { _slot.Release(); }
     }
-    private sealed record PrintMetrics(decimal HeaderMm, decimal FooterMm, decimal BodyMm, decimal MaximumTableRowMm, decimal MaximumBodyImageMm, bool OversizedImage, bool HasTable);
+    private sealed record PrintMetrics(decimal HeaderMm, decimal FooterMm, decimal BodyMm, decimal MaximumTableRowMm, decimal MaximumBodyImageMm, bool OversizedImage, bool HasTable, bool HasManualPageStart);
     private static byte[] ApplyLetterhead(byte[] body, byte[] letterhead, byte[]? earlierLetterhead, bool lastOnly, CancellationToken token)
     {
         using var bodyStream = new MemoryStream(body, writable:false);

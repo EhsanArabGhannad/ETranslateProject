@@ -31,7 +31,7 @@ public sealed partial class EditorAdapterBrowserTests
         // Readonly navigation while waiting must not move the captured insertion point.
         await SelectImageCaret(page, 0, 3); upload.Release.SetResult(200);
         await Assertions.Expect(image).ToHaveCountAsync(1); await Assertions.Expect(page.Locator("#editor-image-status")).ToContainTextAsync("eklendi");
-        var inserted = await json.InputValueAsync(); Assert.True(DocumentContentDescriptor.RichV9.TryRead(inserted, out var plain)); Assert.Contains("İstanbul", plain); Assert.Contains("şĞı", plain);
+        var inserted = await json.InputValueAsync(); Assert.True(DocumentContentDescriptor.RichV10.TryRead(inserted, out var plain)); Assert.Contains("İstanbul", plain); Assert.Contains("şĞı", plain);
         using (var body = JsonDocument.Parse(inserted)) { Assert.Equal("image", body.RootElement.GetProperty("content")[2].GetProperty("type").GetString()); Assert.Equal("document", body.RootElement.GetProperty("content")[2].GetProperty("attrs").GetProperty("assetScope").GetString()); }
         await Assertions.Expect(image).ToHaveAttributeAsync("src", new System.Text.RegularExpressions.Regex("/Workspace/BodyImage\\?"));
         await page.Locator("#editor-image-width").FillAsync("75"); await page.Locator("#editor-image-align").SelectOptionAsync("right"); await page.Locator("#editor-image-apply").ClickAsync();
@@ -47,7 +47,7 @@ public sealed partial class EditorAdapterBrowserTests
         await Command(page, "undo").ClickAsync(); Assert.Equal(resized, await json.InputValueAsync()); Assert.Equal(requests, fixture.Responses.Count(response => response.Contains("/Workspace/BodyImage?")));
         await image.ClickAsync();
         var save = fixture.Enqueue(); await page.Locator("#draft-form button[type=submit]").ClickAsync(); await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10)); await AssertFrozenAsync(page);
-        fixture.Source = SubmittedJson(save.Body); fixture.SchemaVersion = "9"; save.Release.SetResult(303); await page.WaitForURLAsync("**after-save=1");
+        fixture.Source = SubmittedJson(save.Body); fixture.SchemaVersion = "10"; save.Release.SetResult(303); await page.WaitForURLAsync("**after-save=1");
         Assert.Equal(resized, await json.InputValueAsync()); await image.ClickAsync();
         await Assertions.Expect(page.Locator("#editor-image-width")).ToHaveValueAsync("75"); await Assertions.Expect(page.Locator("#editor-image-align")).ToHaveValueAsync("right");
         await page.SetViewportSizeAsync(1440, 1200); await page.Locator("#editor-images").EvaluateAsync("e=>e.open=true"); await page.Locator("#editor-images").ScrollIntoViewIfNeededAsync();
@@ -80,14 +80,14 @@ public sealed partial class EditorAdapterBrowserTests
         var layout = (DocumentPageLayout.Default with { Orientation = "Landscape" }).ToJson();
         foreach (var available in new[] { true, false })
         {
-            await using var fixture = await BrowserFixture.CreateAsync(source); fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "9"; fixture.Layout = layout; fixture.BodyImageBytes = BrowserFixture.ImageBytes; fixture.ServeImage = available;
+            await using var fixture = await BrowserFixture.CreateAsync(source); fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "10"; fixture.Layout = layout; fixture.BodyImageBytes = BrowserFixture.ImageBytes; fixture.ServeImage = available;
             await fixture.OpenAsync(); await fixture.Page.Locator("#editor-pages-toggle").ClickAsync();
             await Assertions.Expect(fixture.Page.Locator("#editor-pagination-status")).ToContainTextAsync("sürekli");
             Assert.Equal(source, await fixture.Page.Locator("#document-json").InputValueAsync());
             await Assertions.Expect(fixture.Page.Locator("#rich-text [role=textbox]")).ToHaveAttributeAsync("contenteditable", "true");
         }
         using var renderer = new ChromiumDraftPdfRenderer();
-        var input = new DraftPdfInput(Guid.NewGuid(), 1, null, source, null, null, layout, null, new Dictionary<Guid, PdfImage> { [BrowserFixture.ImageId] = new("image/png", BrowserFixture.ImageBytes) }) { ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 9 };
+        var input = new DraftPdfInput(Guid.NewGuid(), 1, null, source, null, null, layout, null, new Dictionary<Guid, PdfImage> { [BrowserFixture.ImageId] = new("image/png", BrowserFixture.ImageBytes) }) { ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 10 };
         var error = await Assert.ThrowsAsync<PdfRenderValidationException>(() => renderer.RenderAsync(input, CancellationToken.None)); Assert.Contains("taller", error.Message);
     }
 
@@ -96,7 +96,7 @@ public sealed partial class EditorAdapterBrowserTests
     {
         foreach (var table in new[] { false, true })
         {
-            var source = BodyImagePrintDocument(table); await using var fixture = await BrowserFixture.CreateAsync(source); fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "9"; fixture.Layout = DocumentPageLayout.Default.ToJson();
+            var source = BodyImagePrintDocument(table); await using var fixture = await BrowserFixture.CreateAsync(source); fixture.Format = DocumentContentDescriptor.RichFormat; fixture.SchemaVersion = "10"; fixture.Layout = DocumentPageLayout.Default.ToJson();
             var page = fixture.Page; await fixture.OpenAsync(); await page.Locator("#editor-pages-toggle").ClickAsync(); await Assertions.Expect(page.Locator("#editor-viewport")).ToHaveAttributeAsync("data-pagination", "paged");
             var directory = Path.GetFullPath(Path.Combine(Environment.GetEnvironmentVariable("ETRANSLATE_EDITOR_ADAPTER_WEB_ROOT")!, "../../../tmp/pdfs/body-images")); Directory.CreateDirectory(directory);
             var map = await page.EvaluateAsync<string>("""
@@ -108,7 +108,7 @@ public sealed partial class EditorAdapterBrowserTests
                 """);
             var name = table ? "with-table" : "text-only"; await File.WriteAllTextAsync(Path.Combine(directory, name + ".json"), map);
             using var renderer = new ChromiumDraftPdfRenderer();
-            var input = new DraftPdfInput(Guid.NewGuid(), 1, null, source, null, null, fixture.Layout, null, new Dictionary<Guid, PdfImage> { [BrowserFixture.ImageId] = new("image/png", BodyImageFixture.Png) }) { ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 9 };
+            var input = new DraftPdfInput(Guid.NewGuid(), 1, null, source, null, null, fixture.Layout, null, new Dictionary<Guid, PdfImage> { [BrowserFixture.ImageId] = new("image/png", BodyImageFixture.Png) }) { ContentFormat = DocumentContentDescriptor.RichFormat, ContentSchemaVersion = 10 };
             var bytes = await renderer.RenderAsync(input, CancellationToken.None); await File.WriteAllBytesAsync(Path.Combine(directory, name + ".pdf"), bytes);
             using var stream = new MemoryStream(bytes); using var pdf = PdfReader.Open(stream, PdfDocumentOpenMode.Import); using var view = JsonDocument.Parse(map); Assert.Equal(view.RootElement.GetProperty("pageCount").GetInt32(), pdf.PageCount);
             Assert.Equal(source, await page.Locator("#document-json").InputValueAsync()); Assert.Empty(fixture.Errors); Assert.Empty(fixture.Unexpected);

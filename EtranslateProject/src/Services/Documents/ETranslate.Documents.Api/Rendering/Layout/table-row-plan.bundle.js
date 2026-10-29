@@ -1,4 +1,4 @@
-// Generated from shared table-row-plan.js; source-sha256:2db359ca4113d2e50a63ad34ed54a0eadbaaa5f3a4c0d48846a4a41d7849f390
+// Generated from shared table-row-plan.js; source-sha256:5a3bcc2530e3dbcbfff7e6c2f50500e3c8525eb20a78d62e6db2e6bb67970f01
 var NativeTableRows = (() => {
   var __defProp = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -53,7 +53,7 @@ var NativeTableRows = (() => {
     const value = root.textContent + [...root.querySelectorAll("table")].map((table) => [...table.rows].map((row) => [...row.cells].map((cell) => {
       const style = [cell.style.backgroundColor, cell.style.borderColor, cell.style.borderWidth, cell.style.borderStyle];
       return cell.tagName + (cell.colSpan > 1 ? `[${cell.colSpan}]` : "") + (style.some(Boolean) ? ":" + style.join("/") : "");
-    }).join(",")).join(";") + (table.dataset.etColumnWidths ? `:${table.dataset.etColumnWidths}` : "")).join("|");
+    }).join(",")).join(";") + (table.dataset.etColumnWidths ? `:${table.dataset.etColumnWidths}` : "")).join("|") + (root.querySelector("[data-et-page-start]") ? ":page-starts:" + [...root.querySelectorAll("p,h1,h2,h3,h4,h5,h6")].flatMap((node, index) => node.hasAttribute("data-et-page-start") ? [index] : []).join(",") : "");
     for (let i = 0; i < value.length; i++) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
     return `${value.length}:${hash >>> 0}`;
   }
@@ -75,6 +75,11 @@ var NativeTableRows = (() => {
     };
     try {
       remember(root);
+      const firstBlock = root.tagName === "MAIN" && root.firstElementChild?.tagName === "DIV" ? root.firstElementChild.firstElementChild : root.firstElementChild;
+      for (const block of root.querySelectorAll("[data-et-page-start]")) {
+        remember(block);
+        block.style.breakBefore = block === firstBlock ? "auto" : "column";
+      }
       Object.assign(root.style, { width: `${width}px`, height: `${height}px`, columnCount: "1", columnWidth: `${width}px`, columnGap: `${gap}px`, columnFill: "auto" });
       const tables = [...root.querySelectorAll("table")];
       for (const table of tables) {

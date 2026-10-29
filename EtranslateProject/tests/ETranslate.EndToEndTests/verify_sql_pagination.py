@@ -22,7 +22,7 @@ for sample in report["samples"]:
     pdf = PdfReader(directory / f"{name}.pdf")
     texts = [page.extract_text() for page in pdf.pages]
     if sample["archiveVerified"]:
-        assert sample["searchReplaceVerified"] and sample["columnWidthsVerified"] and sample["cellStyleVerified"] and sample["horizontalMergeVerified"] and sample["bodyImagesVerified"] and "QA_REPLACED" in "\n".join(texts)
+        assert sample["searchReplaceVerified"] and sample["columnWidthsVerified"] and sample["cellStyleVerified"] and sample["horizontalMergeVerified"] and sample["bodyImagesVerified"] and sample["manualPageBreakVerified"] and "QA_REPLACED" in "\n".join(texts)
         assert sum(len(page.images) for page in pdf.pages) == 2
     typography = None
     inline_script = None
@@ -34,6 +34,7 @@ for sample in report["samples"]:
         assert "DRAFT - UNSIGNED" in text
     assert set(markers) == set(view["markers"]) == expected, (name,"marker set")
     assert markers == view["markers"], (name,"marker pages")
+    if sample["archiveVerified"]: assert markers["END_MARKER"] > max(page for marker, page in markers.items() if marker.startswith("MARK_"))
     assert len(texts) == sample["pages"] == view["pageCount"], (name,"page count")
     if sample["lastFooter"]:
         assert all("QA_HEADER" in text for text in texts)

@@ -18,7 +18,7 @@ public static class DocumentRowPlanner
             catch {return {ok:false};}
             }
             """, new { contentWidth = width, contentHeight = height, columnGap }).WaitAsync(token);
-        if (!result.GetProperty("ok").GetBoolean()) throw new PdfRenderValidationException("Table pagination is unsupported for this layout; content was not changed.");
+        if (!result.GetProperty("ok").GetBoolean()) throw new PdfRenderValidationException("Document pagination is unsupported for this layout; content was not changed.");
         return result.GetProperty("pages").GetInt32();
     }
 }

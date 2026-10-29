@@ -22,7 +22,7 @@ public sealed partial class EditorAdapterBrowserTests
         await page.Locator("#editor-text-color").SelectOptionAsync("#b91c1c");
         await page.Locator("#editor-highlight").SelectOptionAsync("#fef08a");
         var latinStyle=await page.Locator("#document-json").InputValueAsync();
-        Assert.True(DocumentContentDescriptor.RichV9.TryRead(latinStyle,out _));Assert.False(DocumentContentDescriptor.RichV1.TryRead(latinStyle,out _));
+        Assert.True(DocumentContentDescriptor.RichV10.TryRead(latinStyle,out _));Assert.False(DocumentContentDescriptor.RichV1.TryRead(latinStyle,out _));
         using(var doc=JsonDocument.Parse(latinStyle)){
             var text=doc.RootElement.GetProperty("content")[1].GetProperty("content")[0];
             var attrs=text.GetProperty("marks").EnumerateArray().Single(mark=>mark.GetProperty("type").GetString()=="typography").GetProperty("attrs");
@@ -42,7 +42,7 @@ public sealed partial class EditorAdapterBrowserTests
         Assert.Equal(styled,SubmittedJson(failed.Body));failed.Release.SetResult(503);
         await Assertions.Expect(page.Locator("#editor-font-size")).ToBeEnabledAsync();
         var save=fixture.Enqueue();await page.Locator("#draft-form button[type=submit]").ClickAsync();await save.Received.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        fixture.Source=SubmittedJson(save.Body);fixture.SchemaVersion="8";save.Release.SetResult(303);await page.WaitForURLAsync("**after-save=1");
+        fixture.Source=SubmittedJson(save.Body);fixture.SchemaVersion="10";save.Release.SetResult(303);await page.WaitForURLAsync("**after-save=1");
         Assert.Equal(styled,await page.Locator("#document-json").InputValueAsync());await Assertions.Expect(Command(page,"undo")).ToBeDisabledAsync();
         await page.EvaluateAsync("()=>document.fonts.ready");
         var computed=await textbox.Locator("p").Nth(1).Locator("span[data-et-typography]").First.EvaluateAsync<string[]>("e=>{const style=getComputedStyle(e);return [style.fontFamily,style.fontSize,style.color,style.backgroundColor];}");
@@ -51,7 +51,7 @@ public sealed partial class EditorAdapterBrowserTests
         var output=Path.GetFullPath(Path.Combine(Environment.GetEnvironmentVariable("ETRANSLATE_EDITOR_ADAPTER_WEB_ROOT")!,"../../../tmp/pdfs/typography"));Directory.CreateDirectory(output);
         using(var renderer=new ChromiumDraftPdfRenderer()){
             var bytes=await renderer.RenderAsync(new(Guid.NewGuid(),1,null,styled,null,null,null,null,new Dictionary<Guid,PdfImage>())
-                {ContentFormat=DocumentContentDescriptor.RichFormat,ContentSchemaVersion=9},CancellationToken.None);
+                {ContentFormat=DocumentContentDescriptor.RichFormat,ContentSchemaVersion=10},CancellationToken.None);
             await File.WriteAllBytesAsync(Path.Combine(output,"selected-text.pdf"),bytes);
         }
         await page.EvaluateAsync("()=>{const root=document.querySelector('#rich-text [role=textbox]');root.focus();const range=document.createRange();range.selectNodeContents(root);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);}");

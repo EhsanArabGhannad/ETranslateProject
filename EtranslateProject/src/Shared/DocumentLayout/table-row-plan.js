@@ -29,7 +29,8 @@ function contentFingerprint(root) {
             const style = [cell.style.backgroundColor, cell.style.borderColor, cell.style.borderWidth, cell.style.borderStyle];
             return cell.tagName + (cell.colSpan > 1 ? `[${cell.colSpan}]` : '') + (style.some(Boolean) ? ':' + style.join('/') : '');
         }).join(',')).join(';') +
-        (table.dataset.etColumnWidths ? `:${table.dataset.etColumnWidths}` : '')).join('|');
+        (table.dataset.etColumnWidths ? `:${table.dataset.etColumnWidths}` : '')).join('|') +
+        (root.querySelector('[data-et-page-start]') ? ':page-starts:' + [...root.querySelectorAll('p,h1,h2,h3,h4,h5,h6')].flatMap((node,index)=>node.hasAttribute('data-et-page-start')?[index]:[]).join(',') : '');
     for (let i = 0; i < value.length; i++) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
     return `${value.length}:${hash >>> 0}`;
 }
@@ -49,6 +50,8 @@ export function measureRowPlan(root, metrics) {
     };
     try {
         remember(root);
+        const firstBlock = root.tagName === 'MAIN' && root.firstElementChild?.tagName === 'DIV' ? root.firstElementChild.firstElementChild : root.firstElementChild;
+        for (const block of root.querySelectorAll('[data-et-page-start]')) { remember(block); block.style.breakBefore = block === firstBlock ? 'auto' : 'column'; }
         Object.assign(root.style, { width: `${width}px`, height: `${height}px`, columnCount: '1', columnWidth: `${width}px`, columnGap: `${gap}px`, columnFill: 'auto' });
         const tables = [...root.querySelectorAll('table')];
         for (const table of tables) {

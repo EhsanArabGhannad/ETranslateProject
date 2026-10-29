@@ -34,7 +34,7 @@ export function startRichEditor(workspace, onChanged, preview, onUploadBusy) {
             contentJson: json.value, editable: workspace.dataset.editable === 'true',
             contentFormat: storedDocumentFormat(workspace.dataset.contentFormat,workspace.dataset.contentSchemaVersion),
             resolveAsset: (id, scope) => assetUrl(workspace, id, scope),
-            labels: { text: ui.CeviriMetni, image: ui.SablonGorseli, bodyImage: ui.EditorBodyImage, missingImage: ui.SablonGorseliKullanilamiyor },
+            labels: { text: ui.CeviriMetni, image: ui.SablonGorseli, bodyImage: ui.EditorBodyImage, missingImage: ui.SablonGorseliKullanilamiyor, pageStart: ui.EditorPageStartMarker },
             onRejectedChange: () => { status.textContent = ui.BuDegisiklikIzinVerilenYapininDisindadirTablo; }
         });
         const buttons = Array.from(document.querySelectorAll('#rich-region button[data-command]'));

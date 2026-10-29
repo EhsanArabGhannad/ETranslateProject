@@ -205,6 +205,11 @@ public sealed class SqlPaginationAcceptanceTests
             await page.Locator("#editor-image-upload").ClickAsync(); await Assertions.Expect(textbox.Locator("img")).ToHaveCountAsync(2);
             await page.Locator("#editor-image-width").FillAsync("25"); await page.Locator("#editor-image-align").SelectOptionAsync("left"); await page.Locator("#editor-image-apply").ClickAsync();
             await VerifyPrivateImageAccess(host, tenantId, jobId, documentId, bodyImageId.Value, path, revision);
+            await page.Locator("#editor-search").EvaluateAsync("e=>e.open=true"); await page.Locator("#editor-search-query").FillAsync("END_MARKER");
+            await Assertions.Expect(page.Locator("#editor-search-status")).ToContainTextAsync("1 / 1"); await page.Locator("#editor-search-next").ClickAsync(); await page.Keyboard.PressAsync("Home");
+            await page.Locator("#editor-page-breaks").EvaluateAsync("e=>e.open=true"); await Assertions.Expect(page.Locator("button[data-command=insertPageBreak]")).ToBeEnabledAsync();
+            var beforeBreak = await page.Locator("#document-json").InputValueAsync(); await page.Locator("button[data-command=insertPageBreak]").ClickAsync();
+            await page.Locator("button[data-command=undo]").ClickAsync(); Assert.Equal(beforeBreak, await page.Locator("#document-json").InputValueAsync()); await page.Locator("button[data-command=redo]").ClickAsync();
         }
         var edited = await page.Locator("#document-json").InputValueAsync();
         await page.Locator("#draft-form button[type=submit]").ClickAsync();
@@ -214,12 +219,14 @@ public sealed class SqlPaginationAcceptanceTests
         Assert.Equal(edited, persisted.GetProperty("editorContentJson").GetString());
         if(archive){Assert.Contains("QA_REPLACED",edited);Assert.DoesNotContain("editor-search",edited);}
         Assert.Equal(DocumentContentDescriptor.RichFormat, persisted.GetProperty("contentFormat").GetString());
-        Assert.Equal(9,persisted.GetProperty("contentSchemaVersion").GetInt32());
+        Assert.Equal(10,persisted.GetProperty("contentSchemaVersion").GetInt32());
         if (archive) {
             using var widthBody = JsonDocument.Parse(edited);
             var bodyImages = widthBody.RootElement.GetProperty("content").EnumerateArray().Where(node => node.GetProperty("type").GetString() == "image").ToArray();
             Assert.Equal(2, bodyImages.Length); Assert.Equal(new[] { 40, 25 }, bodyImages.Select(node => node.GetProperty("attrs").GetProperty("widthPercent").GetInt32()).ToArray());
             Assert.All(bodyImages, node => Assert.Equal("document", node.GetProperty("attrs").GetProperty("assetScope").GetString()));
+            var end = widthBody.RootElement.GetProperty("content").EnumerateArray().Single(node => node.GetProperty("type").GetString() == "paragraph" && node.TryGetProperty("content", out var content) && content.EnumerateArray().Any(text => text.TryGetProperty("text", out var value) && value.GetString() == "END_MARKER"));
+            Assert.True(end.GetProperty("attrs").GetProperty("pageBreakBefore").GetBoolean());
             Assert.Equal(new[] { 35, 65 }, widthBody.RootElement.GetProperty("content")[0].GetProperty("attrs").GetProperty("columnWidths").EnumerateArray().Select(width => width.GetInt32()).ToArray());
             Assert.Contains(widthBody.RootElement.GetProperty("content")[0].GetProperty("content").EnumerateArray().SelectMany(row => row.GetProperty("content").EnumerateArray()), cell => cell.GetProperty("attrs").GetProperty("colspan").GetInt32() == 2);
             foreach (var row in widthBody.RootElement.GetProperty("content")[0].GetProperty("content").EnumerateArray()) foreach (var cell in row.GetProperty("content").EnumerateArray()) {
@@ -257,7 +264,7 @@ public sealed class SqlPaginationAcceptanceTests
             await page.Locator("#editor-pages-toggle").ClickAsync(); await Assertions.Expect(viewport).ToHaveAttributeAsync("data-pagination", "paged");
             await page.Locator("#editor-page-index").SelectOptionAsync("2"); await AssertLocked(page);
             await Api(host, "documents", HttpMethod.Post, path + "/draft-revisions", new {
-                expectedCurrentRevision = revision, editorContentJson = edited, contentFormat = DocumentContentDescriptor.RichFormat, contentSchemaVersion = 9
+                expectedCurrentRevision = revision, editorContentJson = edited, contentFormat = DocumentContentDescriptor.RichFormat, contentSchemaVersion = 10
             }, HttpStatusCode.Conflict);
             using var blockedForm = new MultipartFormDataContent(); var blockedImage = new ByteArrayContent(BodyImageFixture.Png); blockedImage.Headers.ContentType = new MediaTypeHeaderValue("image/png"); blockedForm.Add(blockedImage, "file", "blocked.png");
             using var blockedUpload = await api.PostAsync(host.Urls["documents"] + path + $"/images?expectedRevision={revision}", blockedForm); Assert.Equal(HttpStatusCode.Conflict, blockedUpload.StatusCode);
@@ -306,7 +313,7 @@ public sealed class SqlPaginationAcceptanceTests
         await AssertLocked(page); await page.Locator("#editor-pages-toggle").ClickAsync(); await Assertions.Expect(viewport).ToHaveAttributeAsync("data-pagination", "paged");
         await page.Locator("#editor-page-index").SelectOptionAsync("2"); await AssertLocked(page);
         Assert.Equal(body, await page.Locator("#document-json").InputValueAsync());
-        samples.Add(new { name, revision, pages = map.GetProperty("pageCount").GetInt32(), markers = 47, lastFooter, hasTemplate = template.HasValue, archiveVerified = old is not null, typographyVerified=lastFooter,paragraphSettingsVerified=lastFooter,paragraphSpacingVerified=lastFooter,inlineScriptVerified=lastFooter,searchReplaceVerified=archive,columnWidthsVerified=archive,cellStyleVerified=archive,horizontalMergeVerified=archive,bodyImagesVerified=archive });
+        samples.Add(new { name, revision, pages = map.GetProperty("pageCount").GetInt32(), markers = 47, lastFooter, hasTemplate = template.HasValue, archiveVerified = old is not null, typographyVerified=lastFooter,paragraphSettingsVerified=lastFooter,paragraphSpacingVerified=lastFooter,inlineScriptVerified=lastFooter,searchReplaceVerified=archive,columnWidthsVerified=archive,cellStyleVerified=archive,horizontalMergeVerified=archive,bodyImagesVerified=archive,manualPageBreakVerified=archive });
     }
 
     private async Task VerifyPrivateImageAccess(IsolatedSqlProductHost host, Guid tenantId, Guid jobId, Guid documentId, Guid imageId, string path, int revision)

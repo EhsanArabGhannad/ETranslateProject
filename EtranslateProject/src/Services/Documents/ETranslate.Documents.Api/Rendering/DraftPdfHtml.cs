@@ -47,6 +47,8 @@ public static class DraftPdfHtml
             table {width:100%; table-layout:fixed; border-collapse:collapse; margin:0 0 4mm;}
             thead {display:table-header-group;} tbody {display:table-row-group;}
             tr {break-inside:avoid;} th,td {border:.25mm solid #87969c; padding:2mm; vertical-align:top; text-align:start; overflow-wrap:anywhere;}
+            [data-et-page-start] {break-before:page;}
+            main > div:first-child > :first-child[data-et-page-start] {break-before:auto;}
             th {background:#edf1f3; font-weight:700;} th p,td p {margin-bottom:1mm;}
             img {display:block; max-width:40mm; max-height:20mm; width:auto; height:auto; object-fit:contain; break-inside:avoid;}
             img.template-banner {width:100%; max-width:100%; max-height:30mm;}
@@ -151,6 +153,7 @@ public static class DraftPdfHtml
             "tableRow" => "tr", "tableCell" => "td", "tableHeader" => "th", _ => "div"
         };
         html.Append($"<{tagName} dir=\"{direction}\"");
+        if (version >= 10 && DocumentPageBreak.IsStart(node)) html.Append(" data-et-page-start=\"true\"");
         if (version >= 8 && type is "tableCell" or "tableHeader" && attrs.ValueKind == JsonValueKind.Object && attrs.TryGetProperty("colspan", out var span) && span.GetDecimal() > 1)
             html.Append($" colspan=\"{(int)span.GetDecimal()}\"");
         if (version >= 7 && type is "tableCell" or "tableHeader" && attrs.ValueKind == JsonValueKind.Object)

@@ -31,7 +31,7 @@ public sealed class DocumentContentWebTests
         Assert.IsType<RedirectToActionResult>(await fixture.Controller.SaveDraft(Tenant, Job, 1, null, Body, "rich"));
         var payload = fixture.Writes.Single();
         Assert.Equal(DocumentContentDescriptor.RichFormat, payload.GetProperty("contentFormat").GetString());
-        Assert.Equal(9, payload.GetProperty("contentSchemaVersion").GetInt32());
+        Assert.Equal(10, payload.GetProperty("contentSchemaVersion").GetInt32());
         Assert.Equal(Body, payload.GetProperty("editorContentJson").GetString());
         Assert.Equal("ترجمه İstanbul با نیم‌فاصله", payload.GetProperty("plainText").GetString());
         Assert.True(fixture.Original.ContentDescriptor.IsLegacy); Assert.Equal(Body, fixture.Original.EditorContentJson);
@@ -42,13 +42,21 @@ public sealed class DocumentContentWebTests
         var fixture = new Fixture();
         var image = JsonSerializer.Serialize(new { type = "doc", content = new[] { new { type = "image", attrs = new { assetId = Guid.NewGuid(), assetScope = "document", widthPercent = 50, align = "center" } } } });
         Assert.IsType<RedirectToActionResult>(await fixture.Controller.SaveDraft(Tenant, Job, 1, null, image, "rich"));
-        var payload = Assert.Single(fixture.Writes); Assert.Equal(image, payload.GetProperty("editorContentJson").GetString()); Assert.Equal(9, payload.GetProperty("contentSchemaVersion").GetInt32());
+        var payload = Assert.Single(fixture.Writes); Assert.Equal(image, payload.GetProperty("editorContentJson").GetString()); Assert.Equal(10, payload.GetProperty("contentSchemaVersion").GetInt32());
         Assert.Equal("", payload.GetProperty("plainText").GetString());
+    }
+
+    [Fact] public async Task Rich_save_accepts_manual_page_starts_through_the_BFF_without_flattening_them()
+    {
+        var fixture = new Fixture();
+        const string body = "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"pageBreakBefore\":true},\"content\":[{\"type\":\"text\",\"text\":\"NEXT\"}]}]}";
+        Assert.IsType<RedirectToActionResult>(await fixture.Controller.SaveDraft(Tenant, Job, 1, null, body, "rich"));
+        var payload = Assert.Single(fixture.Writes); Assert.Equal(body, payload.GetProperty("editorContentJson").GetString()); Assert.Equal(10, payload.GetProperty("contentSchemaVersion").GetInt32()); Assert.Equal("NEXT", payload.GetProperty("plainText").GetString());
     }
 
     [Theory] [InlineData(null, null)] [InlineData("etranslate.rich-document", 1)]
     [InlineData("etranslate.rich-document",2)] [InlineData("etranslate.rich-document",3)] [InlineData("etranslate.rich-document",4)]
-    [InlineData("etranslate.rich-document",5)] [InlineData("etranslate.rich-document",6)] [InlineData("etranslate.rich-document",7)] [InlineData("etranslate.rich-document",8)] [InlineData("etranslate.rich-document",9)]
+    [InlineData("etranslate.rich-document",5)] [InlineData("etranslate.rich-document",6)] [InlineData("etranslate.rich-document",7)] [InlineData("etranslate.rich-document",8)] [InlineData("etranslate.rich-document",9)] [InlineData("etranslate.rich-document",10)]
     public async Task Raw_save_preserves_the_authoritative_descriptor_instead_of_guessing_from_JSON(string? format, int? version)
     {
         var fixture = new Fixture(format, version);
@@ -61,16 +69,16 @@ public sealed class DocumentContentWebTests
     [Theory] [InlineData("rich")] [InlineData("text")] [InlineData("json")]
     public async Task A_forged_save_mode_cannot_downgrade_unknown_persisted_content(string mode)
     {
-        var fixture = new Fixture(DocumentContentDescriptor.RichFormat, 10);
+        var fixture = new Fixture(DocumentContentDescriptor.RichFormat, 11);
         var view = Assert.IsType<ViewResult>(await fixture.Controller.SaveDraft(Tenant, Job, 1, "Retain failed input", Body, mode));
         var model = Assert.IsType<EditorView>(view.Model);
         Assert.Empty(fixture.Writes); Assert.Equal(422, fixture.Context.Response.StatusCode);
-        Assert.Equal(10, model.ContentSchemaVersion); Assert.False(model.ContentIsSupported);
+        Assert.Equal(11, model.ContentSchemaVersion); Assert.False(model.ContentIsSupported);
         Assert.Equal(mode == "text" ? DocumentText.FromPlainText("Retain failed input") : Body, model.EditorContentJson);
         Assert.Equal(UiText.Get("BelgeIcerikSurumuDesteklenmiyor"), model.Message);
     }
 
-    [Theory] [InlineData(1)] [InlineData(2)] [InlineData(3)] [InlineData(4)] [InlineData(5)] [InlineData(6)] [InlineData(7)] [InlineData(8)] [InlineData(9)]
+    [Theory] [InlineData(1)] [InlineData(2)] [InlineData(3)] [InlineData(4)] [InlineData(5)] [InlineData(6)] [InlineData(7)] [InlineData(8)] [InlineData(9)] [InlineData(10)]
     public async Task Plain_text_fallback_preserves_the_current_known_descriptor(int version)
     {
         var fixture=new Fixture(DocumentContentDescriptor.RichFormat,version);

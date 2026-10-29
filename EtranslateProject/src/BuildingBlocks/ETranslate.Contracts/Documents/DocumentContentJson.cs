@@ -14,7 +14,7 @@ public static class DocumentContentJson
         {
             using var document = JsonDocument.Parse(json);
             var remaining = 20_000;
-            if (schemaVersion is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9) || rootType is not ("doc" or "header" or "footer") || !Validate(document.RootElement, null, 0, ref remaining, rootType, schemaVersion)) return false;
+            if (schemaVersion is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 10) || rootType is not ("doc" or "header" or "footer") || !Validate(document.RootElement, null, 0, ref remaining, rootType, schemaVersion)) return false;
             var lines = new List<string>();
             Extract(document.RootElement, lines);
             plainText = string.Join('\n', lines);
@@ -43,6 +43,7 @@ public static class DocumentContentJson
                 field.Value.ValueKind == JsonValueKind.Array) continue;
             return false;
         }
+        if (DocumentPageBreak.IsStart(node) && (parent != "doc" || rootType != "doc" || type is not ("paragraph" or "heading"))) return false;
         if (type == "text")
             return node.TryGetProperty("text", out var text) &&
                 (text.GetString()!.Length > 0 || !node.TryGetProperty("marks", out var marks) || marks.GetArrayLength() == 0);
@@ -62,6 +63,7 @@ public static class DocumentContentJson
             if (columns is < 1 or > 12 || children.EnumerateArray().Any(row => DocumentTableShape.Columns(row) != columns)) return false;
             if (node.TryGetProperty("attrs", out var tableAttrs) && tableAttrs.TryGetProperty("columnWidths", out var widths) && !DocumentTableWidths.IsValid(widths, columns)) return false;
         }
+        if (type == "doc" && DocumentPageBreak.Count(node) > DocumentPageBreak.MaximumStarts) return false;
         if (type == "tableRow" && children.GetArrayLength() > 12) return false;
         return true;
     }
@@ -83,6 +85,7 @@ public static class DocumentContentJson
         foreach (var field in attrs.EnumerateObject())
         {
             if (!seen.Add(field.Name)) return false;
+            if (version >= 10 && !letterhead && type is "paragraph" or "heading" && field.Name == "pageBreakBefore" && field.Value.ValueKind is JsonValueKind.Null or JsonValueKind.True or JsonValueKind.False) continue;
             if (version >= 9 && !letterhead && type == "image" && DocumentBodyImage.ValidValue(field.Name, field.Value)) continue;
             if (version >= 6 && type == "table" && field.Name == "columnWidths" && DocumentTableWidths.IsValid(field.Value)) continue;
             if(version>=3 && type is "paragraph" or "heading" && DocumentParagraph.ValidValue(field.Name,field.Value,version))continue;

@@ -4,6 +4,7 @@ import { scriptMarks } from './inline-script.js';
 import { validColumnWidths } from './table-widths.js';
 import { validCellStyleValue } from './cell-style.js';
 import { validImageValue } from './body-image.js';
+import { maximumPageStarts, pageStartCount } from './page-break.js';
 import { columnCount } from './table-spans.js';
 export const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -12,7 +13,7 @@ const tableTypes = ['table', 'tableRow', 'tableCell', 'tableHeader'];
 const marks = ['bold', 'italic', 'underline', 'strike'];
 
 export function isRichDocument(root, version = 1) {
-    if(![1,2,3,4,5,6,7,8,9].includes(version))return false;
+    if(![1,2,3,4,5,6,7,8,9,10].includes(version))return false;
     let remaining = 20000;
     function visit(node, parent, depth) {
         if (depth > 32 || --remaining < 0 || !object(node) || typeof node.type !== 'string') return false;
@@ -33,6 +34,7 @@ export function isRichDocument(root, version = 1) {
                 value.every(mark => object(mark) && (Object.keys(mark).length === 1 && (marks.includes(mark.type)||version>=4&&scriptMarks.includes(mark.type)) ||
                     version>=2 && mark.type==='typography' && Object.keys(mark).length===2 && Object.hasOwn(mark,'attrs') && validTypography(mark.attrs)))) continue;
             if (key === 'attrs' && type !== 'text' && object(value) && Object.entries(value).every(([attr, val]) =>
+                version>=10 && ['paragraph','heading'].includes(type) && attr==='pageBreakBefore' && [null,true,false].includes(val) ||
                 version>=3 && ['paragraph','heading'].includes(type) && validParagraphValue(attr,val,version) ||
                 version>=6 && type==='table' && attr==='columnWidths' && validColumnWidths(val) ||
                 version>=9 && type==='image' && validImageValue(attr,val) ||
@@ -46,6 +48,7 @@ export function isRichDocument(root, version = 1) {
             if (key === 'content' && !['text', 'image', 'hardBreak'].includes(type) && Array.isArray(value)) continue;
             return false;
         }
+        if (node.attrs?.pageBreakBefore === true && (parent !== 'doc' || !['paragraph','heading'].includes(type))) return false;
         if (type === 'text') return typeof node.text === 'string' && (node.text.length > 0 || !node.marks?.length);
         if (type === 'image') return typeof node.attrs?.assetId === 'string' && guid.test(node.attrs.assetId);
         if (type === 'hardBreak') return true;
@@ -54,6 +57,7 @@ export function isRichDocument(root, version = 1) {
         if (['bulletList', 'orderedList', 'listItem', 'blockquote', ...tableTypes].includes(type) && !node.content.length) return false;
         if (type === 'listItem' && node.content[0]?.type !== 'paragraph') return false;
         if (!node.content.every(child => visit(child, type, depth + 1))) return false;
+        if (type === 'doc' && pageStartCount(node) > maximumPageStarts) return false;
         if (type === 'tableRow' && node.content.length > 12) return false;
         if (type === 'table') {
             const columns = columnCount(node.content[0].content);

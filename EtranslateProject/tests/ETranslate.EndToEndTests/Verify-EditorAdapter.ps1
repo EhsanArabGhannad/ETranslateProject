@@ -45,5 +45,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Horizontal spans, repeated headers or editor/PDF geometry differed.' }
     & $PythonPath (Join-Path $PSScriptRoot 'verify_body_images_pdf.py') (Join-Path $projectRoot 'tmp/pdfs/body-images')
     if ($LASTEXITCODE -ne 0) { throw 'Private image pages, dimensions, alignment or aspect differed.' }
+    & $PythonPath (Join-Path $PSScriptRoot 'verify_page_breaks_pdf.py') (Join-Path $projectRoot 'tmp/pdfs/page-breaks')
+    if ($LASTEXITCODE -ne 0) { throw 'Manual page starts, empty pages or last-page footer differed.' }
     Write-Output 'Editor adapter and page-flow checks passed. Synthetic PDF comparison and temporary loopback host only; no SQL, AppHost or external services.'
 } finally { foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name,$previous[$name]) } }

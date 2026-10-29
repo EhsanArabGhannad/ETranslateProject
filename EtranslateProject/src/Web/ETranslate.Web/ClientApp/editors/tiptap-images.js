@@ -15,7 +15,14 @@ export function imageTransaction(state, command, value, bookmark) {
         try { tr.setSelection(bookmark.resolve(tr.doc)); } catch { return null; }
         if (!canInsertImage({ doc: tr.doc, selection: tr.selection })) return null;
         const node = state.schema.nodes.image.create({ assetId: value.assetId, assetScope: 'document', widthPercent: 50, align: 'center' });
-        tr.replaceSelectionWith(node, false);
+        const cursor = tr.selection.$from;
+        if (cursor.parent.attrs.pageBreakBefore === true) {
+            // A page start belongs to its paragraph. Retain that block (even if empty)
+            // before the image and never clone the forced break onto the remaining text.
+            const parent = cursor.parent, pos = cursor.before(1);
+            tr.replaceWith(pos, pos + parent.nodeSize, [parent.copy(parent.content.cut(0, cursor.parentOffset)), node,
+                parent.type.create({ ...parent.attrs, pageBreakBefore: null }, parent.content.cut(cursor.parentOffset))]);
+        } else tr.replaceSelectionWith(node, false);
         let position;
         tr.doc.forEach((child, offset) => { if (child === node) position = offset; });
         if (position == null) return null;
@@ -31,5 +38,5 @@ export function imageTransaction(state, command, value, bookmark) {
         } else return null;
     }
     const json = tr.doc.toJSON();
-    return isRichDocument(json, 9) && JSON.stringify(json).length <= 2_000_000 && bodyTextBlocks(json).join('\n').length <= 1_000_000 ? tr.scrollIntoView() : null;
+    return isRichDocument(json, 10) && JSON.stringify(json).length <= 2_000_000 && bodyTextBlocks(json).join('\n').length <= 1_000_000 ? tr.scrollIntoView() : null;
 }

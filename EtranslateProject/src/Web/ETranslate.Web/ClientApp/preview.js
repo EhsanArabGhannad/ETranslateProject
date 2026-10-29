@@ -8,6 +8,7 @@ import { scriptMarks, applyInlineScript, orderedInlineMarks } from './inline-scr
 import { appendColumnGroup } from './table-widths.js';
 import { applyCellStyle } from './cell-style.js';
 import { applyBodyImage } from './body-image.js';
+import { applyPageStart } from './page-break.js';
 
 export function assetUrl(workspace, assetId, scope = null) {
     const { tenantId, templateId, jobId } = workspace.dataset;
@@ -73,6 +74,7 @@ export function createPreview(workspace, resolveImage = (id, scope) => assetUrl(
             target = document.createElement(tag); parent.append(target);
         } else if (!['doc', 'header', 'footer'].includes(node.type)) unsupported = true;
         if (['auto', 'rtl', 'ltr'].includes(node.attrs?.dir)) target.dir = node.attrs.dir;
+        if (contentVersion >= 10 && ['paragraph', 'heading'].includes(node.type)) applyPageStart(target, node.attrs ?? {}, ui.EditorPageStartMarker);
         if (contentVersion >= 7 && ['tableCell', 'tableHeader'].includes(node.type)) applyCellStyle(target, node.attrs);
         if (contentVersion >= 8 && ['tableCell', 'tableHeader'].includes(node.type)) target.colSpan = node.attrs?.colspan ?? 1;
         if (node.type === 'table' && contentVersion >= 6) { appendColumnGroup(target, node.attrs?.columnWidths);

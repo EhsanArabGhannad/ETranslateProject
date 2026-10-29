@@ -707,5 +707,10 @@
   "EditorImageAdded": "Görsel eklendi. Kalıcı sürüm ve PDF için metni kaydedin.",
   "EditorImageSelect": "Ana metne imleç koyun veya düzenlemek için görsele tıklayın.",
   "EditorImageLayoutSaved": "Görsel boyutu ve hizası uygulandı.",
-  "EditorBodyImage": "Çeviri görseli"
+  "EditorBodyImage": "Çeviri görseli",
+  "EditorManualPageBreaks": "Elle sayfa sonu",
+  "EditorInsertPageBreak": "Sayfa sonu ekle",
+  "EditorRemovePageBreak": "Sayfa sonunu kaldır",
+  "EditorPageStartMarker": "Yeni sayfada başlar",
+  "EditorPageBreakHelp": "Ana metindeki bir paragrafta veya başlıkta imleci yerleştirin; Ctrl+Enter ya da Sayfa sonu ekle ile devamını yeni sayfada başlatın. Tabloda, listede, alıntıda ve metin seçiliyken kullanılamaz. Belgenin en başında boş kapak sayfası eklemez. İşaretli paragrafta Sayfa sonunu kaldır veya paragraf başında Backspace zorunlu geçişi kaldırır; paragraf ayrımı kalır. Geri al önceki metin dağılımını geri getirir. Enter ek bir zorunlu geçiş oluşturmaz. En fazla 49 elle geçiş; PDF toplam sınırı 50 sayfadır."
 }

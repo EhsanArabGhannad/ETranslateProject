@@ -6,6 +6,11 @@
 @font-face{font-family:'Noto Sans Arabic';src:url('/fonts/document-layout/NotoSansArabic-Bold.ttf');font-weight:700}
 @font-face{font-family:'Noto Serif';src:url('/fonts/document-layout/NotoSerif-Variable.ttf');font-weight:100 900}
 @font-face{font-family:'Noto Serif';src:url('/fonts/document-layout/NotoSerif-Italic-Variable.ttf');font-weight:100 900;font-style:italic}
+.editor-controls .editor-page-breaks{flex:1 1 100%;width:100%;border:0;margin:4px 0}
+#rich-text [data-et-page-start]{position:relative}
+#rich-text [data-et-page-start]::before{content:'↳';position:absolute;left:-15px;top:0;font:12px/1.65 sans-serif;color:#237b70;pointer-events:none}
+#rich-text .document-flow [data-et-page-start]{break-before:column}
+#rich-text .document-flow > :first-child[data-et-page-start]{break-before:auto}
 .editor-controls .editor-images{flex:1 1 100%;width:100%;border:0;margin:4px 0}
 .editor-image-fields{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
 .editor-image-fields label{margin:0;max-width:100%}

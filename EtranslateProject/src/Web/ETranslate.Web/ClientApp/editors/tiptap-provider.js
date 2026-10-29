@@ -6,7 +6,7 @@ import Heading from '@tiptap/extension-heading';
 import { Plugin } from '@tiptap/pm/state';
 import { closeHistory } from '@tiptap/pm/history';
 import { guid, isRichDocument } from '../document-schema.js';
-import { editorCommands, richDocumentV9 } from './document-contract.js';
+import { editorCommands, richDocumentV10 } from './document-contract.js';
 import { typographyFields, typographyCommands, validTypography, validTypographyValue, applyTypography } from '../typography.js';
 import { paragraphFields, paragraphCommands, paragraphActions, validParagraphValue, applyParagraph } from '../paragraph.js';
 import { scriptMarks, applyInlineScript } from '../inline-script.js';
@@ -22,10 +22,12 @@ import { columnCount } from '../table-spans.js';
 import { horizontalCells, changeHorizontalCells } from './tiptap-horizontal-merge.js';
 import { imageFields, validImageValue, applyBodyImage } from '../body-image.js';
 import { selectedImage, canInsertImage, imageTransaction } from './tiptap-images.js';
+import { applyPageStart, pageBreakCommands } from '../page-break.js';
+import { pageBreakState, pageBreakTransaction } from './tiptap-page-break.js';
 
 export const tiptapProvider = Object.freeze({
-    id: 'tiptap', format: richDocumentV9,
-    capabilities: Object.freeze({ livePagination: false, docxImport: false, faithfulWordPaste: false, mergedCells: false, horizontalCellMerge: true, privateBodyImages: true, literalSearch:true }),
+    id: 'tiptap', format: richDocumentV10,
+    capabilities: Object.freeze({ livePagination: false, docxImport: false, faithfulWordPaste: false, mergedCells: false, horizontalCellMerge: true, privateBodyImages: true, manualPageBreaks: true, literalSearch:true }),
     create: createTiptapAdapter
 });
 
@@ -63,13 +65,13 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     const listeners = new Set();
     const notify = event => { for (const listener of listeners) listener(event); };
     function textBlock(Base,tag){return Base.extend({
-        addAttributes(){return {...this.parent?.(),...Object.fromEntries(paragraphFields.map(field=>[field,{default:null,rendered:false,parseHTML:element=>{
+        addAttributes(){return {...this.parent?.(),pageBreakBefore:{default:null,rendered:false,keepOnSplit:false,parseHTML:element=>element.getAttribute('data-et-page-start')==='true'?true:null},...Object.fromEntries(paragraphFields.map(field=>[field,{default:null,rendered:false,parseHTML:element=>{
             try{const value=JSON.parse(element.getAttribute('data-et-paragraph'));return value&&typeof value==='object'&&!Array.isArray(value)&&Object.entries(value).every(([key,item])=>validParagraphValue(key,item,5))?value[field]??null:null;}catch{return null;}
         }}]))};},
         renderHTML({node}){
             const element=document.createElement(tag??`h${node.attrs.level}`);element.dir=['auto','rtl','ltr'].includes(node.attrs.dir)?node.attrs.dir:'auto';
             element.dataset.etParagraph=JSON.stringify(Object.fromEntries(paragraphFields.map(field=>[field,node.attrs[field]??null])));
-            applyParagraph(element,node.attrs);return {dom:element,contentDOM:element};
+            applyParagraph(element,node.attrs);applyPageStart(element,node.attrs,labels.pageStart);return {dom:element,contentDOM:element};
         }
     });}
     const StyledParagraph=textBlock(Paragraph,'p'),StyledHeading=textBlock(Heading);
@@ -111,17 +113,36 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         name: 'preservationPolicy',
         addProseMirrorPlugins() {
             return [search.plugin,new Plugin({ filterTransaction: transaction => {
-                if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),9)) return true;
+                if (!transaction.docChanged || isRichDocument(transaction.doc.toJSON(),10)) return true;
                 onRejectedChange(); return false;
             } })];
         }
+    });
+    const PageBreakKeys = Extension.create({
+        name: 'manualPageBreakKeys', priority: 200,
+        addKeyboardShortcuts() { return {
+            'Mod-Enter': () => { changePageBreak('insertPageBreak'); return true; },
+            Enter: () => {
+                const { selection } = editor.state;
+                if (!editor.isEditable || selection.$from.depth !== 1 || !selection.$from.sameParent(selection.$to) || selection.$from.parent.attrs.pageBreakBefore !== true) return false;
+                // The vendor's middle-of-paragraph split clones attrs even when keepOnSplit
+                // is false. Clear only the right block's page start in the same history step.
+                const applied = editor.chain().command(({ tr }) => { closeHistory(tr); return true; }).splitBlock().command(({ tr }) => {
+                    const cursor = tr.selection.$from;
+                    if (cursor.depth === 1 && cursor.parent.attrs.pageBreakBefore === true) tr.setNodeMarkup(cursor.before(1), undefined, { ...cursor.parent.attrs, pageBreakBefore: null });
+                    return true;
+                }).run();
+                if (applied) editor.view.dispatch(closeHistory(editor.state.tr)); return applied;
+            },
+            Backspace: () => editor.state.selection.$from.parentOffset === 0 && changePageBreak('removePageBreak')
+        }; }
     });
     try {
         editor = new Editor({
             element, injectCSS: false, editable, textDirection: 'auto',
             extensions: [StarterKit.configure({ code: false, codeBlock: false, link: false, horizontalRule: false,
                 dropcursor: false, trailingNode: false, paragraph:false,heading:false }), StyledParagraph,StyledHeading,ManagedImage, Typography,...scripts,
-                TableKit.configure({ table: false, tableCell: false, tableHeader: false }), WidthTable.configure({ resizable: false, View: null }), StyledCell, StyledHeader, PreservationPolicy],
+                TableKit.configure({ table: false, tableCell: false, tableHeader: false }), WidthTable.configure({ resizable: false, View: null }), StyledCell, StyledHeader, PageBreakKeys, PreservationPolicy],
             content: { type: 'doc', content: [{ type: 'paragraph' }] },
             editorProps: { attributes: { role: 'textbox', tabindex:'0', 'aria-label': labels.text, 'aria-multiline': 'true', spellcheck: 'false' } }
         });
@@ -203,6 +224,8 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
     }).run();}
     function getCommandState(command) {
         if (!editorCommands.includes(command) || editor.isDestroyed) return { enabled: false, active: false };
+        if (['bulletList', 'orderedList'].includes(command) && selectedBlocks(editor.state).some(({ node }) => node.attrs.pageBreakBefore === true)) return { enabled: false, active: false };
+        if (pageBreakCommands.includes(command)) return { enabled: editor.isEditable && pageBreakState(editor.state, command), active: false };
         if (command === 'insertImage') {
             let selection = editor.state.selection;
             try { if (imageBookmarks.size) selection = imageBookmarks.values().next().value.resolve(editor.state.doc); } catch { return { enabled: false, active: false }; }
@@ -249,6 +272,11 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         for (const [id, bookmark] of imageBookmarks) imageBookmarks.set(id, bookmark.map(transaction.mapping));
         notify({ documentChanged: transaction.docChanged });
     };
+    function changePageBreak(command) {
+        if (!getCommandState(command).enabled) return false;
+        editor.view.focus(); const tr = pageBreakTransaction(editor.state, command); if (!tr) return false;
+        editor.view.dispatch(tr); editor.view.dispatch(closeHistory(editor.state.tr)); return true;
+    }
     editor.on('transaction', transaction);
     return {
         getDocument: () => editor.getJSON(),
@@ -261,6 +289,7 @@ function createTiptapAdapter({ element, content, editable, resolveAsset, labels,
         getCommandState,
         execute(command, value) {
             if (!getCommandState(command).enabled) return false;
+            if (pageBreakCommands.includes(command)) return changePageBreak(command);
             if (['insertImage', 'imageLayout', 'deleteImage'].includes(command)) {
                 editor.view.focus();
                 const tr = imageTransaction(editor.state, command, value, imageBookmarks.get(value?.bookmark)); if (!tr) return false;

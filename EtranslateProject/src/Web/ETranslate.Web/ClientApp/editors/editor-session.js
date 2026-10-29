@@ -8,6 +8,7 @@ import { validColumnWidths } from '../table-widths.js';
 import { cellStyleFields, validCellStyleValue, validCellStyleChange } from '../cell-style.js';
 import { validImageLayout, validImageValue } from '../body-image.js';
 import { guid } from '../document-schema.js';
+import { pageBreakCommands } from '../page-break.js';
 
 /**
  * Provider contract (trusted application code):
@@ -60,6 +61,7 @@ export function createEditorSession({ provider, element, contentJson, contentFor
         if(provider.format.version<7 && command==='tableCellStyle')return {enabled:false,active:false};
         if(provider.format.version<8 && ['mergeNextCell','mergeCellsInRow','splitCellInRow'].includes(command))return {enabled:false,active:false};
         if(provider.format.version<9 && ['insertImage','imageLayout','deleteImage'].includes(command))return {enabled:false,active:false};
+        if(provider.format.version<10 && pageBreakCommands.includes(command))return {enabled:false,active:false};
         const state = adapter.getCommandState(command);
         if (command === 'imageLayout') return { enabled: enabled && state.enabled === true, active: state.active === true,
             context: typeof state.context === 'string' ? state.context : null,
