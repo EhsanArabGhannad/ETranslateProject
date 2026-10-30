@@ -79,20 +79,29 @@ if (workspace) {
             controls.forEach(button => { button.disabled = true; }); saveButton.disabled = true;
             editor?.setEditable(false); if (text) text.readOnly = true; json.readOnly = true;
             status.textContent = ui.IncelemeDurumuKaydediliyor;
+            let rejected = false;
             try {
                 const response = await fetch(reviewForm.action, { method: 'POST', body: data, credentials: 'same-origin', headers: { Accept: 'application/json' } });
                 if (response.status === 401 || response.redirected && new URL(response.url).pathname === '/Account/Login')
                     throw new Error(ui.OturumSonaErdiYeniSekmedeGirisYapin2);
                 if (!response.headers.get('content-type')?.includes('json')) throw new Error(ui.IncelemeKaydiDogrulanamadiGuncelDurumuKontrolEdin);
                 const result = await response.json();
+                if ([409, 402, 403].includes(response.status)) {
+                    rejected = true;
+                    workspace.dataset.editable = 'false';
+                    status.textContent = result.message || ui.IncelemeKaydedilemedi;
+                    return;
+                }
                 if (!response.ok) throw new Error(result.message || ui.IncelemeKaydedilemedi);
                 navigating = true; location.reload();
             } catch (error) { status.textContent = error.message || ui.BaglantiKurulamadiDurumuYeniSekmedeKontrolEdin; }
             finally {
                 if (!navigating) {
-                    saving = false; controls.forEach((button, index) => { button.disabled = previousDisabled[index]; });
-                    saveButton.disabled = !editable; editor?.setEditable(editable);
-                    if (text) text.readOnly = !editable; json.readOnly = !editable;
+                    saving = false;
+                    controls.forEach((button, index) => { button.disabled = rejected || previousDisabled[index]; });
+                    const canEdit = editable && !rejected;
+                    saveButton.disabled = !canEdit; editor?.setEditable(canEdit);
+                    if (text) text.readOnly = !canEdit; json.readOnly = !canEdit;
                 }
             }
         });

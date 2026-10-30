@@ -23,7 +23,7 @@ internal sealed class IsolatedSqlProductHost : IAsyncDisposable
     {
         // Never accept a remote server, credentials, a caller-selected catalog or a reusable database.
         if (!Regex.IsMatch(server, @"^\.(\\[A-Za-z0-9_]+)?$")) throw new ArgumentException("Use a local SQL instance name only.");
-        if (suite is not ("sql-pagination" or "editor-access")) throw new ArgumentException("Unknown isolated QA suite.");
+        if (suite is not ("sql-pagination" or "editor-access" or "editor-concurrency")) throw new ArgumentException("Unknown isolated QA suite.");
         this.server = server; Root = Path.GetFullPath(root);
         if (!File.Exists(Path.Combine(Root, "ETranslate.slnx"))) throw new ArgumentException("Solution root required.");
         Output = Path.Combine(Root, "tmp", "pdfs", suite, RunId);

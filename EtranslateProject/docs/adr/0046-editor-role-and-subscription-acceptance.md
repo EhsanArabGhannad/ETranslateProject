@@ -31,3 +31,5 @@ Subscription states and the paid period are explicit fixtures only in the new Bi
 ## Remaining coverage
 
 This completes a role/subscription/workspace slice of roadmap step 7. A full browser/device matrix, simultaneous edits and assignment/template/review races across sessions, service outages and deployment validation remain separate. It does not establish general production readiness or change the editor's Word-import limitations.
+
+Follow-up: [ADR 0047](0047-editor-concurrency-acceptance.md) adds bounded multi-tab save/template/review race acceptance. Broader browser/user, upload, outage and deployment coverage still remains.
