@@ -732,5 +732,6 @@
   "EditorPasteLimit": "Pano içeriği veya sonuç belgesi boyut sınırını aşıyor. Metin değiştirilmedi; daha küçük parçalar halinde yapıştırın.",
   "EditorPasteContext": "İçerik bu seçime veya belge yapısına eklenemedi. Metin değiştirilmedi; ana metinde bir paragraf seçin veya yalnızca metin biçimini deneyin.",
   "EditorPasteEmpty": "Yapıştırılabilir metin bulunamadı. Pano görselleri için görsel ekleme aracını kullanın.",
-  "EditorPasteInvalid": "Pano içeriği okunamadı. Metin değiştirilmedi; yalnızca metin biçimini deneyin."
+  "EditorPasteInvalid": "Pano içeriği okunamadı. Metin değiştirilmedi; yalnızca metin biçimini deneyin.",
+  "EditorWriteAccessLost": "Yazma yetkisi veya abonelik durumu değişti. Metniniz bu sayfada korunuyor; kopyalayabilir ve güncel durumu yeni sekmede kontrol edebilirsiniz."
 }

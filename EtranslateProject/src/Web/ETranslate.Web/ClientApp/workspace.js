@@ -45,6 +45,10 @@ if (workspace) {
                 find('save-state').textContent = ui.SurumVeyaIncelemeDurumuDegistiMetninizVe;
                 dirty = true; workspace.dataset.editable = 'false'; return;
             }
+            if (response.status === 402 || response.status === 403) {
+                find('save-state').textContent = ui.EditorWriteAccessLost;
+                dirty = true; workspace.dataset.editable = 'false'; return;
+            }
             find('save-state').textContent = destination.pathname === '/Account/Login' || response.status === 401
                 ? ui.OturumSonaErdiYeniSekmedeGirisYapip2
                 : ui.KayitDogrulanamadiDegisikliklerKorunduGirdileriVeHizmet;

@@ -62,6 +62,7 @@ public sealed class WorkspaceView
 public sealed class EditorView
 {
     public TenantView? Tenant { get; set; }
+    public bool CanManageDocuments => Tenant?.Role is "Owner" or "Administrator" or "Translator";
     public SubscriptionWriteStatus WriteStatus { get; set; } = SubscriptionWriteStatus.Unavailable;
     public bool CanWrite => WriteStatus == SubscriptionWriteStatus.Allowed;
     public Guid TenantId { get; set; }

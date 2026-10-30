@@ -10,16 +10,16 @@
 <p><a asp-action="Assignment" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">@UiText.Get("CevirmenAtamasiVeGecmisiAyriSekmede")</a> · @(Model.Job.AssignedTranslatorUserId.HasValue ? UiText.Get("SorumluCevirmenAtandi") : UiText.Get("CevirmenAtanmadi"))</p>
 @if (Model.Document is not null) { <p><a asp-action="SigningPreparation" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener">@UiText.Get("ImzaTalebiniAyriSekmedeHazirla")</a></p> }
 @if (Model.Document is null) {
-    <section class="card empty"><h2>@UiText.Get("DosyaBaslamayaHazir")</h2><p>@UiText.Get("OnceTaslakBelgeyiOlusturunArdindanSablonSecin")</p><form asp-action="StartDocument" method="post"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><button type="submit" disabled="@(!Model.CanWrite)">@UiText.Get("CeviriyiYazmayaBasla")</button></form></section>
+    <section class="card empty"><h2>@UiText.Get("DosyaBaslamayaHazir")</h2><p>@UiText.Get("OnceTaslakBelgeyiOlusturunArdindanSablonSecin")</p><form asp-action="StartDocument" method="post"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><button type="submit" disabled="@(!Model.CanWrite || !Model.CanManageDocuments)">@UiText.Get("CeviriyiYazmayaBasla")</button></form></section>
 } else {
 <section class="card document-meta"><span>Son kaydedilen sürüm: @Model.Document.CurrentDraftRevision</span>
 <a asp-controller="Settings" asp-action="Templates" asp-route-tenantId="@Model.TenantId" target="_blank" rel="noopener">@UiText.Get("BuCalismaAlanininSablonlariniAyriSekmedeYonet")</a>
 @if (Model.Template is not null) { <span>Sabitlenen şablon: sürüm @Model.Template.RevisionNumber</span> }
 else if (Model.Document.CurrentDraftRevision == 0) {
-    <form asp-action="ApplyTemplate" method="post" id="template-form"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><label for="template-select">@UiText.Get("SablonIlkKayittanOnce")</label><select id="template-select" name="templateId" required><option value="">@UiText.Get("SablonSecin")</option>@foreach (var template in Model.Templates.Where(t => t.IsActive)) { <option value="@template.Id" data-revision="@template.CurrentRevision">@template.Name · Sürüm @template.CurrentRevision</option> }</select><input type="hidden" id="template-revision" name="revisionNumber" /><button class="secondary" type="submit" disabled="@(!Model.CanWrite)">@UiText.Get("SablonuSabitle")</button></form>
+    <form asp-action="ApplyTemplate" method="post" id="template-form"><input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><label for="template-select">@UiText.Get("SablonIlkKayittanOnce")</label><select id="template-select" name="templateId" required><option value="">@UiText.Get("SablonSecin")</option>@foreach (var template in Model.Templates.Where(t => t.IsActive)) { <option value="@template.Id" data-revision="@template.CurrentRevision">@template.Name · Sürüm @template.CurrentRevision</option> }</select><input type="hidden" id="template-revision" name="revisionNumber" /><button class="secondary" type="submit" disabled="@(!Model.CanWrite || !Model.CanManageDocuments)">@UiText.Get("SablonuSabitle")</button></form>
     <p class="muted">@UiText.Get("IlkKayittanOnceSablonunBaslangicMetniCeviriye")</p>
 } else { <span class="muted">@UiText.Get("BuSurumSablonsuzdur")</span> }
-@if (Model.Document.CurrentDraftRevision > 0 && !Model.Historical && !Model.Conflict) {
+@if (Model.Document.CurrentDraftRevision > 0 && Model.CanManageDocuments && !Model.Historical && !Model.Conflict) {
     <p><a asp-action="DocumentTemplate" asp-route-tenantId="@Model.TenantId" asp-route-jobId="@Model.Job.Id" target="_blank" rel="noopener" id="change-template-link">@UiText.Get("SablonuAyriSekmedeBaglaVeyaDegistir")</a></p>
     <p class="muted">@UiText.Get("OnceMetinDegisiklikleriniKaydedinSablonDegisikligiKayitli")</p>
 }
@@ -97,7 +97,7 @@ else { <p class="notice" id="legacy-format-notice">@UiText.Get("BelgeninOzgunYap
 @if (Model.ViewedRevision > 0) {
     <form asp-action="GenerateDraftPdf" method="post" id="draft-pdf-form" data-download-base="@Url.Action("DraftPdf", new { tenantId = Model.TenantId, jobId = Model.Job.Id })">
         <input type="hidden" name="tenantId" value="@Model.TenantId" /><input type="hidden" name="jobId" value="@Model.Job.Id" /><input type="hidden" name="revisionNumber" value="@Model.ViewedRevision" />
-        <button type="submit" class="secondary" disabled="@(!Model.CanWrite || !Model.ContentIsSupported)">Kaydedilen sürümden PDF oluştur: @Model.ViewedRevision</button>
+        <button type="submit" class="secondary" disabled="@(!Model.CanWrite || !Model.CanManageDocuments || !Model.ContentIsSupported)">Kaydedilen sürümden PDF oluştur: @Model.ViewedRevision</button>
     </form>
 } else { <p class="muted">@UiText.Get("PDFOlusturmakIcinOnceBirCeviriSurumu")</p> }
 <p class="muted">@UiText.Get("YalnizcaKayitliSurumYazdirilirKaydedilmemisDegisikliklerPDF")</p>

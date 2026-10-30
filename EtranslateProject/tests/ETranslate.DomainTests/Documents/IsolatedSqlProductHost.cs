@@ -19,13 +19,14 @@ internal sealed class IsolatedSqlProductHost : IAsyncDisposable
     public string Storage => Path.Combine(Output, "blobs");
     public string RunId { get; } = Guid.NewGuid().ToString("N");
 
-    public IsolatedSqlProductHost(string server, string root)
+    public IsolatedSqlProductHost(string server, string root, string suite = "sql-pagination")
     {
         // Never accept a remote server, credentials, a caller-selected catalog or a reusable database.
         if (!Regex.IsMatch(server, @"^\.(\\[A-Za-z0-9_]+)?$")) throw new ArgumentException("Use a local SQL instance name only.");
+        if (suite is not ("sql-pagination" or "editor-access")) throw new ArgumentException("Unknown isolated QA suite.");
         this.server = server; Root = Path.GetFullPath(root);
         if (!File.Exists(Path.Combine(Root, "ETranslate.slnx"))) throw new ArgumentException("Solution root required.");
-        Output = Path.Combine(Root, "tmp", "pdfs", "sql-pagination", RunId);
+        Output = Path.Combine(Root, "tmp", "pdfs", suite, RunId);
         Directory.CreateDirectory(Output); Directory.CreateDirectory(Storage);
         foreach (var name in new[] { "identitydb", "billingdb", "workflowdb", "documentsdb", "trustdb", "messaging" })
             databases[name] = $"ETranslatePaginationQa_{RunId}_{name}";
