@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <None Update="Fixtures\WordClipboard\*.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\src\Web\ETranslate.Web\ClientApp\tests\document-cases.json" Link="document-cases.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\src\Web\ETranslate.Web\ClientApp\tests\typography-cases.json" Link="typography-cases.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\src\Web\ETranslate.Web\ClientApp\tests\paragraph-cases.json" Link="paragraph-cases.json" CopyToOutputDirectory="PreserveNewest" />

@@ -27,6 +27,9 @@ for sample in report["samples"]:
         assert sum(len(page.images) for page in pdf.pages) == 2
         assert sample["wordPasteVerified"]
         with pdfplumber.open(directory / f"{name}.pdf") as positioned:
+            assert sample["nativeWordPasteVerified"]
+            horizontal = [page.filter(lambda o: o['object_type'] != 'char' or (abs(o['matrix'][1]) < .01 and abs(o['matrix'][2]) < .01)).extract_text() for page in positioned.pages]
+            for marker in ["RW_TYPO_START", "RW_STYLE", "RW_PAGE_TWO", "RW_TYPO_END"]: assert marker in "\n".join(horizontal), marker
             assert "WP_SQL" in "\n".join(page.extract_text() for page in positioned.pages)
             pasted_chars = [char for page in positioned.pages for char in page.chars
                             if "NotoSerif" in char["fontname"] and abs(char["size"] - 14) < .06

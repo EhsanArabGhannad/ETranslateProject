@@ -376,6 +376,9 @@ public sealed partial class EditorAdapterBrowserTests
         public static readonly byte[] ImageBytes=Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jVloAAAAASUVORK5CYII=");
         public bool ServeImage { get; set; } = true;
         public byte[] BodyImageBytes { get; set; } = BodyImageFixture.Png;
+        public bool WordCaptureEnabled { get; set; }
+        public string BaseUrl => origin;
+        public Func<HttpContext, Task<bool>>? ExtraHandler { get; set; }
         private BrowserFixture(IPlaywright playwright, IBrowser browser, IBrowserContext context, IPage page,
             WebApplication server, string source, bool editable)
         {
@@ -383,13 +386,13 @@ public sealed partial class EditorAdapterBrowserTests
             this.server = server;
             root = Path.GetFullPath(Environment.GetEnvironmentVariable("ETRANSLATE_EDITOR_ADAPTER_WEB_ROOT")!);
         }
-        public static async Task<BrowserFixture> CreateAsync(string source, bool editable = true)
+        public static async Task<BrowserFixture> CreateAsync(string source, bool editable = true, bool headed = false)
         {
             var playwright = await Playwright.CreateAsync();
             IBrowser? browser = null; IBrowserContext? context = null; WebApplication? server = null;
             try
             {
-                browser = await playwright.Chromium.LaunchAsync(new() { Headless = true, ChromiumSandbox = true });
+                browser = await playwright.Chromium.LaunchAsync(new() { Headless = !headed, Channel = headed ? "chrome" : null, ChromiumSandbox = true });
                 context = await browser.NewContextAsync(new() { ServiceWorkers = ServiceWorkerPolicy.Block, AcceptDownloads = false });
                 var page = await context.NewPageAsync();
                 var builder = WebApplication.CreateSlimBuilder();
@@ -436,6 +439,7 @@ public sealed partial class EditorAdapterBrowserTests
         }
         private async Task HandleAsync(HttpContext request)
         {
+            if (ExtraHandler is not null && await ExtraHandler(request)) return;
             var path = request.Request.Path.Value;
             if (request.Request.Method == "POST" && path is "/Workspace/SaveDraft" or "/Workspace/Review" or "/Workspace/UploadBodyImage" && responses.TryDequeue(out var gate))
             {
@@ -534,7 +538,7 @@ public sealed partial class EditorAdapterBrowserTests
                 <form class="review-form" action="/Workspace/Review" method="post"><button type="submit">İncele</button></form><p id="review-status"></p>
                 </section><div class="preview-panel" hidden><div id="preview-notice"></div><div id="preview-watermark"></div><div id="preview-header"></div><div id="preview-body"></div><div id="preview-footer"></div></div>
                 <textarea id="template-header" hidden>{{WebUtility.HtmlEncode(Header)}}</textarea><textarea id="template-footer" hidden>{{WebUtility.HtmlEncode(Footer)}}</textarea><textarea id="template-watermark" hidden></textarea><textarea id="template-layout" hidden>{{WebUtility.HtmlEncode(Layout)}}</textarea>
-                </div></fieldset></main><script type="module" src="/js/generated/workspace.js"></script></body></html>
+                </div></fieldset></main><script type="module" src="/js/generated/workspace.js"></script>{{(WordCaptureEnabled ? "<script src='/qa/capture.js' defer></script>" : "")}}</body></html>
                 """;
         }
         public async ValueTask DisposeAsync()

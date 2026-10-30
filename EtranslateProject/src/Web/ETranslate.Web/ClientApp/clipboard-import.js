@@ -110,7 +110,8 @@ export function importClipboard({ html = '', text = '', mode = 'formatted' }, do
             else warnings.add('formatting');
         }
         if (tag === 'MARK' && !s['background-color']) next.typography.highlight = '#ffff00';
-        const dir = el.getAttribute('dir') || s.direction || s['mso-bidi-direction'];
+        const dir = (el.getAttribute('dir') || s.direction || s['mso-bidi-direction'] || '').toLowerCase();
+        if (!blockTags.test(tag) && inherited.dir && ['rtl', 'ltr'].includes(dir) && dir !== inherited.dir) warnings.add('layout');
         if (['rtl', 'ltr', 'auto'].includes(dir)) next.dir = dir;
         return next;
     }
@@ -148,6 +149,7 @@ export function importClipboard({ html = '', text = '', mode = 'formatted' }, do
             const value = node.data.replace(/[\t\r\n ]+/g, ' '); return value ? [textNode(value, ctx)] : [];
         }
         if (node.nodeType !== 1) return [];
+        if (node.tagName === 'O:P' && !node.textContent.replace(/\u00a0/g, ' ').trim()) return [];
         if (ignored.test(node.tagName)) { if (/^(SVG|MATH|OBJECT|EMBED)$/.test(node.tagName)) warnings.add('images'); return []; }
         const s = style(node); if (/^ignore$/i.test(s['mso-list'] ?? '')) return [];
         if (s.display === 'none' || s.visibility === 'hidden' || s['mso-hide'] === 'all') { warnings.add('formatting'); return []; }
@@ -185,7 +187,7 @@ export function importClipboard({ html = '', text = '', mode = 'formatted' }, do
                         if (pt !== null && [0, .5, 1, 1.5, 2, 3].some(v => Math.abs(v - pt) < .01)) a.borderWidthPt = [0, .5, 1, 1.5, 2, 3].find(v => Math.abs(v - pt) < .01); else if (width) warnings.add('formatting'); }
                 } else warnings.add('formatting');
             }
-            const content = blocks(cell, c, false); return { type: cell.tagName === 'TH' ? 'tableHeader' : 'tableCell', attrs: a, content: content.length ? content : [paragraph()] };
+            const content = blocks(cell, c, false); return { type: cell.tagName === 'TH' || rows[i].parentElement.tagName === 'THEAD' ? 'tableHeader' : 'tableCell', attrs: a, content: content.length ? content : [paragraph()] };
         }) })) };
         const cols = [...el.querySelectorAll(':scope > colgroup > col, :scope > col')];
         const measurements = cols.length === columns ? cols.map(col => style(col).width || col.getAttribute('width')) : spans[0].every(n => n === 1) ? cells[0].map(cell => style(cell).width || cell.getAttribute('width')) : [];

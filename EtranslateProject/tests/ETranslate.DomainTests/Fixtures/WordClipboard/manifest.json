@@ -1,0 +1,15 @@
+{
+  "capturedOn": "2026-10-29",
+  "wordProductVersion": "16.0.20527.20088",
+  "mode": "Compatibility Mode",
+  "htmlGenerator": "Microsoft Word 15",
+  "nativeClipboardBrowser": "Chrome 156.0.0.0 on Windows",
+  "data": "Generated non-personal documents only",
+  "sourceBuilder": "tests/ETranslate.EndToEndTests/create_word_clipboard_corpus.py",
+  "sourceDocxSha256": {
+    "typography": "a3fbc39436c12f3bceb661ff0bb5715d5ed6bb40895c677b903a620a0930e02b",
+    "tables": "9bd9251f8dc05ecb5be2ec42dfe86aabd0b41c78af45adb7479ed061a19a00de",
+    "unsupported": "0504f10fde2348ecb2d4eae72ae71aa3bbfe2d07cf5aea024ce6dc3cf66a4356"
+  },
+  "sanitization": "Machine-local file URLs replaced; original HTML hashes retained; no clipboard replay is labelled native."
+}

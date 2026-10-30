@@ -2,7 +2,7 @@
 
 Date: 2026-10-29
 
-Status: Accepted for the clipboard slice; real Word corpus and DOCX import remain separate
+Status: Accepted for the clipboard slice; initial native corpus acceptance follows in ADR 0045, DOCX import remains separate
 
 ## Decision and boundaries
 
@@ -38,6 +38,6 @@ Node tests cover unit/color conversion, fonts, percentages, plain literal input/
 
 A saved sample produces a two-page PDF and compares 14 marker pages to the native editor, plus embedded Noto Serif, 18pt, red and yellow highlight. Positioned PDF glyph extraction handles variable-font text extraction artifacts without changing the product. Isolated SQL acceptance pastes a green 14pt serif run through the actual UI, persists/reloads it with the existing forced start, and verifies its downloaded PDF while retaining archive/image/review checks. See the [Persian test guide](../testing/editor-word-paste.fa.md) for executed counts and artifacts.
 
-The samples are synthetic Office-style HTML, not a certified matrix of real Microsoft Word versions, OS clipboards or browsers. A curated non-personal real Word corpus and DOCX work remain before broader fidelity claims.
+The samples in this initial slice are synthetic Office-style HTML, not a certified matrix of real Microsoft Word versions, OS clipboards or browsers. [ADR 0045](0045-native-word-clipboard-acceptance.md) adds three curated native Word captures and bounded acceptance. Broader fidelity claims and DOCX work remain separate.
 
 References consulted: [Microsoft HTML clipboard format](https://learn.microsoft.com/en-us/windows/win32/dataxchg/html-clipboard-format), [Tiptap JSON content insertion](https://tiptap.dev/docs/editor/api/commands/content/insert-content). Implementation also follows the installed ProseMirror clipboard/slice/history code rather than an unpinned external extension.

@@ -215,6 +215,11 @@ public sealed class SqlPaginationAcceptanceTests
                 el=>{const data=new DataTransfer();data.setData('text/html','<span style="font-family:Times New Roman;font-size:14pt;color:#15803d"><b> WP_SQL</b></span>');el.dispatchEvent(new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true}));}
                 """);
             await Assertions.Expect(page.Locator("#editor-paste-status")).ToContainTextAsync("Noto");
+            using var nativeWord = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures/WordClipboard/word15-typography.json")));
+            await textbox.EvaluateAsync("""
+                (el,value)=>{const data=new DataTransfer();data.setData('text/html',value.html);data.setData('text/plain',value.text);el.dispatchEvent(new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true}));}
+                """, new { html = nativeWord.RootElement.GetProperty("html").GetString(), text = nativeWord.RootElement.GetProperty("text").GetString() });
+            Assert.Contains("RW_TYPO_END", await page.Locator("#document-json").InputValueAsync());
         }
         var edited = await page.Locator("#document-json").InputValueAsync();
         await page.Locator("#draft-form button[type=submit]").ClickAsync();
@@ -321,7 +326,7 @@ public sealed class SqlPaginationAcceptanceTests
         await AssertLocked(page); await page.Locator("#editor-pages-toggle").ClickAsync(); await Assertions.Expect(viewport).ToHaveAttributeAsync("data-pagination", "paged");
         await page.Locator("#editor-page-index").SelectOptionAsync("2"); await AssertLocked(page);
         Assert.Equal(body, await page.Locator("#document-json").InputValueAsync());
-        samples.Add(new { name, revision, pages = map.GetProperty("pageCount").GetInt32(), markers = 47, lastFooter, hasTemplate = template.HasValue, archiveVerified = old is not null, typographyVerified=lastFooter,paragraphSettingsVerified=lastFooter,paragraphSpacingVerified=lastFooter,inlineScriptVerified=lastFooter,searchReplaceVerified=archive,columnWidthsVerified=archive,cellStyleVerified=archive,horizontalMergeVerified=archive,bodyImagesVerified=archive,manualPageBreakVerified=archive,wordPasteVerified=archive });
+        samples.Add(new { name, revision, pages = map.GetProperty("pageCount").GetInt32(), markers = 47, lastFooter, hasTemplate = template.HasValue, archiveVerified = old is not null, typographyVerified=lastFooter,paragraphSettingsVerified=lastFooter,paragraphSpacingVerified=lastFooter,inlineScriptVerified=lastFooter,searchReplaceVerified=archive,columnWidthsVerified=archive,cellStyleVerified=archive,horizontalMergeVerified=archive,bodyImagesVerified=archive,manualPageBreakVerified=archive,wordPasteVerified=archive,nativeWordPasteVerified=archive });
     }
 
     private async Task VerifyPrivateImageAccess(IsolatedSqlProductHost host, Guid tenantId, Guid jobId, Guid documentId, Guid imageId, string path, int revision)
