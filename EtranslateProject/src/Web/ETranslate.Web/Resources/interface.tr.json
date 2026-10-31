@@ -733,5 +733,6 @@
   "EditorPasteContext": "İçerik bu seçime veya belge yapısına eklenemedi. Metin değiştirilmedi; ana metinde bir paragraf seçin veya yalnızca metin biçimini deneyin.",
   "EditorPasteEmpty": "Yapıştırılabilir metin bulunamadı. Pano görselleri için görsel ekleme aracını kullanın.",
   "EditorPasteInvalid": "Pano içeriği okunamadı. Metin değiştirilmedi; yalnızca metin biçimini deneyin.",
-  "EditorWriteAccessLost": "Yazma yetkisi veya abonelik durumu değişti. Metniniz bu sayfada korunuyor; kopyalayabilir ve güncel durumu yeni sekmede kontrol edebilirsiniz."
+  "EditorWriteAccessLost": "Yazma yetkisi veya abonelik durumu değişti. Metniniz bu sayfada korunuyor; kopyalayabilir ve güncel durumu yeni sekmede kontrol edebilirsiniz.",
+  "EditorRequestUnconfirmed": "İşlemin sonucu doğrulanamadı. Metniniz bu sayfada korunuyor. Bağlantı geri geldiğinde güncel sürüm ve inceleme durumunu yeni sekmede kontrol edin."
 }

@@ -59,6 +59,18 @@ public sealed class SubscriptionEnforcementWebTests
         Assert.False(new AssignmentPageView().CanWrite); Assert.False(new SigningPageView().CanWrite);
     }
 
+    [Theory]
+    [InlineData(402, "subscription_required", SubscriptionWriteStatus.Required)]
+    [InlineData(503, "subscription_unavailable", SubscriptionWriteStatus.Unavailable)]
+    public async Task Enhanced_editor_receives_a_bounded_JSON_failure_without_reloading_the_editor(int status, string code, SubscriptionWriteStatus write)
+    {
+        var (controller, context) = Create(status, code, write); context.Request.Headers.Accept = "application/json";
+        var result = Assert.IsType<ObjectResult>(await controller.SaveDraft(Tenant, Job, 1, Submitted, null, "text"));
+        Assert.Equal(status, result.StatusCode);
+        Assert.Equal(new BackendException((HttpStatusCode)status, code).UserMessage,
+            System.Text.Json.JsonSerializer.SerializeToElement(result.Value).GetProperty("message").GetString());
+    }
+
     private static (WorkspaceController, HttpContext) Create(int status, string code, SubscriptionWriteStatus write)
     {
         var context = new DefaultHttpContext { RequestServices = new ServiceCollection().AddSingleton<IAuthenticationService, Auth>().BuildServiceProvider() };

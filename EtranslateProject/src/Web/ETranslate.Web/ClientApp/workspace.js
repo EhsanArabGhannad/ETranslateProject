@@ -4,6 +4,7 @@ import { startRichEditor } from './rich-editor.js';
 import { startSources } from './sources.js';
 import { isRichDocument } from './document-schema.js';
 import { startPdfExport } from './pdf-export.js';
+import { withEditorRequest } from './editor-request.js';
 
 const find = id => document.getElementById(id), workspace = find('editor-workspace');
 if (workspace) {
@@ -36,30 +37,35 @@ if (workspace) {
         // Freeze rich edits while awaiting the response: post-submit typing must not disappear on navigation.
         editor?.setEditable(false); if (text) text.readOnly = true; json.readOnly = true;
         try {
-            const response = await fetch(form.action, { method: 'POST', body: new FormData(form), credentials: 'same-origin' });
-            const destination = new URL(response.url);
-            if (response.ok && response.redirected && destination.origin === location.origin && destination.pathname === '/Workspace/Editor') {
-                dirty = false; navigating = true; location.assign(destination.href); return;
-            }
-            if (response.status === 409) {
-                find('save-state').textContent = ui.SurumVeyaIncelemeDurumuDegistiMetninizVe;
-                dirty = true; workspace.dataset.editable = 'false'; return;
-            }
-            if (response.status === 402 || response.status === 403) {
-                find('save-state').textContent = ui.EditorWriteAccessLost;
-                dirty = true; workspace.dataset.editable = 'false'; return;
-            }
-            find('save-state').textContent = destination.pathname === '/Account/Login' || response.status === 401
-                ? ui.OturumSonaErdiYeniSekmedeGirisYapip2
-                : ui.KayitDogrulanamadiDegisikliklerKorunduGirdileriVeHizmet;
-        } catch { find('save-state').textContent = ui.BaglantiKurulamadiDegisikliklerHalaBuSayfadaCikmadan; }
+            await withEditorRequest(form.action, { method: 'POST', body: new FormData(form), credentials: 'same-origin', headers: { Accept: 'application/json' } }, async response => {
+                const destination = new URL(response.url);
+                if (response.ok && response.redirected && destination.origin === location.origin && destination.pathname === '/Workspace/Editor') {
+                    dirty = false; navigating = true; location.assign(destination.href); return;
+                }
+                if (response.status === 409) {
+                    find('save-state').textContent = ui.SurumVeyaIncelemeDurumuDegistiMetninizVe;
+                    dirty = true; workspace.dataset.editable = 'false'; return;
+                }
+                if (response.status === 402 || response.status === 403) {
+                    find('save-state').textContent = ui.EditorWriteAccessLost;
+                    dirty = true; workspace.dataset.editable = 'false'; return;
+                }
+                find('save-state').textContent = destination.pathname === '/Account/Login' || response.status === 401
+                    ? ui.OturumSonaErdiYeniSekmedeGirisYapip2
+                    : ui.KayitDogrulanamadiDegisikliklerKorunduGirdileriVeHizmet;
+                if (response.status === 503 && response.headers.get('content-type')?.includes('json')) {
+                    const result = await response.json();
+                    if (typeof result?.message === 'string') find('save-state').textContent += ' ' + result.message;
+                }
+            });
+        } catch { find('save-state').textContent = ui.EditorRequestUnconfirmed; }
         finally {
             saving = false;
             if (!navigating && workspace.dataset.editable === 'true') {
                 button.disabled = false; editor?.setEditable(true); if (text) text.readOnly = false; json.readOnly = false;
             }
         }
-        dirty = true;
+        if (!navigating) dirty = true;
     });
     startSources(workspace); preview();
     startPdfExport();
@@ -81,20 +87,21 @@ if (workspace) {
             status.textContent = ui.IncelemeDurumuKaydediliyor;
             let rejected = false;
             try {
-                const response = await fetch(reviewForm.action, { method: 'POST', body: data, credentials: 'same-origin', headers: { Accept: 'application/json' } });
-                if (response.status === 401 || response.redirected && new URL(response.url).pathname === '/Account/Login')
-                    throw new Error(ui.OturumSonaErdiYeniSekmedeGirisYapin2);
-                if (!response.headers.get('content-type')?.includes('json')) throw new Error(ui.IncelemeKaydiDogrulanamadiGuncelDurumuKontrolEdin);
-                const result = await response.json();
-                if ([409, 402, 403].includes(response.status)) {
-                    rejected = true;
-                    workspace.dataset.editable = 'false';
-                    status.textContent = result.message || ui.IncelemeKaydedilemedi;
-                    return;
-                }
-                if (!response.ok) throw new Error(result.message || ui.IncelemeKaydedilemedi);
-                navigating = true; location.reload();
-            } catch (error) { status.textContent = error.message || ui.BaglantiKurulamadiDurumuYeniSekmedeKontrolEdin; }
+                await withEditorRequest(reviewForm.action, { method: 'POST', body: data, credentials: 'same-origin', headers: { Accept: 'application/json' } }, async response => {
+                    if (response.status === 401 || response.redirected && new URL(response.url).pathname === '/Account/Login')
+                        throw new Error(ui.OturumSonaErdiYeniSekmedeGirisYapin2);
+                    if (!response.headers.get('content-type')?.includes('json')) throw new Error(ui.IncelemeKaydiDogrulanamadiGuncelDurumuKontrolEdin);
+                    const result = await response.json();
+                    if ([409, 402, 403].includes(response.status)) {
+                        rejected = true;
+                        workspace.dataset.editable = 'false';
+                        status.textContent = result.message || ui.IncelemeKaydedilemedi;
+                        return;
+                    }
+                    if (!response.ok) throw new Error(result.message || ui.IncelemeKaydedilemedi);
+                    navigating = true; location.reload();
+                });
+            } catch (error) { status.textContent = error instanceof TypeError || error instanceof SyntaxError || error.name === 'AbortError' ? ui.EditorRequestUnconfirmed : error.message || ui.BaglantiKurulamadiDurumuYeniSekmedeKontrolEdin; }
             finally {
                 if (!navigating) {
                     saving = false;

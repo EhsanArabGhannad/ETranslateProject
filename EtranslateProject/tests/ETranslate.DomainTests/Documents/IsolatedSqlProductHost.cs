@@ -11,7 +11,8 @@ internal sealed class IsolatedSqlProductHost : IAsyncDisposable
 {
     private readonly string server;
     private readonly List<string> ownedDatabases = [];
-    private readonly List<(Process Process, StreamWriter Log)> children = [];
+    private readonly List<(string Name, Process Process, StreamWriter Log)> children = [];
+    private readonly Dictionary<string, string> projects = [];
     private readonly Dictionary<string, string> databases = [];
     public Dictionary<string, string> Urls { get; } = [];
     public string Root { get; }
@@ -23,7 +24,7 @@ internal sealed class IsolatedSqlProductHost : IAsyncDisposable
     {
         // Never accept a remote server, credentials, a caller-selected catalog or a reusable database.
         if (!Regex.IsMatch(server, @"^\.(\\[A-Za-z0-9_]+)?$")) throw new ArgumentException("Use a local SQL instance name only.");
-        if (suite is not ("sql-pagination" or "editor-access" or "editor-concurrency")) throw new ArgumentException("Unknown isolated QA suite.");
+        if (suite is not ("sql-pagination" or "editor-access" or "editor-concurrency" or "editor-recovery")) throw new ArgumentException("Unknown isolated QA suite.");
         this.server = server; Root = Path.GetFullPath(root);
         if (!File.Exists(Path.Combine(Root, "ETranslate.slnx"))) throw new ArgumentException("Solution root required.");
         Output = Path.Combine(Root, "tmp", "pdfs", suite, RunId);
@@ -67,6 +68,7 @@ internal sealed class IsolatedSqlProductHost : IAsyncDisposable
 
     private async Task StartService(string name, string relativeProject)
     {
+        projects[name] = relativeProject;
         var project = Path.Combine(Root, "src", relativeProject);
         var dll = Path.Combine(project, "bin", "Debug", "net10.0", Path.GetFileName(project) + ".dll");
         if (!File.Exists(dll)) throw new FileNotFoundException("Build the solution before acceptance testing.", dll);
@@ -87,11 +89,11 @@ internal sealed class IsolatedSqlProductHost : IAsyncDisposable
         foreach (var key in databases.Keys) info.Environment["ConnectionStrings__" + key] = Connection(key);
         foreach (var service in Urls) info.Environment[$"services__{service.Key}__http__0"] = service.Value;
         var process = new Process { StartInfo = info, EnableRaisingEvents = true };
-        var log = new StreamWriter(Path.Combine(Output, name + ".log")) { AutoFlush = true };
+        var log = new StreamWriter(Path.Combine(Output, name + ".log"), append: true) { AutoFlush = true };
         void Write(object sender, DataReceivedEventArgs e) { if (e.Data is not null) lock (log) log.WriteLine(e.Data); }
         process.OutputDataReceived += Write; process.ErrorDataReceived += Write;
         try { process.Start(); } catch { log.Dispose(); process.Dispose(); throw; }
-        children.Add((process, log)); process.BeginOutputReadLine(); process.BeginErrorReadLine();
+        children.Add((name, process, log)); process.BeginOutputReadLine(); process.BeginErrorReadLine();
         using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(2) };
         var deadline = DateTime.UtcNow.AddSeconds(60);
         while (DateTime.UtcNow < deadline)
@@ -110,10 +112,24 @@ internal sealed class IsolatedSqlProductHost : IAsyncDisposable
         try { return ((IPEndPoint)listener.LocalEndpoint).Port; } finally { listener.Stop(); }
     }
 
+    public async Task StopOwnedServiceAsync(string name)
+    {
+        var child = children.Single(item => item.Name == name);
+        if (!child.Process.HasExited) { child.Process.Kill(entireProcessTree: true); await child.Process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(15)); }
+        child.Process.WaitForExit();
+        lock (child.Log) child.Log.Dispose(); child.Process.Dispose(); children.Remove(child);
+    }
+
+    public Task RestartOwnedServiceAsync(string name)
+    {
+        if (children.Any(item => item.Name == name) || !projects.TryGetValue(name, out var project)) throw new InvalidOperationException("Only a stopped service owned by this QA host can be restarted.");
+        return StartService(name, project);
+    }
+
     public async ValueTask DisposeAsync()
     {
         List<Exception> failures = [];
-        foreach (var (process, log) in children.AsEnumerable().Reverse())
+        foreach (var (_, process, log) in children.AsEnumerable().Reverse())
         {
             try { if (!process.HasExited) { process.Kill(entireProcessTree: true); await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(15)); } process.WaitForExit(); }
             catch (Exception error) { failures.Add(error); }

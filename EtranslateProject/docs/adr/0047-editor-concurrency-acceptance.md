@@ -31,3 +31,5 @@ Rejected browser saves retain their exact local JSON and become read-only. Rejec
 The [Persian guide](../testing/editor-concurrency.fa.md) records the executed run and manual recovery steps. An additional production-bundle browser regression covers review 409/402/403 plus editable and initially-read-only 503 retries. No real user documents, payment, external requests, AppHost or pre-existing databases are used.
 
 This adds bounded race coverage to roadmap step 7. It is not a load/soak test, a full multiple-user/browser matrix, an upload-versus-review race matrix, a transport retry/outage audit or deployment verification. Real-time collaborative editing remains a separate feature.
+
+Follow-up: [ADR 0048](0048-editor-network-and-service-recovery.md) adds bounded network and owned-service outage recovery. The broader outage, upload, browser/device and deployment matrix still remains.

@@ -182,6 +182,10 @@ public sealed partial class WorkspaceController(BackendApi api, SubscriptionWrit
                 : error.Status == HttpStatusCode.UnprocessableEntity ? UiText.Get("BelgeIcerikSurumuDesteklenmiyor") : error.UserMessage;
             if (mode == "text") json = DocumentText.FromPlainText(plainText ?? "");
         }
+        // The enhanced editor already retains its submitted source. Avoid a second
+        // dependency read when the failing service cannot reload the editor either.
+        if (Request.Headers.Accept.Any(value => value?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true))
+            return StatusCode(failureStatus, new { message });
         var model = await LoadEditor(tenantId, jobId);
         model.EditorContentJson = json;
         model.ExpectedRevision = expectedRevision;
