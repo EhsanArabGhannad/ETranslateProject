@@ -378,6 +378,7 @@ public sealed partial class EditorAdapterBrowserTests
         public byte[] BodyImageBytes { get; set; } = BodyImageFixture.Png;
         public bool WordCaptureEnabled { get; set; }
         public string BaseUrl => origin;
+        public string BrowserVersion => browser.Version;
         public Func<HttpContext, Task<bool>>? ExtraHandler { get; set; }
         private BrowserFixture(IPlaywright playwright, IBrowser browser, IBrowserContext context, IPage page,
             WebApplication server, string source, bool editable)
@@ -386,14 +387,17 @@ public sealed partial class EditorAdapterBrowserTests
             this.server = server;
             root = Path.GetFullPath(Environment.GetEnvironmentVariable("ETRANSLATE_EDITOR_ADAPTER_WEB_ROOT")!);
         }
-        public static async Task<BrowserFixture> CreateAsync(string source, bool editable = true, bool headed = false)
+        public static async Task<BrowserFixture> CreateAsync(string source, bool editable = true, bool headed = false,
+            string? channel = null, BrowserNewContextOptions? contextOptions = null)
         {
             var playwright = await Playwright.CreateAsync();
             IBrowser? browser = null; IBrowserContext? context = null; WebApplication? server = null;
             try
             {
-                browser = await playwright.Chromium.LaunchAsync(new() { Headless = !headed, Channel = headed ? "chrome" : null, ChromiumSandbox = true });
-                context = await browser.NewContextAsync(new() { ServiceWorkers = ServiceWorkerPolicy.Block, AcceptDownloads = false });
+                browser = await playwright.Chromium.LaunchAsync(new() { Headless = !headed, Channel = channel ?? (headed ? "chrome" : null), ChromiumSandbox = true });
+                contextOptions ??= new();
+                contextOptions.ServiceWorkers = ServiceWorkerPolicy.Block; contextOptions.AcceptDownloads = false;
+                context = await browser.NewContextAsync(contextOptions);
                 var page = await context.NewPageAsync();
                 var builder = WebApplication.CreateSlimBuilder();
                 builder.Configuration.Sources.Clear(); builder.Configuration.AddInMemoryCollection(); builder.Logging.ClearProviders();

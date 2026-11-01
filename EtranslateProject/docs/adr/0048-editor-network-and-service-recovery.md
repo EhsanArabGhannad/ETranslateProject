@@ -34,3 +34,5 @@ See the [Persian guide](../testing/editor-recovery.fa.md) for results, execution
 ## Limits
 
 Preservation is in the current page's memory; there is no offline storage, automatic merge, background synchronization or reload/crash recovery. The abort signal does not prove server rollback. The six scenarios are bounded acceptance, not a full outage/chaos matrix: Identity, SQL Server, Web process restart, prolonged disconnects, other browsers/devices, upload ambiguity and production failover remain separate. Roadmap step 7 is still incomplete.
+
+Follow-up: [ADR 0049](0049-editor-browser-and-viewport-acceptance.md) adds bounded installed Chrome/Edge and emulated mobile viewport acceptance; it does not add real-device coverage.
