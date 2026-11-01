@@ -9,9 +9,9 @@ namespace ETranslate.Web.Controllers;
 public sealed partial class WorkspaceController
 {
     [HttpPost, RequestSizeLimit(6 * 1024 * 1024), RequestFormLimits(MultipartBodyLengthLimit = 6 * 1024 * 1024)]
-    public async Task<IActionResult> UploadBodyImage(Guid tenantId, Guid jobId, int expectedRevision, IFormFile? file)
+    public async Task<IActionResult> UploadBodyImage(Guid tenantId, Guid jobId, int expectedRevision, IFormFile? file, Guid? uploadId = null)
     {
-        if (!ModelState.IsValid || file is null || file.ContentType is not ("image/png" or "image/jpeg") || file.Length is <= 0 or > 5 * 1024 * 1024 || expectedRevision < 0)
+        if (!ModelState.IsValid || uploadId == Guid.Empty || file is null || file.ContentType is not ("image/png" or "image/jpeg") || file.Length is <= 0 or > 5 * 1024 * 1024 || expectedRevision < 0)
             return BadRequest(new { message = UiText.Get("EditorImageInvalidFile") });
         try
         {
@@ -20,7 +20,7 @@ public sealed partial class WorkspaceController
             await using var stream = file.OpenReadStream();
             var content = new StreamContent(stream); content.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
             form.Add(content, "file", Path.GetFileName(file.FileName));
-            using var response = await api.SendAsync("documents", HttpMethod.Post, $"{DocumentsPath(tenantId, jobId)}/{document.Id}/images?expectedRevision={expectedRevision}", form);
+            using var response = await api.SendAsync("documents", HttpMethod.Post, $"{DocumentsPath(tenantId, jobId)}/{document.Id}/images?expectedRevision={expectedRevision}" + (uploadId.HasValue ? $"&uploadId={uploadId}" : ""), form);
             BackendApi.EnsureSuccess(response);
             var image = (await response.Content.ReadFromJsonAsync<AssetView>(HttpContext.RequestAborted))!;
             Response.Headers.CacheControl = "private, no-store";

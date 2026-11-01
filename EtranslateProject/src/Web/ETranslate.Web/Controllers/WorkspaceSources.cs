@@ -9,12 +9,12 @@ namespace ETranslate.Web.Controllers;
 public sealed partial class WorkspaceController
 {
     [HttpPost, RequestSizeLimit(27 * 1024 * 1024), RequestFormLimits(MultipartBodyLengthLimit = 27 * 1024 * 1024)]
-    public async Task<IActionResult> UploadSource(Guid tenantId, Guid jobId, IFormFile? file)
+    public async Task<IActionResult> UploadSource(Guid tenantId, Guid jobId, IFormFile? file, Guid? uploadId = null)
     {
         var wantsJson = Request.Headers.Accept.Any(value => value?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true);
         string? message = null;
         var status = 400;
-        if (!ModelState.IsValid || file is null || !SourceFileRules.IsAllowed(file.ContentType, file.Length))
+        if (!ModelState.IsValid || uploadId == Guid.Empty || file is null || !SourceFileRules.IsAllowed(file.ContentType, file.Length))
             message = UiText.Get("DosyaPDFPNGJPEGVeyaTIFFBiciminde");
         else
         {
@@ -27,7 +27,7 @@ public sealed partial class WorkspaceController
                 content.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
                 form.Add(content, "file", Path.GetFileName(file.FileName));
                 using var response = await api.SendAsync("documents", HttpMethod.Post,
-                    $"{DocumentsPath(tenantId, jobId)}/{document.Id}/source-files", form);
+                    $"{DocumentsPath(tenantId, jobId)}/{document.Id}/source-files" + (uploadId.HasValue ? $"?uploadId={uploadId}" : ""), form);
                 BackendApi.EnsureSuccess(response);
                 var source = (await response.Content.ReadFromJsonAsync<SourceFileView>(HttpContext.RequestAborted))!;
                 if (wantsJson) return Ok(new { sourceFile = source });

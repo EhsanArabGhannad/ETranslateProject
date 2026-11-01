@@ -1,11 +1,13 @@
 import ui from '../Resources/interface.tr.json' with { type: 'json' };
 import { guid } from './document-schema.js';
 import { validImageLayout } from './body-image.js';
+import { createUploadAttempt } from './upload-attempt.js';
 
 export function startEditorImages(workspace, session, onBusy = () => {}) {
     const find = id => document.getElementById(id), panel = find('editor-images'); if (!panel) return () => {};
     const file = find('editor-image-file'), upload = find('editor-image-upload'), width = find('editor-image-width'), align = find('editor-image-align'), apply = find('editor-image-apply'), status = find('editor-image-status');
     let busy = false, disposed = false, signature, controller;
+    const uploadAttempt = createUploadAttempt();
     const cleanups = [], on = (node, type, callback) => { node.addEventListener(type, callback); cleanups.push(() => node.removeEventListener(type, callback)); };
     const layout = () => ({ widthPercent: /^[1-9]\d{0,2}$/.test(width.value) ? Number(width.value) : NaN, align: align.value });
     function update() {
@@ -40,11 +42,12 @@ export function startEditorImages(workspace, session, onBusy = () => {}) {
             const form = find('draft-form'), body = new FormData();
             for (const key of ['tenantId', 'jobId', 'expectedRevision', '__RequestVerificationToken']) if (form.elements[key]) body.set(key, form.elements[key].value);
             body.set('file', selected, selected.name);
+            body.set('uploadId', uploadAttempt(selected));
             const response = await fetch(url, { method: 'POST', body, credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: controller.signal });
-            if (response.status === 409) { workspace.dataset.editable = 'false'; status.textContent = ui.SurumVeyaIncelemeDurumuDegistiMetninizVe; return; }
+            if ([409, 402, 403].includes(response.status)) { workspace.dataset.editable = 'false'; status.textContent = response.status === 409 ? ui.SurumVeyaIncelemeDurumuDegistiMetninizVe : ui.EditorWriteAccessLost; return; }
             if (response.redirected || !response.headers.get('content-type')?.includes('json')) throw new Error();
             const result = await response.json();
-            if (!response.ok) { status.textContent = typeof result.message === 'string' ? result.message : ui.EditorImageFailed; return; }
+            if (!response.ok) { status.textContent = response.status >= 500 ? ui.EditorUploadUnconfirmed : typeof result.message === 'string' ? result.message : ui.EditorImageFailed; return; }
             if (!guid.test(result.id ?? '')) throw new Error();
             // Verify the private response can actually render before adding a persistent node.
             const image = new Image(); image.src = `/Workspace/BodyImage?tenantId=${workspace.dataset.tenantId}&jobId=${workspace.dataset.jobId}&assetId=${result.id}`;
@@ -54,7 +57,7 @@ export function startEditorImages(workspace, session, onBusy = () => {}) {
             session.setEditable(true);
             if (!session.execute('insertImage', { assetId: result.id, bookmark })) throw new Error();
             file.value = ''; status.textContent = ui.EditorImageAdded;
-        } catch { if (!disposed) status.textContent = ui.EditorImageFailed; }
+        } catch { if (!disposed) status.textContent = ui.EditorUploadUnconfirmed; }
         finally {
             clearTimeout(timer); session.releaseImageInsertion(bookmark); busy = false;
             if (!disposed) { session.setEditable(workspace.dataset.editable === 'true'); onBusy(false); update(); }

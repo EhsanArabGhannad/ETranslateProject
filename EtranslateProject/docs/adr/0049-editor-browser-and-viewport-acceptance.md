@@ -27,3 +27,5 @@ Run instructions and observed results: [Persian guide](../testing/editor-browser
 ## Limits
 
 Chrome and Edge are both Chromium-family browsers. This is one engine family, not independent Firefox/WebKit coverage. Safari/iOS, Firefox, native Android browsers, actual touch keyboards/IME/clipboard, pinch zoom, accessibility assistive technology, large-document performance and real network deployment remain separate. The SQL cases use a synthetic office owner with an active trial; the role/subscription matrix remains covered by ADR 0046, not repeated here. Roadmap step 7 is still incomplete.
+
+Follow-up: [ADR 0050](0050-editor-upload-recovery-and-concurrency.md) adds bounded upload replay, deadlines and concurrency acceptance.

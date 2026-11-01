@@ -377,6 +377,7 @@ public sealed partial class EditorAdapterBrowserTests
         public bool ServeImage { get; set; } = true;
         public byte[] BodyImageBytes { get; set; } = BodyImageFixture.Png;
         public bool WordCaptureEnabled { get; set; }
+        public bool SourceUploadsEnabled { get; set; }
         public string BaseUrl => origin;
         public string BrowserVersion => browser.Version;
         public Func<HttpContext, Task<bool>>? ExtraHandler { get; set; }
@@ -445,14 +446,14 @@ public sealed partial class EditorAdapterBrowserTests
         {
             if (ExtraHandler is not null && await ExtraHandler(request)) return;
             var path = request.Request.Path.Value;
-            if (request.Request.Method == "POST" && path is "/Workspace/SaveDraft" or "/Workspace/Review" or "/Workspace/UploadBodyImage" && responses.TryDequeue(out var gate))
+            if (request.Request.Method == "POST" && path is "/Workspace/SaveDraft" or "/Workspace/Review" or "/Workspace/UploadBodyImage" or "/Workspace/UploadSource" && responses.TryDequeue(out var gate))
             {
                 using var reader = new StreamReader(request.Request.Body);
                 gate.Body = await reader.ReadToEndAsync(request.RequestAborted); gate.Received.SetResult();
                 var status = await gate.Release.Task.WaitAsync(TimeSpan.FromSeconds(30));
                 request.Response.StatusCode = status; request.Response.ContentType = "application/json";
                 if (status == 303) request.Response.Headers.Location = "/Workspace/Editor?after-save=1";
-                await request.Response.WriteAsync(path == "/Workspace/UploadBodyImage" && status == 200 ? "{\"id\":\"" + ImageId + "\"}" : "{\"message\":\"Synthetic review failure\"}", request.RequestAborted);
+                await request.Response.WriteAsync(path == "/Workspace/UploadBodyImage" && status == 200 ? "{\"id\":\"" + ImageId + "\"}" : path == "/Workspace/UploadSource" && status == 200 ? "{\"sourceFile\":{\"id\":\"" + ImageId + "\",\"originalFileName\":\"synthetic.png\",\"contentType\":\"image/png\"}}" : "{\"message\":\"Synthetic review failure\"}", request.RequestAborted);
                 return;
             }
             if (request.Request.Method == "GET" && path == "/Workspace/Editor")
@@ -471,8 +472,12 @@ public sealed partial class EditorAdapterBrowserTests
                 request.Response.ContentType = "image/png"; request.Response.Headers.CacheControl = "private, no-store";
                 await request.Response.Body.WriteAsync(BodyImageBytes, request.RequestAborted); return;
             }
+            if (SourceUploadsEnabled && request.Request.Method == "GET" && path == "/Workspace/Source") {
+                request.Response.ContentType = "image/png"; await request.Response.Body.WriteAsync(BodyImageBytes, request.RequestAborted); return;
+            }
             var file = path switch {
                 "/js/generated/workspace.js" => ("wwwroot/js/generated/workspace.js", "text/javascript"),
+                "/js/generated/pdf.worker.js" => ("wwwroot/js/generated/pdf.worker.js", "text/javascript"),
                 "/css/site.css" => ("wwwroot/css/site.css", "text/css"),
                 "/css/document-pagination.css" => ("wwwroot/css/document-pagination.css", "text/css"),
                 _ => default
@@ -520,11 +525,15 @@ public sealed partial class EditorAdapterBrowserTests
                 <button type="button" data-command="decreaseIndent">Azalt</button><button type="button" data-command="increaseIndent">Artır</button><button type="button" data-command="clearParagraphStyle">Sıfırla</button>
                 <details id="editor-paragraph-advanced" class="editor-paragraph-advanced"><summary>{{UiText.Get("EditorParagraphSpacing")}}</summary><div class="editor-paragraph-spacing">{{advanced}}</div></details></div>
                 """;
+            var sourceTools = SourceUploadsEnabled ? """
+                <form id="source-upload-form" method="post" action="/Workspace/UploadSource"><input name="tenantId" value="22222222-2222-2222-2222-222222222222" type="hidden"><input name="jobId" value="44444444-4444-4444-4444-444444444444" type="hidden"><input name="file" type="file" id="source-file"><button type="submit">Yükle</button></form>
+                <span id="source-count">0 dosya</span><p id="source-status"></p><select id="source-select"><option value="">Seçin</option></select><a id="source-download" hidden>İndir</a><div id="pdf-controls" hidden><button id="pdf-prev" type="button">Önceki</button><span id="pdf-page-label"></span><button id="pdf-next" type="button">Sonraki</button><select id="source-zoom"><option value="1">Sığdır</option></select></div><div id="source-display" class="source-display"></div><div id="source-file-list"></div>
+                """ : "<div class='source-display'>Yalnızca sentetik test verisi</div>";
             return $$"""
                 <!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/site.css"><link rel="stylesheet" href="/css/document-pagination.css"></head><body>
                 <header class="topbar"><a href="/Workspace/Editor">ETranslate · Yerel test</a></header><main class="shell"><h1>Çeviri stüdyosu · Deneme belgesi</h1>
-                <fieldset class="subscription-lock"><div class="editor-grid" id="editor-workspace" data-rich-compatible="true" data-tenant-id="22222222-2222-2222-2222-222222222222" data-template-id="33333333-3333-3333-3333-333333333333" data-job-id="44444444-4444-4444-4444-444444444444" data-image-upload-url="/Workspace/UploadBodyImage" data-editable="{{Editable.ToString().ToLowerInvariant()}}" {{metadata}} {{templateMetadata}}>
-                <section class="card source-panel"><h2>Kaynak belge</h2><div class="source-display">Yalnızca sentetik test verisi</div></section>
+                <fieldset class="subscription-lock"><div class="editor-grid" id="editor-workspace" data-rich-compatible="true" data-tenant-id="22222222-2222-2222-2222-222222222222" data-template-id="33333333-3333-3333-3333-333333333333" data-job-id="44444444-4444-4444-4444-444444444444" data-image-upload-url="/Workspace/UploadBodyImage" data-source-base="/Workspace/Source" data-editable="{{Editable.ToString().ToLowerInvariant()}}" {{metadata}} {{templateMetadata}}>
+                <section class="card source-panel"><h2>Kaynak belge</h2>{{sourceTools}}</section>
                 <section class="card editor-controls"><div class="section-heading"><h2 id="editor-heading">{{UiText.Get("CeviriMetni")}}</h2><p id="save-state">CLEAN</p></div>
                 <div id="editor-view-controls" class="editor-view-controls" role="group" aria-label="{{UiText.Get("EditorViewControls")}}" hidden>
                     <button type="button" class="secondary" id="editor-focus-toggle" aria-pressed="false">{{UiText.Get("EditorEnterFocus")}}</button>

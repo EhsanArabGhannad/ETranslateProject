@@ -331,6 +331,7 @@ public static partial class DocumentEndpoints
         Guid tenantId,
         Guid translationJobId,
         Guid documentId,
+        Guid? uploadId,
         IFormFile file,
         HttpContext httpContext,
         TenantAccessClient tenantAccessClient,
@@ -370,14 +371,16 @@ public static partial class DocumentEndpoints
         {
             return Results.ValidationProblem(validationErrors);
         }
+        if (uploadId == Guid.Empty) return Results.BadRequest(new { error = "invalid_upload_id" });
+        if (uploadId.HasValue && await ReplaySourceUploadAsync(uploadId.Value, document, access.Actor!.UserId, file, database, cancellationToken) is { } replay) return replay;
 
-        var sourceFileId = Guid.NewGuid();
+        var sourceFileId = uploadId ?? Guid.NewGuid();
         var storageKey = string.Join(
             '/',
             tenantId.ToString("N"),
             documentId.ToString("N"),
             "sources",
-            $"{sourceFileId:N}{SourceFilePolicy.GetExtension(contentType)}");
+            $"{sourceFileId:N}-{Guid.NewGuid():N}{SourceFilePolicy.GetExtension(contentType)}");
 
         StoredBlob storedBlob;
         try
@@ -436,9 +439,10 @@ public static partial class DocumentEndpoints
                 $"/api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}/documents/{documentId}/source-files/{sourceFile.Id}",
                 ToResponse(sourceFile));
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateException error) when (error is DbUpdateConcurrencyException || error.InnerException is SqlException { Number: 2601 or 2627 })
         {
             await blobStore.DeleteIfExistsAsync(storageKey, CancellationToken.None);
+            if (uploadId.HasValue && await ReplaySourceUploadAsync(sourceFileId, document, access.Actor!.UserId, file, database, cancellationToken, storedBlob) is { } committed) return committed;
             return Results.Conflict(new { error = "document_revision_conflict" });
         }
         catch

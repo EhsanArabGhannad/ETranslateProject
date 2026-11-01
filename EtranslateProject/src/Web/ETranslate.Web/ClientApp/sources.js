@@ -2,10 +2,12 @@ import ui from '../Resources/interface.tr.json' with { type: 'json' };
 import { formatUi } from './ui-format.js';
 import * as pdfjs from 'pdfjs-dist/build/pdf.mjs';
 import { guid } from './document-schema.js';
+import { withEditorRequest } from './editor-request.js';
+import { createUploadAttempt } from './upload-attempt.js';
 
 pdfjs.GlobalWorkerOptions.workerSrc = '/js/generated/pdf.worker.js';
 
-export function startSources(workspace) {
+export function startSources(workspace, { canUpload = () => workspace.dataset.editable === 'true', onBusy = () => {} } = {}) {
     const find = id => document.getElementById(id), select = find('source-select');
     if (!select) return;
     const status = find('source-status'), display = find('source-display');
@@ -91,26 +93,38 @@ export function startSources(workspace) {
     next.addEventListener('click', () => { if (pdf && !rendering && pageNumber < pdf.numPages) { pageNumber++; void renderPage(generation); } });
     zoom.addEventListener('change', () => { if (pdf && !rendering) void renderPage(generation); });
     const upload = find('source-upload-form');
+    const uploadAttempt = createUploadAttempt(); let uploading = false;
     upload?.addEventListener('submit', async event => {
         event.preventDefault();
+        if (uploading || !canUpload()) return;
         const input = find('source-file'), file = input.files[0], button = upload.querySelector('button');
         if (!file || !file.size || file.size > 25 * 1024 * 1024) { status.textContent = ui.BosVeya25MBUzerindekiDosyalarKabul; return; }
-        button.disabled = true; status.textContent = ui.DosyaYukleniyorCeviriMetniKorunur;
+        const body = new FormData(upload); body.set('uploadId', uploadAttempt(file));
+        uploading = true; input.disabled = true; button.disabled = true; onBusy(true); status.textContent = ui.DosyaYukleniyorCeviriMetniKorunur;
         try {
-            const response = await fetch(upload.action, { method: 'POST', body: new FormData(upload), credentials: 'same-origin', headers: { Accept: 'application/json' } });
-            if (response.redirected && new URL(response.url).pathname === '/Account/Login') throw new Error(ui.OturumSonaErdiYeniSekmedeGirisYapip);
-            if (!response.headers.get('content-type')?.includes('application/json')) throw new Error(ui.YuklemeDogrulanamadiOturumuDosyaBoyutunuVeBaglantiyi);
-            const result = await response.json();
-            if (!response.ok) throw new Error(typeof result.message === 'string' ? result.message : ui.DosyaKabulEdilmedi);
-            const source = result.sourceFile;
-            if (!guid.test(source?.id ?? '')) throw new Error(ui.YuklemeYanitiDogrulanamiyor);
-            const option = document.createElement('option'); option.value = source.id; option.textContent = source.originalFileName; option.dataset.type = source.contentType;
-            select.append(option); select.value = source.id;
-            const link = document.createElement('a'); link.href = sourceUrl(source.id, true); link.textContent = source.originalFileName;
-            find('source-file-list').append(link); find('source-count').textContent = formatUi(ui.FileCount, select.options.length - 1);
-            input.value = ''; await openSelected();
-        } catch (error) { status.textContent = error.message || ui.BaglantiKurulamadiCeviriMetniBuSayfadaKorunmustur; }
-        finally { button.disabled = false; }
+            await withEditorRequest(upload.action, { method: 'POST', body, credentials: 'same-origin', headers: { Accept: 'application/json' } }, async response => {
+                if ([409, 402, 403].includes(response.status)) {
+                    workspace.dataset.editable = 'false'; status.textContent = response.status === 409 ? ui.SurumVeyaIncelemeDurumuDegistiMetninizVe : ui.EditorWriteAccessLost; return;
+                }
+                if (response.redirected && new URL(response.url).pathname === '/Account/Login') throw new Error(ui.OturumSonaErdiYeniSekmedeGirisYapip);
+                if (!response.headers.get('content-type')?.includes('application/json')) throw new Error(ui.YuklemeDogrulanamadiOturumuDosyaBoyutunuVeBaglantiyi);
+                const result = await response.json();
+                if (!response.ok) throw new Error(response.status >= 500 ? ui.EditorUploadUnconfirmed : typeof result.message === 'string' ? result.message : ui.DosyaKabulEdilmedi);
+                const source = result.sourceFile;
+                if (!guid.test(source?.id ?? '')) throw new Error(ui.YuklemeYanitiDogrulanamiyor);
+                if (![...select.options].some(option => option.value === source.id)) {
+                    const option = document.createElement('option'); option.value = source.id; option.textContent = source.originalFileName; option.dataset.type = source.contentType;
+                    select.append(option);
+                    const link = document.createElement('a'); link.href = sourceUrl(source.id, true); link.textContent = source.originalFileName;
+                    find('source-file-list').append(link);
+                }
+                select.value = source.id; find('source-count').textContent = formatUi(ui.FileCount, select.options.length - 1);
+                // Preview has its own lifecycle. A slow PDF preview must not keep an acknowledged
+                // upload (and the editor's write controls) busy after its metadata was received.
+                input.value = ''; void openSelected();
+            });
+        } catch (error) { status.textContent = error instanceof TypeError || error instanceof SyntaxError || error.name === 'AbortError' ? ui.EditorUploadUnconfirmed : error.message || ui.EditorUploadUnconfirmed; }
+        finally { uploading = false; onBusy(false); input.disabled = button.disabled = !canUpload(); }
     });
     if (select.options.length > 1) { select.selectedIndex = 1; void openSelected(); }
 }

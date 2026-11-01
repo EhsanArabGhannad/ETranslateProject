@@ -67,7 +67,15 @@ if (workspace) {
         }
         if (!navigating) dirty = true;
     });
-    startSources(workspace); preview();
+    startSources(workspace, {
+        canUpload: () => !saving && !uploading && workspace.dataset.editable === 'true',
+        onBusy: busy => {
+            uploading = busy;
+            const editable = !busy && !saving && workspace.dataset.editable === 'true';
+            form.querySelector('button[type=submit]').disabled = !editable;
+            editor?.setEditable(editable); if (text) text.readOnly = !editable; json.readOnly = !editable;
+        }
+    }); preview();
     startPdfExport();
     for (const reviewForm of document.querySelectorAll('.review-form')) {
         reviewForm.addEventListener('submit', async event => {

@@ -734,5 +734,6 @@
   "EditorPasteEmpty": "Yapıştırılabilir metin bulunamadı. Pano görselleri için görsel ekleme aracını kullanın.",
   "EditorPasteInvalid": "Pano içeriği okunamadı. Metin değiştirilmedi; yalnızca metin biçimini deneyin.",
   "EditorWriteAccessLost": "Yazma yetkisi veya abonelik durumu değişti. Metniniz bu sayfada korunuyor; kopyalayabilir ve güncel durumu yeni sekmede kontrol edebilirsiniz.",
-  "EditorRequestUnconfirmed": "İşlemin sonucu doğrulanamadı. Metniniz bu sayfada korunuyor. Bağlantı geri geldiğinde güncel sürüm ve inceleme durumunu yeni sekmede kontrol edin."
+  "EditorRequestUnconfirmed": "İşlemin sonucu doğrulanamadı. Metniniz bu sayfada korunuyor. Bağlantı geri geldiğinde güncel sürüm ve inceleme durumunu yeni sekmede kontrol edin.",
+  "EditorUploadUnconfirmed": "Yüklemenin sonucu doğrulanamadı. Dosya sunucuda kaydedilmiş olabilir; metniniz bu sayfada korunuyor. Aynı dosyayı yeniden seçmeden tekrar deneyin."
 }

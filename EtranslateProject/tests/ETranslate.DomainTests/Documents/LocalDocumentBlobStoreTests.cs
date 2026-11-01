@@ -104,6 +104,26 @@ public sealed class LocalDocumentBlobStoreTests : IAsyncLifetime
         Assert.Contains("does not match", exception.Message);
     }
 
+    [Fact]
+    public async Task Cancellation_after_a_partial_write_removes_the_temporary_upload_without_publishing_a_blob()
+    {
+        var store = CreateStore(); using var cancellation = new CancellationTokenSource();
+        await using var input = new CancelDuringReadStream("%PDF-1.7 synthetic partial upload"u8.ToArray(), cancellation);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => store.SaveAsync(
+            "tenant/document/sources/canceled.pdf", input, "application/pdf", 1024, cancellation.Token));
+        Assert.Empty(Directory.GetFiles(_rootPath, "*", SearchOption.AllDirectories));
+    }
+
+    private sealed class CancelDuringReadStream(byte[] bytes, CancellationTokenSource cancellation) : MemoryStream(bytes)
+    {
+        private int reads;
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken token = default)
+        {
+            if (++reads == 2) { cancellation.Cancel(); return ValueTask.FromCanceled<int>(token); }
+            return base.ReadAsync(buffer, token);
+        }
+    }
+
     private LocalDocumentBlobStore CreateStore() =>
         new(new DocumentStorageOptions { RootPath = _rootPath });
 }
