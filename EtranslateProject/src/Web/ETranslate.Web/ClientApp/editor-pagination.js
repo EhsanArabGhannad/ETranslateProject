@@ -33,6 +33,7 @@ export function startEditorPagination(workspace, session, schedule) {
     const viewport = find('editor-viewport'), host = find('rich-text'), select = find('editor-page-index'), notice = find('editor-pagination-status');
     if (!toggle || !nav || !root || !session) return null;
     let enabled = false, disposed = false, loading = false, count = 1, active = 1, scale = 1, metrics, templates, painted = 0, follow = false;
+    let layoutDirty = true;
     const sheets = document.createElement('div'); sheets.id = 'editor-page-sheets'; sheets.setAttribute('aria-hidden','true');
     const measure = document.createElement('div'); measure.id = 'editor-flow-measure'; measure.inert = true; measure.setAttribute('aria-hidden','true');
     workspace.append(measure);
@@ -41,7 +42,7 @@ export function startEditorPagination(workspace, session, schedule) {
     function remember(node) { saved.set(node,[...node.style].map(name=>[name,node.style.getPropertyValue(name),node.style.getPropertyPriority(name)])); }
     function restore() { for(const [node,properties] of saved){while(node.style.length)node.style.removeProperty(node.style.item(0));for(const [n,v,p] of properties)node.style.setProperty(n,v,p);}saved.clear(); }
     function stop(message = '') {
-        enabled = false; root.classList.remove('document-flow'); paper.classList.remove('editor-page-world');
+        enabled = false; layoutDirty = true; root.classList.remove('document-flow'); paper.classList.remove('editor-page-world');
         sheets.remove(); measure.replaceChildren(); restore(); nav.hidden = true; painted = 0;
         delete viewport.dataset.pageCount; delete viewport.dataset.pageIndex; viewport.dataset.pagination = 'continuous';
         toggle.setAttribute('aria-pressed','false'); toggle.textContent = ui.EditorEnablePages; notice.textContent = message; schedule();
@@ -83,7 +84,7 @@ export function startEditorPagination(workspace, session, schedule) {
             metrics=geometry(find('template-layout')?.value,...sizes); measure.replaceChildren();
             if(!metrics)throw new Error();
             for(const node of [root,paper,host])remember(node);
-            enabled=true; follow=true; root.classList.add('document-flow'); paper.classList.add('editor-page-world'); paper.prepend(sheets);
+            enabled=true; layoutDirty=true; follow=true; root.classList.add('document-flow'); paper.classList.add('editor-page-world'); paper.prepend(sheets);
             toggle.setAttribute('aria-pressed','true'); toggle.textContent=ui.EditorDisablePages; nav.hidden=false;
             if(description)description.textContent=formatUi(ui.EditorPagedDescription,metrics.pageSize,metrics.orientation==='Landscape'?ui.EditorLandscape:ui.EditorPortrait,metrics.width,metrics.height);
             notice.textContent=ui.EditorPagesNotice; schedule();
@@ -131,25 +132,29 @@ export function startEditorPagination(workspace, session, schedule) {
     function render(value) {
         if(!enabled)return false;
         try {
-            // Do not start another private-image request on every keystroke. Images are already
-            // decoded; a read-only measurement box uses their actual unscaled dimensions.
-            const currentScale=new DOMMatrixReadOnly(getComputedStyle(paper).transform).a || 1;
-            if ([...root.querySelectorAll('img')].some(image => !image.complete)) return true;
-            if ([...root.querySelectorAll('img')].some(image => !image.naturalWidth || image.naturalWidth * image.naturalHeight > 16000000 || image.getBoundingClientRect().height / currentScale > metrics.contentHeight + .5)) throw new Error();
-            function copy(node) {
-                if(node instanceof HTMLImageElement){const box=document.createElement('span'),rect=node.getBoundingClientRect();
-                    Object.assign(box.style,{display:'block',width:`${rect.width/currentScale}px`,height:`${rect.height/currentScale}px`,breakInside:'avoid'});return box;}
-                const clone=node.cloneNode(false);for(const child of node.childNodes)clone.append(copy(child));return clone;
-            }
-            const clone=copy(root);clone.removeAttribute('contenteditable');clone.removeAttribute('role');clone.removeAttribute('tabindex');
-            Object.assign(clone.style,{width:`${metrics.contentWidth}px`,height:'auto',columns:'auto'});measure.replaceChildren(clone);
-            for(const table of clone.querySelectorAll('table')) {
-                const rows=[...table.rows], first=rows[0];
-                const header=first?.cells.length && [...first.cells].every(cell=>cell.tagName==='TH')?rows.shift().getBoundingClientRect().height:0;
-                if(Math.max(header,...rows.map(row=>header+row.getBoundingClientRect().height))>metrics.contentHeight+.5)throw new Error();
-            }
             const previousScale=scale,previousActive=active;
-            const plan=measureRowPlan(clone,metrics);measure.replaceChildren();count=plan.pages;active=Math.min(active,count);scale=value;
+            // Selection, search highlighting and zoom cannot change the unscaled paper layout.
+            // Reuse the measured page count until content, image readiness or fonts change.
+            if (layoutDirty) {
+                // Keep decoded private images out of the temporary measurement DOM.
+                const currentScale=new DOMMatrixReadOnly(getComputedStyle(paper).transform).a || 1;
+                if ([...root.querySelectorAll('img')].some(image => !image.complete)) return true;
+                if ([...root.querySelectorAll('img')].some(image => !image.naturalWidth || image.naturalWidth * image.naturalHeight > 16000000 || image.getBoundingClientRect().height / currentScale > metrics.contentHeight + .5)) throw new Error();
+                function copy(node) {
+                    if(node instanceof HTMLImageElement){const box=document.createElement('span'),rect=node.getBoundingClientRect();
+                        Object.assign(box.style,{display:'block',width:`${rect.width/currentScale}px`,height:`${rect.height/currentScale}px`,breakInside:'avoid'});return box;}
+                    const clone=node.cloneNode(false);for(const child of node.childNodes)clone.append(copy(child));return clone;
+                }
+                const clone=copy(root);clone.removeAttribute('contenteditable');clone.removeAttribute('role');clone.removeAttribute('tabindex');
+                Object.assign(clone.style,{width:`${metrics.contentWidth}px`,height:'auto',columns:'auto'});measure.replaceChildren(clone);
+                for(const table of clone.querySelectorAll('table')) {
+                    const rows=[...table.rows], first=rows[0];
+                    const header=first?.cells.length && [...first.cells].every(cell=>cell.tagName==='TH')?rows.shift().getBoundingClientRect().height:0;
+                    if(Math.max(header,...rows.map(row=>header+row.getBoundingClientRect().height))>metrics.contentHeight+.5)throw new Error();
+                }
+                const plan=measureRowPlan(clone,metrics);measure.replaceChildren();count=plan.pages;active=Math.min(active,count);layoutDirty=false;
+            }
+            scale=value;
             Object.assign(root.style,{width:`${metrics.contentWidth}px`,height:`${metrics.contentHeight}px`,columnCount:'1',columnWidth:`${metrics.contentWidth}px`,columnGap:`${metrics.columnGap}px`,columnFill:'auto'});
             Object.assign(host.style,{left:`${metrics.left}px`,top:`${metrics.top}px`});
             const width=count*metrics.pageWidth+(count-1)*28;
@@ -165,10 +170,12 @@ export function startEditorPagination(workspace, session, schedule) {
     find('editor-page-prev').addEventListener('mousedown',keep);find('editor-page-next').addEventListener('mousedown',keep);
     find('editor-page-prev').addEventListener('click',previous);find('editor-page-next').addEventListener('click',next);select.addEventListener('change',chosen);
     document.addEventListener('selectionchange',followCaret);root.addEventListener('keyup',key);
-    const imageReady = () => schedule(); root.addEventListener('load', imageReady, true); root.addEventListener('error', imageReady, true);
-    const unsubscribe=session.onDocumentChange(()=>{follow=true;schedule();});
+    const invalidate = () => { layoutDirty=true;schedule(); };
+    root.addEventListener('load', invalidate, true); root.addEventListener('error', invalidate, true);
+    document.fonts.addEventListener('loadingdone', invalidate);
+    const unsubscribe=session.onDocumentChange(()=>{follow=true;invalidate();});
     return {render,destroy(){disposed=true;stop();measure.remove();unsubscribe();toggle.removeEventListener('mousedown',keep);toggle.removeEventListener('click',switchMode);
         find('editor-page-prev').removeEventListener('mousedown',keep);find('editor-page-next').removeEventListener('mousedown',keep);
         find('editor-page-prev').removeEventListener('click',previous);find('editor-page-next').removeEventListener('click',next);select.removeEventListener('change',chosen);
-        document.removeEventListener('selectionchange',followCaret);root.removeEventListener('keyup',key);root.removeEventListener('load', imageReady, true);root.removeEventListener('error', imageReady, true);}};
+        document.removeEventListener('selectionchange',followCaret);root.removeEventListener('keyup',key);root.removeEventListener('load', invalidate, true);root.removeEventListener('error', invalidate, true);document.fonts.removeEventListener('loadingdone', invalidate);}};
 }
