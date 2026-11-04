@@ -54,3 +54,5 @@ pwsh -NoProfile -File ./tests/ETranslate.EndToEndTests/Verify-StorageRestore.ps1
 SQL backup به‌تنهایی فایل‌های بیرون دیتابیس را نگه نمی‌دارد. این تمرین هنوز سازگاری بازیابی همهٔ میکروسرویس‌ها، backup هم‌زمان با آپلود، بازیابی لاگ تا یک لحظهٔ خاص، کلیدهای واقعی امضا، رمزنگاری/نسخهٔ خارج از سرور یا زمان و میزان ازدست‌رفتن داده در حادثه را ثابت نمی‌کند.
 
 مبنای روش SQL: [راهنمای COPY_ONLY مایکروسافت](https://learn.microsoft.com/en-us/sql/relational-databases/backup-restore/copy-only-backups-sql-server?view=sql-server-ver17) و [گزینه‌های RESTORE](https://learn.microsoft.com/en-us/sql/t-sql/statements/restore-statements-arguments-transact-sql?view=sql-server-ver15). جزئیات فنی پروژه در [ADR 0054](../adr/0054-isolated-documents-backup-restore-rehearsal.md) است.
+
+ادامهٔ رفع هشدارهای بسته‌ها انجام شد: [گزارش ارتقای امنیتی](dependency-security.fa.md). هشدارهای ذکرشده در این راهنما مربوط به اجرای قبلی‌اند.

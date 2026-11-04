@@ -6,6 +6,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Security override for transitive SqlClient/PDFsharp PKCS dependencies; see ADR 0055. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.21" />
     <PackageReference Include="MassTransit.EntityFrameworkCore" Version="8.5.7" />
     <PackageReference Include="MassTransit.SqlTransport.SqlServer" Version="8.5.7" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
