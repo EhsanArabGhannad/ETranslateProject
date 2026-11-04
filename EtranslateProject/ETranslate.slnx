@@ -34,6 +34,9 @@
     <Project Path="src/Services/Trust/ETranslate.Trust.Api/ETranslate.Trust.Api.csproj" />
   </Folder>
   <Folder Name="/src/Web/" />
+  <Folder Name="/src/Tools/">
+    <Project Path="src/Tools/ETranslate.StorageAudit/ETranslate.StorageAudit.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ETranslate.ArchitectureTests/ETranslate.ArchitectureTests.csproj" />
     <Project Path="tests/ETranslate.DomainTests/ETranslate.DomainTests.csproj" />

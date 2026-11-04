@@ -31,3 +31,5 @@ The existing upload acceptance is rerun separately with six real services and ne
 This is fault injection around real SQL/file operations, not a stopped SQL instance, severed SQL connection, full disk, OS permission outage, process kill, power loss, object-storage outage or proof of filesystem durability. It does not change missing-file responses or repair previously lost content. An ambiguous request may leave an unreferenced file, deliberately preferring retention to data loss. Logs are diagnostic signals, not a durable reconciliation queue. Template re-upload and clients without an upload identity can still duplicate assets.
 
 Next: a read-only inventory of referenced, missing and unreferenced managed files with hashes and operation age. Deletion requires a separate policy accounting for in-flight writes and historical references. Roadmap step 7 and deployment acceptance remain incomplete.
+
+Follow-up: [ADR 0053](0053-read-only-managed-storage-inventory.md) implements a standalone read-only inventory. It reports filesystem last-write age and metadata time separately; it does not infer actual operation age or authorize deletion.

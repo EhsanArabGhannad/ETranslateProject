@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Tools\ETranslate.StorageAudit\ETranslate.StorageAudit.csproj" />
     <ProjectReference Include="..\..\src\Web\ETranslate.Web\ETranslate.Web.csproj" />
     <ProjectReference Include="..\..\src\Services\Billing\ETranslate.Billing.Api\ETranslate.Billing.Api.csproj" />
     <ProjectReference Include="..\..\src\Services\Documents\ETranslate.Documents.Api\ETranslate.Documents.Api.csproj" />

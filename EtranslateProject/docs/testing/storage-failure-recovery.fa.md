@@ -71,4 +71,6 @@ Blob cleanup failed; retained for reconciliation
 
 قدم بعدی پیشنهادی، گزارش فقط‌خواندنی تطبیق رکوردها با فایل‌ها، تشخیص فایل مفقود و بررسی هش/سن فایل است. قطع واقعی اتصال SQL، پرشدن دیسک، خرابی فرایند/برق، ذخیره‌ساز مشترک و استقرار همچنان آزمون جدا می‌خواهند.
 
+ادامه انجام شد: [ابزار گزارش تطبیق فایل‌ها](storage-inventory.fa.md) به‌صورت مستقل و فقط‌خواندنی اضافه شده است. سن آخرین تغییر فایل و زمان ثبت رکورد را جدا نشان می‌دهد و هیچ مجوز یا قابلیت حذف ندارد.
+
 مبنای طراحی: [ADR 0052](../adr/0052-blob-retention-after-uncertain-database-commit.md) و [توضیح Microsoft دربارهٔ نامعلوم‌بودن نتیجهٔ commit](https://learn.microsoft.com/en-us/ef/core/miscellaneous/connection-resiliency#transaction-commit-failure-and-the-idempotency-issue).

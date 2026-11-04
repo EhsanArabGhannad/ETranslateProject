@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Services/Documents/ETranslate.Documents.Api/ETranslate.Documents.Api.csproj" />
+  </ItemGroup>
+</Project>
