@@ -337,6 +337,7 @@ public static partial class DocumentEndpoints
         TenantAccessClient tenantAccessClient,
         DocumentsDbContext database,
         IDocumentBlobStore blobStore,
+        DocumentBlobWrites blobWrites,
         IPublishEndpoint publishEndpoint,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
@@ -382,6 +383,7 @@ public static partial class DocumentEndpoints
             "sources",
             $"{sourceFileId:N}-{Guid.NewGuid():N}{SourceFilePolicy.GetExtension(contentType)}");
 
+        await using var write = blobWrites.Begin(storageKey);
         StoredBlob storedBlob;
         try
         {
@@ -433,7 +435,9 @@ public static partial class DocumentEndpoints
                     sourceFile.SizeBytes,
                     now),
                 cancellationToken);
+            write.PersistenceStarting();
             await database.SaveChangesAsync(cancellationToken);
+            write.Complete();
 
             return Results.Created(
                 $"/api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}/documents/{documentId}/source-files/{sourceFile.Id}",
@@ -441,14 +445,9 @@ public static partial class DocumentEndpoints
         }
         catch (DbUpdateException error) when (error is DbUpdateConcurrencyException || error.InnerException is SqlException { Number: 2601 or 2627 })
         {
-            await blobStore.DeleteIfExistsAsync(storageKey, CancellationToken.None);
+            await write.DiscardAfterConflictAsync();
             if (uploadId.HasValue && await ReplaySourceUploadAsync(sourceFileId, document, access.Actor!.UserId, file, database, cancellationToken, storedBlob) is { } committed) return committed;
             return Results.Conflict(new { error = "document_revision_conflict" });
-        }
-        catch
-        {
-            await blobStore.DeleteIfExistsAsync(storageKey, CancellationToken.None);
-            throw;
         }
     }
 

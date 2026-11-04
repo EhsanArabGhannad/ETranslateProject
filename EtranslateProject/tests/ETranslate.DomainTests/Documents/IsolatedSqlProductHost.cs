@@ -24,7 +24,7 @@ internal sealed class IsolatedSqlProductHost : IAsyncDisposable
     {
         // Never accept a remote server, credentials, a caller-selected catalog or a reusable database.
         if (!Regex.IsMatch(server, @"^\.(\\[A-Za-z0-9_]+)?$")) throw new ArgumentException("Use a local SQL instance name only.");
-        if (suite is not ("sql-pagination" or "editor-access" or "editor-concurrency" or "editor-recovery" or "editor-compatibility" or "editor-uploads" or "editor-performance")) throw new ArgumentException("Unknown isolated QA suite.");
+        if (suite is not ("sql-pagination" or "editor-access" or "editor-concurrency" or "editor-recovery" or "editor-compatibility" or "editor-uploads" or "editor-performance" or "storage-failures")) throw new ArgumentException("Unknown isolated QA suite.");
         this.server = server; Root = Path.GetFullPath(root);
         if (!File.Exists(Path.Combine(Root, "ETranslate.slnx"))) throw new ArgumentException("Solution root required.");
         Output = Path.Combine(Root, "tmp", "pdfs", suite, RunId);
@@ -45,6 +45,17 @@ internal sealed class IsolatedSqlProductHost : IAsyncDisposable
 
     public async Task StartAsync()
     {
+        await CreateDatabasesAsync();
+        await StartService("identity-access", "Services/IdentityAccess/ETranslate.IdentityAccess.Api");
+        await StartService("billing", "Services/Billing/ETranslate.Billing.Api");
+        await StartService("translation-workflow", "Services/TranslationWorkflow/ETranslate.TranslationWorkflow.Api");
+        await StartService("documents", "Services/Documents/ETranslate.Documents.Api");
+        await StartService("trust", "Services/Trust/ETranslate.Trust.Api");
+        await StartService("web", "Web/ETranslate.Web");
+    }
+
+    public async Task CreateDatabasesAsync()
+    {
         var master = new SqlConnectionStringBuilder(Connection("messaging")) { InitialCatalog = "master" };
         await using (var sql = new SqlConnection(master.ConnectionString))
         {
@@ -58,12 +69,6 @@ internal sealed class IsolatedSqlProductHost : IAsyncDisposable
                 await create.ExecuteNonQueryAsync(); ownedDatabases.Add(database);
             }
         }
-        await StartService("identity-access", "Services/IdentityAccess/ETranslate.IdentityAccess.Api");
-        await StartService("billing", "Services/Billing/ETranslate.Billing.Api");
-        await StartService("translation-workflow", "Services/TranslationWorkflow/ETranslate.TranslationWorkflow.Api");
-        await StartService("documents", "Services/Documents/ETranslate.Documents.Api");
-        await StartService("trust", "Services/Trust/ETranslate.Trust.Api");
-        await StartService("web", "Web/ETranslate.Web");
     }
 
     private async Task StartService(string name, string relativeProject)

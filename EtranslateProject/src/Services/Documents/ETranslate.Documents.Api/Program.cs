@@ -42,6 +42,7 @@ var storageRoot = string.IsNullOrWhiteSpace(configuredStorageRoot)
     : configuredStorageRoot;
 builder.Services.AddSingleton(new DocumentStorageOptions { RootPath = storageRoot });
 builder.Services.AddSingleton<IDocumentBlobStore, LocalDocumentBlobStore>();
+builder.Services.AddSingleton<DocumentBlobWrites>();
 builder.Services.AddSingleton<IDraftPdfRenderer, ChromiumDraftPdfRenderer>();
 builder.Services.AddSingleton<ISigningPreviewRenderer, SigningPreviewRenderer>();
 

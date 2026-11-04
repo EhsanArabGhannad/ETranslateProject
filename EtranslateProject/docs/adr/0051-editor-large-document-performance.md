@@ -25,3 +25,5 @@ Across four synthetic and two real-product PDFs, the comparison independently de
 ## Limits
 
 This is one local Windows Chromium run, with one user at a time and small compressed image fixtures. It does not establish multiuser capacity, mobile/IME performance, worst-case image bytes/pixels, maximum schema node/JSON size, memory ceilings, process restart behavior or deployed network latency. The PDF renderer retains its one-slot concurrency and existing deadlines; no browser pooling or load balancing was introduced. Roadmap step 7 remains incomplete.
+
+Follow-up: [ADR 0052](0052-blob-retention-after-uncertain-database-commit.md) protects stored files after uncertain database writes and adds bounded SQL/filesystem fault injection.

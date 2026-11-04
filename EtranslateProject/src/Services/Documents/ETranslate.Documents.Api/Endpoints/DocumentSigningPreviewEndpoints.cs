@@ -15,7 +15,7 @@ public static partial class DocumentEndpoints
 {
     private static async Task<IResult> CreateSigningPreviewAsync(Guid tenantId, Guid translationJobId, Guid documentId, Guid preparationId,
         HttpContext context, TenantAccessClient identity, SigningPlanClient trust, DocumentsDbContext db,
-        IDocumentBlobStore store, ISigningPreviewRenderer renderer, TimeProvider clock, ILoggerFactory loggers, CancellationToken ct)
+        IDocumentBlobStore store, DocumentBlobWrites blobWrites, ISigningPreviewRenderer renderer, TimeProvider clock, ILoggerFactory loggers, CancellationToken ct)
     {
         context.Response.Headers.CacheControl = "private, no-store";
         var access = await AuthorizeAsync(tenantId, context, identity, true, ct);
@@ -52,6 +52,7 @@ public static partial class DocumentEndpoints
             return Results.Problem(statusCode: 503, title: "signing_preview_renderer_unavailable");
         }
         var key = $"{tenantId:N}/{documentId:N}/signing-previews/{id:N}.pdf";
+        await using var write = blobWrites.Begin(key);
         await using var stream = new MemoryStream(bytes, writable: false);
         var stored = await store.SaveAsync(key, stream, "application/pdf", DraftPdfPolicy.MaximumBytes, ct);
         try
@@ -60,31 +61,30 @@ public static partial class DocumentEndpoints
             var latest = await trust.ReadAsync(tenantId, translationJobId, documentId, preparationId, authorization, ct);
             if (latest.Status != 200)
             {
-                await store.DeleteIfExistsAsync(key, CancellationToken.None);
                 return Results.StatusCode(latest.Status);
             }
             if (!SigningPreviewPolicy.CanGenerate(latest.Value!) || !await PreviewSourceIsCurrent(db, plan, ct))
             {
-                await store.DeleteIfExistsAsync(key, CancellationToken.None);
                 return PreviewConflict();
             }
             var preview = new DocumentSigningPreview(id, documentId, preparationId, plan.ReviewId, plan.PdfVersionId,
                 plan.PdfSha256, SigningPreviewPolicy.RendererVersion, JsonSerializer.Serialize(plan), key,
                 stored.SizeBytes, stored.Sha256, access.Actor.UserId, clock.GetUtcNow());
             db.SigningPreviews.Add(preview);
+            write.PersistenceStarting();
             await db.SaveChangesAsync(ct);
+            write.Complete();
             return Results.Created($"/api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}/documents/{documentId}/signing-previews/{id}/file", PreviewResponse(preview));
         }
         catch (DbUpdateException error) when (error.InnerException is SqlException { Number: 2601 or 2627 })
         {
-            await store.DeleteIfExistsAsync(key, CancellationToken.None);
+            await write.DiscardAfterConflictAsync();
             existing = await db.SigningPreviews.AsNoTracking().SingleOrDefaultAsync(item => item.PreparationId == preparationId &&
                 item.RendererVersion == SigningPreviewPolicy.RendererVersion, ct);
             if (existing is null) throw;
             return await ReadVerifiedPreviewPdf(store, existing.StorageKey, existing.SizeBytes, existing.Sha256, ct) is null
                 ? PreviewUnavailable() : Results.Ok(PreviewResponse(existing));
         }
-        catch { await store.DeleteIfExistsAsync(key, CancellationToken.None); throw; }
     }
     private static async Task<IResult> GetSigningPreviewsAsync(Guid tenantId, Guid translationJobId, Guid documentId,
         HttpContext context, TenantAccessClient identity, DocumentsDbContext db, CancellationToken ct)

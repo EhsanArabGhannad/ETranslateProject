@@ -13,7 +13,7 @@ public static partial class DocumentTemplateEndpoints
     private static async Task<IResult> UploadAssetAsync(
         Guid tenantId, Guid templateId, IFormFile file, HttpContext httpContext,
         TenantAccessClient tenantAccessClient, DocumentsDbContext database,
-        IDocumentBlobStore blobStore, IPublishEndpoint publishEndpoint,
+        IDocumentBlobStore blobStore, DocumentBlobWrites blobWrites, IPublishEndpoint publishEndpoint,
         TimeProvider timeProvider, CancellationToken cancellationToken)
     {
         var access = await AuthorizeAsync(tenantId, httpContext, tenantAccessClient, true, cancellationToken);
@@ -36,6 +36,7 @@ public static partial class DocumentTemplateEndpoints
 
         var id = Guid.NewGuid();
         var key = $"{tenantId:N}/templates/{templateId:N}/assets/{id:N}{SourceFilePolicy.GetExtension(contentType)}";
+        await using var write = blobWrites.Begin(key);
         StoredBlob stored;
         try
         {
@@ -47,24 +48,18 @@ public static partial class DocumentTemplateEndpoints
             return Results.ValidationProblem(new Dictionary<string, string[]> { ["file"] = [exception.Message] });
         }
 
-        try
-        {
-            var now = timeProvider.GetUtcNow();
-            var asset = TemplateAsset.Create(id, templateId, fileName, contentType,
-                stored.SizeBytes, stored.Sha256, key, access.Actor!.UserId, now);
-            database.TemplateAssets.Add(asset);
-            await publishEndpoint.Publish(new TemplateAssetUploadedV1(
-                Guid.NewGuid(), id, templateId, tenantId, asset.Sha256, asset.SizeBytes,
-                asset.UploadedByUserId, now), cancellationToken);
-            await database.SaveChangesAsync(cancellationToken);
-            return Results.Created(
-                $"/api/v1/tenants/{tenantId}/document-templates/{templateId}/assets/{id}", ToAssetResponse(asset));
-        }
-        catch
-        {
-            await blobStore.DeleteIfExistsAsync(key, CancellationToken.None);
-            throw;
-        }
+        var now = timeProvider.GetUtcNow();
+        var asset = TemplateAsset.Create(id, templateId, fileName, contentType,
+            stored.SizeBytes, stored.Sha256, key, access.Actor!.UserId, now);
+        database.TemplateAssets.Add(asset);
+        await publishEndpoint.Publish(new TemplateAssetUploadedV1(
+            Guid.NewGuid(), id, templateId, tenantId, asset.Sha256, asset.SizeBytes,
+            asset.UploadedByUserId, now), cancellationToken);
+        write.PersistenceStarting();
+        await database.SaveChangesAsync(cancellationToken);
+        write.Complete();
+        return Results.Created(
+            $"/api/v1/tenants/{tenantId}/document-templates/{templateId}/assets/{id}", ToAssetResponse(asset));
     }
 
     private static async Task<IResult> GetAssetsAsync(

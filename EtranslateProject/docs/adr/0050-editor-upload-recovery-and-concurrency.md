@@ -33,3 +33,5 @@ The identity is page memory, not durable offline storage. Reload/closure, resele
 This acceptance does not prove recovery from SQL/storage failure at an uncertain commit, service/process crash, browser crash, shared/object storage outages or a full HTTP body disconnect matrix. Existing general exception/cleanup paths are not redesigned here. Unreferenced managed images remain retained under the existing history policy; no garbage collector or asset picker is introduced. Roadmap step 7 remains incomplete.
 
 Follow-up: [ADR 0051](0051-editor-large-document-performance.md) adds local large-document measurements and avoids repeated pagination measurement for view-only state changes.
+
+The general cleanup limitation above is addressed separately by [ADR 0052](0052-blob-retention-after-uncertain-database-commit.md): unknown persistence outcomes retain blobs; explicit conflicts check references before deletion. Process crash and durable orphan reconciliation remain separate.

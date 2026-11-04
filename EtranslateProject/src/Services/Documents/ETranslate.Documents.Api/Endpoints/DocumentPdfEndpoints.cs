@@ -13,7 +13,7 @@ public static partial class DocumentEndpoints
 {
     private static async Task<IResult> CreateDraftPdfAsync(Guid tenantId, Guid translationJobId, Guid documentId, int revisionNumber,
         HttpContext httpContext, TenantAccessClient tenantAccessClient, DocumentsDbContext database,
-        IDocumentBlobStore blobStore, IDraftPdfRenderer renderer, TimeProvider timeProvider, ILoggerFactory loggers, CancellationToken cancellationToken)
+        IDocumentBlobStore blobStore, DocumentBlobWrites blobWrites, IDraftPdfRenderer renderer, TimeProvider timeProvider, ILoggerFactory loggers, CancellationToken cancellationToken)
     {
         var access = await AuthorizeAsync(tenantId, httpContext, tenantAccessClient, true, cancellationToken);
         if (access.Error is not null) return access.Error;
@@ -74,6 +74,7 @@ public static partial class DocumentEndpoints
             return Results.Problem(statusCode: 503, title: "draft_pdf_renderer_unavailable");
         }
         var key = $"{tenantId:N}/{documentId:N}/draft-pdfs/{Guid.NewGuid():N}.pdf";
+        await using var write = blobWrites.Begin(key);
         await using var source = new MemoryStream(bytes, writable: false);
         var stored = await blobStore.SaveAsync(key, source, "application/pdf", DraftPdfPolicy.MaximumBytes, cancellationToken);
         var version = new DocumentPdfVersion(document.Id, draft.Id, draft.RevisionNumber, draft.TemplateRevisionId,
@@ -81,17 +82,18 @@ public static partial class DocumentEndpoints
         try
         {
             database.PdfVersions.Add(version);
+            write.PersistenceStarting();
             await database.SaveChangesAsync(cancellationToken);
+            write.Complete();
         }
         catch (DbUpdateException error) when (error.InnerException is SqlException { Number: 2601 or 2627 })
         {
-            await blobStore.DeleteIfExistsAsync(key, CancellationToken.None);
+            await write.DiscardAfterConflictAsync();
             existing = await database.PdfVersions.AsNoTracking().SingleOrDefaultAsync(item => item.DraftRevisionId == draft.Id &&
                 item.RendererVersion == DraftPdfPolicy.RendererVersion, cancellationToken);
             if (existing is null) throw;
             return Results.Ok(ToPdfResponse(existing));
         }
-        catch { await blobStore.DeleteIfExistsAsync(key, CancellationToken.None); throw; }
         return Results.Created($"/api/v1/tenants/{tenantId}/translation-jobs/{translationJobId}/documents/{documentId}/pdfs/{version.Id}", ToPdfResponse(version));
     }
 
