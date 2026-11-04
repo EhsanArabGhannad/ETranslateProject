@@ -24,7 +24,7 @@ internal sealed class IsolatedSqlProductHost : IAsyncDisposable
     {
         // Never accept a remote server, credentials, a caller-selected catalog or a reusable database.
         if (!Regex.IsMatch(server, @"^\.(\\[A-Za-z0-9_]+)?$")) throw new ArgumentException("Use a local SQL instance name only.");
-        if (suite is not ("sql-pagination" or "editor-access" or "editor-concurrency" or "editor-recovery" or "editor-compatibility" or "editor-uploads" or "editor-performance" or "storage-failures" or "storage-inventory")) throw new ArgumentException("Unknown isolated QA suite.");
+        if (suite is not ("sql-pagination" or "editor-access" or "editor-concurrency" or "editor-recovery" or "editor-compatibility" or "editor-uploads" or "editor-performance" or "storage-failures" or "storage-inventory" or "storage-restore")) throw new ArgumentException("Unknown isolated QA suite.");
         this.server = server; Root = Path.GetFullPath(root);
         if (!File.Exists(Path.Combine(Root, "ETranslate.slnx"))) throw new ArgumentException("Solution root required.");
         Output = Path.Combine(Root, "tmp", "pdfs", suite, RunId);
@@ -117,6 +117,40 @@ internal sealed class IsolatedSqlProductHost : IAsyncDisposable
         try { return ((IPEndPoint)listener.LocalEndpoint).Port; } finally { listener.Stop(); }
     }
 
+    // Rehearsal only: the source and destination are generated owned QA catalogs.
+    public async Task<string> BackupAndRestoreDocumentsAsync()
+    {
+        var source = databases["documentsdb"];
+        if (!ownedDatabases.Contains(source)) throw new InvalidOperationException("Owned source required.");
+        var target = $"ETranslatePaginationQa_{RunId}_restored";
+        var backup = Path.GetFullPath(Path.Combine(Output, "documents-copy-only.bak"));
+        var data = Path.GetFullPath(Path.Combine(Output, "restored.mdf"));
+        var log = Path.GetFullPath(Path.Combine(Output, "restored_log.ldf"));
+        foreach (var path in new[] { backup, data, log })
+            if (!path.StartsWith(Path.GetFullPath(Output) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) || File.Exists(path))
+                throw new InvalidOperationException("Fresh owned backup/restore files required.");
+        await using var sql = new SqlConnection(new SqlConnectionStringBuilder(Connection("documentsdb")) { InitialCatalog = "master" }.ConnectionString);
+        await sql.OpenAsync();
+        await using (var exists = new SqlCommand("SELECT DB_ID(@name)", sql)) {
+            exists.Parameters.AddWithValue("@name", target);
+            if (await exists.ExecuteScalarAsync() is not DBNull) throw new InvalidOperationException("Refusing to overwrite a restore target.");
+        }
+        await Execute($"BACKUP DATABASE [{source}] TO DISK = {Literal(backup)} WITH COPY_ONLY, CHECKSUM;");
+        await Execute($"RESTORE VERIFYONLY FROM DISK = {Literal(backup)} WITH CHECKSUM;");
+        var files = new List<(string Logical, string Type)>();
+        await using (var list = new SqlCommand($"RESTORE FILELISTONLY FROM DISK = {Literal(backup)}", sql))
+        await using (var reader = await list.ExecuteReaderAsync())
+            while (await reader.ReadAsync()) files.Add((reader.GetString(reader.GetOrdinal("LogicalName")), reader.GetString(reader.GetOrdinal("Type"))));
+        if (files.Count != 2 || files.Count(x => x.Type == "D") != 1 || files.Count(x => x.Type == "L") != 1) throw new InvalidOperationException("Expected one data and one log file in the QA backup.");
+        databases["restored"] = target; ownedDatabases.Add(target);
+        await Execute($"RESTORE DATABASE [{target}] FROM DISK = {Literal(backup)} WITH MOVE {Literal(files.Single(x => x.Type == "D").Logical)} TO {Literal(data)}, MOVE {Literal(files.Single(x => x.Type == "L").Logical)} TO {Literal(log)}, CHECKSUM, RECOVERY;");
+        await Execute($"DBCC CHECKDB ([{target}]) WITH NO_INFOMSGS, MAXDOP = 1;");
+        return Connection("restored");
+
+        async Task Execute(string text) { await using var command = new SqlCommand(text, sql) { CommandTimeout = 90 }; await command.ExecuteNonQueryAsync(); }
+        static string Literal(string value) => "N'" + value.Replace("'", "''") + "'";
+    }
+
     public async Task StopOwnedServiceAsync(string name)
     {
         var child = children.Single(item => item.Name == name);
@@ -150,7 +184,7 @@ internal sealed class IsolatedSqlProductHost : IAsyncDisposable
                 // Both exact ownership and a fresh run-specific name are required before deletion.
                 if (!databases.Values.Contains(database) || !database.StartsWith($"ETranslatePaginationQa_{RunId}_", StringComparison.Ordinal))
                     throw new InvalidOperationException("Database cleanup ownership check failed.");
-                await using var drop = new SqlCommand($"ALTER DATABASE [{database}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{database}];", sql) { CommandTimeout = 30 };
+                await using var drop = new SqlCommand($"IF DB_ID(N'{database}') IS NOT NULL BEGIN ALTER DATABASE [{database}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{database}]; END", sql) { CommandTimeout = 30 };
                 try { await drop.ExecuteNonQueryAsync(); } catch (Exception error) { failures.Add(error); }
             }
         }

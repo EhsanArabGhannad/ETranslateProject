@@ -31,3 +31,5 @@ See the [Persian guide](../testing/storage-inventory.fa.md) for the sample, usag
 This is an observation across SQL and a live filesystem, not an atomic backup snapshot or durable reconciliation queue. Uploads can finish before/after either read; filesystem age is not proof of operation age, inactivity or ownership. Observed reparse points are excluded, but the tool is intended for an operator-controlled local root, not a security boundary against hostile concurrent path replacement. Windows local SQL/filesystem behavior is tested; object stores and other platforms are not accepted here.
 
 Hash equality verifies bytes against recorded metadata, not document validity, legal acceptance or an electronic signature. The tool does not repair losses predating ADR 0052 and cannot establish that an unreferenced file is disposable. Backup/restore acceptance and any retention/deletion policy remain separate work. Roadmap step 7 remains incomplete.
+
+Follow-up: [ADR 0054](0054-isolated-documents-backup-restore-rehearsal.md) adds a quiesced local Documents backup/restore rehearsal; whole-system recovery remains separate.
